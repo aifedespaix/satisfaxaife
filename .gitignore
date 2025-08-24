@@ -1,0 +1,145 @@
+# ========================================
+# PYTHON BASICS
+# ========================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# ========================================
+# VIRTUAL ENVIRONMENTS
+# ========================================
+.venv/
+venv/
+env/
+ENV/
+.uv/
+.venv.bak/
+poetry.lock.bak
+.pdm.toml.bak
+
+# ========================================
+# DEPENDENCY / BUILD ARTEFACTS
+# ========================================
+build/
+dist/
+*.egg-info/
+*.eggs/
+.eggs/
+.installed.cfg
+
+# Packaging (wheel)
+*.whl
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ========================================
+# CACHE & LINTING
+# ========================================
+*.log
+*.tmp
+*.cache/
+.cache/
+.pytest_cache/
+.coverage
+.coverage.*
+*.cover
+*.py,cover
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+
+# Profiling outputs
+prof/
+scalene.out
+*.prof
+*.pstats
+
+# ========================================
+# VIDEO & RENDER EXPORTS
+# ========================================
+# Export TikTok/YouTube assets
+*.mp4
+*.mov
+*.avi
+*.webm
+*.mkv
+*.gif
+
+# Frames temporaires
+frames/
+*.png
+*.jpg
+*.jpeg
+
+# Audio assets générés
+*.wav
+*.mp3
+*.ogg
+
+# ========================================
+# BLENDER (si tu utilises bpy)
+# ========================================
+*.blend1
+*.blend2
+*.blend@
+*.blend1@
+*.blend2@
+*.blend@
+
+# Blender caches
+__MACOSX/
+blender_autosave/
+blender_cache/
+*.bphys
+*.blend@
+
+# ========================================
+# IDE / EDITOR CONFIGS
+# ========================================
+
+# VSCode
+.vscode/
+.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+
+# JetBrains caches
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/gradle.xml
+.idea/**/libraries
+.idea/**/shelf/
+
+# ========================================
+# OS SPECIFIC
+# ========================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+__MACOSX/
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
