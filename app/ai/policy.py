@@ -13,6 +13,7 @@ class SimplePolicy:
     """Very small deterministic combat policy."""
 
     style: Literal["aggressive", "kiter"]
+    vertical_offset: float = 0.1
 
     def decide(self, me: EntityId, view: WorldView) -> tuple[Vec2, Vec2, bool]:
         """Return acceleration, facing vector and fire decision."""
@@ -48,4 +49,10 @@ class SimplePolicy:
             face = direction
             if dist <= 300 and direction[0] * face[0] + direction[1] * face[1] >= cos_thresh:
                 fire = True
+
+        if abs(dy) <= 1e-6:
+            offset_face = (direction[0], self.vertical_offset)
+            norm = math.hypot(*offset_face) or 1.0
+            face = (offset_face[0] / norm, offset_face[1] / norm)
+
         return accel, face, fire

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import pytest
 
 from app.ai.policy import SimplePolicy
 from app.core.types import Damage, EntityId, Vec2
 from app.weapons.base import WorldView
+from app.weapons.shuriken import Shuriken
 
 
 @dataclass
@@ -17,6 +18,7 @@ class DummyView(WorldView):
     pos_enemy: Vec2
     health_me: float = 1.0
     health_enemy: float = 1.0
+    last_velocity: Vec2 | None = field(default=None, init=False)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
         return self.enemy
@@ -33,8 +35,17 @@ class DummyView(WorldView):
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:  # noqa: D401
         return
 
-    def spawn_projectile(self, *args, **kwargs) -> None:  # noqa: D401, ANN002
-        return
+    def spawn_projectile(
+        self,
+        owner: EntityId,
+        position: Vec2,
+        velocity: Vec2,
+        radius: float,
+        damage: Damage,
+        knockback: float,
+        ttl: float,
+    ) -> None:  # noqa: D401
+        self.last_velocity = velocity
 
 
 def test_kiter_moves_away() -> None:
@@ -55,3 +66,16 @@ def test_retreats_on_low_health(style: str) -> None:
     assert accel[0] < 0  # retreats from enemy
     assert face == (1.0, 0.0)  # still faces enemy
     assert fire is False
+    
+def test_horizontal_alignment_has_vertical_component() -> None:
+    me = EntityId(1)
+    enemy = EntityId(2)
+    view = DummyView(me, enemy, (0.0, 0.0), (50.0, 0.0))
+    policy = SimplePolicy("aggressive")
+    weapon = Shuriken()
+    accel, face, fire = policy.decide(me, view)
+    assert fire is True
+    assert face[1] != 0.0
+    weapon.trigger(me, view, face)
+    assert view.last_velocity is not None
+    assert view.last_velocity[1] != 0.0
