@@ -1,7 +1,10 @@
+"""Application settings loaded from a JSON file."""
+
 from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import cast
 
 from pydantic import BaseModel
 
@@ -9,7 +12,7 @@ from app.core.types import Color
 from app.render.theme import TeamColors, Theme
 
 
-class Canvas(BaseModel):
+class Canvas(BaseModel):  # type: ignore[misc]
     """Video canvas configuration."""
 
     width: int = 1080
@@ -21,14 +24,14 @@ class Canvas(BaseModel):
         return 1.0 / float(self.fps)
 
 
-class HudConfig(BaseModel):
+class HudConfig(BaseModel):  # type: ignore[misc]
     """Texts displayed in the HUD."""
 
     title: str = "Battle Balls"
     watermark: str = "@battleballs"
 
 
-class EndScreenConfig(BaseModel):
+class EndScreenConfig(BaseModel):  # type: ignore[misc]
     """End screen behavior and texts."""
 
     victory_text: str = "VICTOIRE : {team}"
@@ -39,8 +42,8 @@ class EndScreenConfig(BaseModel):
     fade_ms: int = 400
 
 
-class Settings(BaseModel):
-    """Application configuration loaded from a JSON file."""
+class Settings(BaseModel):  # type: ignore[misc]
+    """Application configuration container."""
 
     canvas: Canvas = Canvas()
     theme: Theme = Theme(
@@ -71,12 +74,14 @@ class Settings(BaseModel):
 
 
 def load_settings(path: Path | None = None) -> Settings:
-    """Load settings from a JSON file, falling back to defaults."""
+    """Load settings from ``path`` or return defaults."""
+
     path = path or Path(__file__).with_name("config.json")
     if path.exists():
         data = json.loads(path.read_text())
-        return Settings.model_validate(data)
+        return cast(Settings, Settings.model_validate(data))
     return Settings()
 
 
 settings = load_settings()
+
