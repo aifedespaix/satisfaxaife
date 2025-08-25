@@ -51,6 +51,27 @@ class Weapon:
         if self._timer > 0:
             self._timer = max(0.0, self._timer - dt)
 
+    def update(self, owner: EntityId, view: WorldView, dt: float) -> None:
+        """Update weapon state every frame.
+
+        Parameters
+        ----------
+        owner : EntityId
+            Entity identifier owning the weapon.
+        view : WorldView
+            Read-only access to the game state.
+        dt : float
+            Time delta for the current frame in seconds.
+
+        Notes
+        -----
+        Subclasses may override to implement continuous effects such as
+        beams or shields. The default implementation does nothing, making
+        the method optional for weapons that only react when fired.
+        """
+
+        return None
+
     def trigger(self, owner: EntityId, view: WorldView, direction: Vec2) -> None:
         """Attempt to fire the weapon from *owner* facing *direction*."""
         if self._timer > 0:
