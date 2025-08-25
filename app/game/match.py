@@ -177,6 +177,7 @@ def run_match(  # noqa: C901
                     p.ball.body.velocity[1] + accel[1] * settings.dt,
                 )
                 p.weapon.step(settings.dt)
+                p.weapon.update(p.eid, view, settings.dt)
                 if fire:
                     p.weapon.trigger(p.eid, view, face)
                 p.ball.cap_speed()
@@ -224,9 +225,7 @@ def run_match(  # noqa: C901
                 players[1].ball.health / players[1].ball.stats.max_health,
             )
             hud.draw_title(renderer.surface, settings.hud.title)
-            renderer.draw_hp(
-                renderer.surface, hud, (weapon_a.capitalize(), weapon_b.capitalize())
-            )
+            renderer.draw_hp(renderer.surface, hud, (weapon_a.capitalize(), weapon_b.capitalize()))
             hud.draw_watermark(renderer.surface, settings.hud.watermark)
             renderer.present()
             frame_surface = renderer.surface.copy()
@@ -256,9 +255,7 @@ def run_match(  # noqa: C901
             subtitle = settings.end_screen.subtitle_text.format(weapon=weapon_name)
             banner_surface = buffer[-1].copy()
             hud.draw_victory_banner(banner_surface, title, subtitle)
-            banner_frame = np.swapaxes(
-                pygame.surfarray.array3d(banner_surface), 0, 1
-            )
+            banner_frame = np.swapaxes(pygame.surfarray.array3d(banner_surface), 0, 1)
             freeze_frames = int(settings.end_screen.freeze_ms / 1000 * settings.fps)
             for _ in range(max(1, freeze_frames)):
                 recorder.add_frame(banner_frame)

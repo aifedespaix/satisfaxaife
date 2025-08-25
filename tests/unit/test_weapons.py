@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import cast
 
+import pytest
+
+from app.core.config import settings
 from app.core.types import Damage, EntityId, Vec2
-from app.weapons.base import WorldView
+from app.game.match import MatchTimeout, run_match
+from app.render.renderer import Renderer
+from app.video.recorder import NullRecorder, Recorder
+from app.weapons import weapon_registry
+from app.weapons.base import Weapon, WorldView
 from app.weapons.katana import Katana
 
 
@@ -44,3 +52,29 @@ def test_katana_cooldown_and_damage() -> None:
     weapon.step(0.6)
     weapon.trigger(owner, view, (1.0, 0.0))
     assert view.damage_values == [18, 18]
+
+
+class SpyWeapon(Weapon):
+    """Weapon used to verify update calls inside the match loop."""
+
+    calls: list[EntityId] = []
+
+    def __init__(self) -> None:
+        super().__init__(name="spy", cooldown=0.0, damage=Damage(0))
+
+    def _fire(self, owner: EntityId, view: WorldView, direction: Vec2) -> None:  # noqa: D401
+        return None
+
+    def update(self, owner: EntityId, view: WorldView, dt: float) -> None:  # noqa: D401
+        self.calls.append(owner)
+
+
+def test_weapon_update_called_each_frame() -> None:
+    SpyWeapon.calls = []
+    if "spy" not in weapon_registry.names():
+        weapon_registry.register("spy", SpyWeapon)
+    recorder = cast(Recorder, NullRecorder())
+    renderer = Renderer(settings.width, settings.height)
+    with pytest.raises(MatchTimeout):
+        run_match("spy", "spy", recorder, renderer, max_seconds=1)
+    assert set(SpyWeapon.calls) == {EntityId(1), EntityId(2)}
