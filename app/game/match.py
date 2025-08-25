@@ -90,10 +90,24 @@ class _MatchView(WorldView):
         self.projectiles.append(proj)
 
 
-def run_match(seconds: int, weapon_a: str, weapon_b: str, recorder: Recorder) -> EntityId | None:  # noqa: C901
-    """Run a minimal match and record frames."""
+def run_match(
+    seconds: int,
+    weapon_a: str,
+    weapon_b: str,
+    recorder: Recorder,
+    renderer: Renderer | None = None,
+) -> EntityId | None:  # noqa: C901
+    """Run a minimal match and record frames.
+
+    Args:
+        seconds: Duration of the match in seconds.
+        weapon_a: Name of the first weapon.
+        weapon_b: Name of the second weapon.
+        recorder: Target recorder for rendered frames.
+        renderer: Optional renderer instance. If omitted, an off-screen renderer is used.
+    """
     world = PhysicsWorld()
-    renderer = Renderer(settings.width, settings.height)
+    renderer = renderer or Renderer(settings.width, settings.height)
     hud = Hud(settings.theme)
 
     ball_a = Ball.spawn(world, (settings.width * 0.25, settings.height * 0.5))

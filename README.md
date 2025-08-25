@@ -16,6 +16,7 @@ Le code est **modulaire**, **extensible** et **typé**, pensé pour créer **des
 - 🧠 **IA configurable** : agressive, kite, support… ou comportements personnalisés.
 - 🎨 **Rendu vertical 1080×1920** optimisé pour TikTok.
 - 🎥 **Export vidéo automatique** en `.mp4` via [imageio-ffmpeg](https://imageio.readthedocs.io/).
+- 🖥️ **Mode affichage** sans enregistrement grâce à l'option `--display`.
 - 🔄 **Reproductibilité totale** grâce aux seeds (mêmes combats → mêmes résultats).
 - 🧩 **Architecture plug-in** : ajout d'armes, IA ou effets visuels sans toucher au moteur.
 - 🔊 **Effets sonores & particules** (prévu pour la v2).
@@ -108,8 +109,16 @@ uv run python -m app.cli run \
   --out out/katana_vs_shuriken.mp4
 ```
 
-📌 **Résultat :**  
+📌 **Résultat :**
 Une vidéo **1080×1920, 60 FPS, .mp4**, prête pour TikTok.
+
+Pour afficher la simulation sans enregistrer de vidéo, ajoutez `--display` :
+
+```bash
+uv run python -m app.cli run --display
+```
+
+Aucun fichier vidéo n'est créé dans ce mode.
 
 ---
 
