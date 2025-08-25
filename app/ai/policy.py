@@ -24,11 +24,16 @@ class SimplePolicy:
         dy = enemy_pos[1] - my_pos[1]
         dist = math.hypot(dx, dy)
         direction = (dx / dist, dy / dist) if dist else (1.0, 0.0)
+        my_health = view.get_health_ratio(me)
 
         accel: Vec2 = (0.0, 0.0)
         face: Vec2 = direction
         fire = False
         cos_thresh = math.cos(math.radians(18))
+
+        if my_health < 0.15:
+            accel = (-direction[0] * 400.0, -direction[1] * 400.0)
+            return accel, face, fire
 
         if self.style == "aggressive":
             accel = (direction[0] * 400.0, direction[1] * 400.0)
