@@ -35,12 +35,12 @@ def test_run_timeout(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     runner = CliRunner()
     out = tmp_path / "timeout.mp4"
 
+    # On force un timeout en remplaçant app.cli.run_match par un wrapper
     from app.game import match as match_module
 
-    def run_match_short(
-        weapon_a: str, weapon_b: str, recorder: Recorder
-    ) -> None:
-        match_module.run_match(weapon_a, weapon_b, recorder, max_seconds=0)
+    def run_match_short(weapon_a: str, weapon_b: str, recorder: Recorder, renderer=None) -> None:
+        # max_seconds=0 provoque systématiquement un MatchTimeout
+        match_module.run_match(weapon_a, weapon_b, recorder, renderer, max_seconds=0)
 
     monkeypatch.setattr("app.cli.run_match", run_match_short)
 
@@ -59,6 +59,31 @@ def test_run_timeout(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         ],
     )
     assert result.exit_code != 0
-    assert "exceeded" in result.stderr.lower()
+    assert "exceeded" in (result.stderr or "").lower()
+    # Le fichier ne doit pas exister après nettoyage du recorder sur timeout
+    assert not out.exists()
+    assert not out.with_suffix(".gif").exists()
+
+
+def test_run_display_mode_no_file(tmp_path: Path) -> None:
+    runner = CliRunner()
+    out = tmp_path / "display.mp4"
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--seed",
+            "1",
+            "--weapon-a",
+            "katana",
+            "--weapon-b",
+            "shuriken",
+            "--out",
+            str(out),
+            "--display",
+        ],
+    )
+    assert result.exit_code == 0
+    # En mode display, aucun fichier ne doit être créé
     assert not out.exists()
     assert not out.with_suffix(".gif").exists()

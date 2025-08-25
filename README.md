@@ -16,6 +16,7 @@ Le code est **modulaire**, **extensible** et **typé**, pensé pour créer **des
 - 🧠 **IA configurable** : agressive, kite, support… ou comportements personnalisés.
 - 🎨 **Rendu vertical 1080×1920** optimisé pour TikTok.
 - 🎥 **Export vidéo automatique** en `.mp4` via [imageio-ffmpeg](https://imageio.readthedocs.io/).
+- 🖥️ **Mode affichage** sans enregistrement grâce à l'option `--display`.
 - 🔄 **Reproductibilité totale** grâce aux seeds (mêmes combats → mêmes résultats).
 - 🧩 **Architecture plug-in** : ajout d'armes, IA ou effets visuels sans toucher au moteur.
 - 🔊 **Effets sonores & particules** (prévu pour la v2).
@@ -113,6 +114,12 @@ Une vidéo **1080×1920, 60 FPS, .mp4**, prête pour TikTok.
 ⏱️ *La durée du match dépend de la dynamique du jeu.*
 Si aucun vainqueur n’est déterminé après **2 minutes**, le moteur interrompt
 automatiquement la simulation et renvoie un **message d’erreur**.
+
+Pour afficher la simulation sans enregistrer de vidéo, ajoutez `--display` :
+
+```bash
+uv run python -m app.cli run --display
+```
 
 ---
 

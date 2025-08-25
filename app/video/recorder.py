@@ -27,3 +27,13 @@ class Recorder:
     def close(self) -> None:
         """Finalize and close the video file."""
         self.writer.close()
+
+
+class NullRecorder:
+    """Recorder that discards frames and writes nothing."""
+
+    def add_frame(self, _frame: np.ndarray) -> None:  # noqa: D401 - same interface
+        """Ignore a pre-rendered frame."""
+
+    def close(self) -> None:  # noqa: D401 - same interface
+        """No-op close method."""

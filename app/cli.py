@@ -7,7 +7,8 @@ import typer
 
 from app.core.config import settings
 from app.game.match import MatchTimeout, run_match
-from app.video.recorder import Recorder
+from app.render.renderer import Renderer
+from app.video.recorder import NullRecorder, Recorder
 
 app = typer.Typer(help="Génération de vidéos satisfaction (TikTok).")
 
@@ -18,18 +19,35 @@ def run(
     weapon_a: str = "katana",
     weapon_b: str = "shuriken",
     out: Path = Path("out.mp4"),
+    display: bool = typer.Option(
+        False, "--display/--no-display", help="Display simulation instead of recording"
+    ),
 ) -> None:
-    """Run a single match and export a video."""
+    """Run a single match and optionally export a video."""
     random.seed(seed)
-    recorder = Recorder(settings.width, settings.height, settings.fps, out)
+
+    # Choix du renderer et du recorder selon le mode
+    if display:
+        renderer = Renderer(settings.width, settings.height, display=True)
+        recorder = NullRecorder()
+    else:
+        recorder = Recorder(settings.width, settings.height, settings.fps, out)
+        renderer = Renderer(settings.width, settings.height)
+
     try:
-        run_match(weapon_a, weapon_b, recorder)
+        # API unifiée : la gestion du temps est interne et peut lever MatchTimeout
+        # (adapte si run_match diffère dans ton codebase)
+        run_match(weapon_a, weapon_b, recorder, renderer)
     except MatchTimeout as exc:
-        if recorder.path.exists():
-            recorder.path.unlink()
+        # Nettoyage du fichier partiel si un Recorder fichier était utilisé
+        path = getattr(recorder, "path", None)
+        if path is not None and path.exists():
+            path.unlink()
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(code=1) from None
-    typer.echo(f"Saved video to {recorder.path}")
+
+    if not display:
+        typer.echo(f"Saved video to {recorder.path}")
 
 
 @app.command()

@@ -78,26 +78,27 @@ class _MatchView(WorldView):
                 p.ball.body.apply_impulse_at_local_point((vx, vy))
                 return
 
-    def spawn_projectile(
-        self,
-        owner: EntityId,
-        position: Vec2,
-        velocity: Vec2,
-        radius: float,
-        damage: Damage,
-        knockback: float,
-        ttl: float,
-    ) -> None:
-        proj = Projectile.spawn(
-            self.world, owner, position, velocity, radius, damage, knockback, ttl
-        )
-        self.projectiles.append(proj)
+def spawn_projectile(
+    self,
+    owner: EntityId,
+    position: Vec2,
+    velocity: Vec2,
+    radius: float,
+    damage: Damage,
+    knockback: float,
+    ttl: float,
+) -> None:
+    proj = Projectile.spawn(
+        self.world, owner, position, velocity, radius, damage, knockback, ttl
+    )
+    self.projectiles.append(proj)
 
 
 def run_match(  # noqa: C901
     weapon_a: str,
     weapon_b: str,
     recorder: Recorder,
+    renderer: Renderer | None = None,
     max_seconds: int = 120,
 ) -> EntityId | None:
     """Run a minimal match and record frames.
@@ -110,6 +111,8 @@ def run_match(  # noqa: C901
         Weapon used by team B.
     recorder : Recorder
         Recorder instance responsible for writing video frames.
+    renderer : Renderer | None, optional
+        Optional renderer instance. If ``None``, an off-screen renderer is created.
     max_seconds : int, optional
         Maximum duration of the match. Default is 120 seconds.
 
@@ -124,7 +127,7 @@ def run_match(  # noqa: C901
         If the match exceeds ``max_seconds`` without a winner.
     """
     world = PhysicsWorld()
-    renderer = Renderer(settings.width, settings.height)
+    renderer = renderer or Renderer(settings.width, settings.height)
     hud = Hud(settings.theme)
 
     ball_a = Ball.spawn(world, (settings.width * 0.25, settings.height * 0.5))
