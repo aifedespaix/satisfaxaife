@@ -4,26 +4,32 @@ from dataclasses import dataclass
 
 import pymunk
 
-from app.core.types import Damage, Vec2
+from app.core.types import Damage, EntityId, Vec2
 from app.world.physics import PhysicsWorld
 
 
 @dataclass(slots=True)
 class Projectile:
-    """Simple projectile that moves and deals damage on hit."""
+    """Dynamic projectile with a limited lifetime."""
 
+    owner: EntityId
     body: pymunk.Body
     shape: pymunk.Circle
     damage: Damage
+    knockback: float
+    ttl: float
 
     @classmethod
     def spawn(
         cls,
         world: PhysicsWorld,
+        owner: EntityId,
         position: Vec2,
         velocity: Vec2,
-        radius: float = 5.0,
-        damage: Damage | None = None,
+        radius: float,
+        damage: Damage,
+        knockback: float,
+        ttl: float,
     ) -> Projectile:
         """Create and add a projectile to the physics world."""
         moment = pymunk.moment_for_circle(1.0, 0, radius)
@@ -34,10 +40,9 @@ class Projectile:
         shape.elasticity = 1.0
         shape.friction = 0.0
         world.space.add(body, shape)
-        damage = damage or Damage(amount=10.0)
-        return cls(body=body, shape=shape, damage=damage)
+        return cls(owner=owner, body=body, shape=shape, damage=damage, knockback=knockback, ttl=ttl)
 
-    def step(self, dt: float) -> None:  # noqa: ARG002 - future use
-        """Advance the projectile state for one frame."""
-        # Physics is handled by the world; placeholder for extra logic.
-        return
+    def step(self, dt: float) -> bool:
+        """Advance state and return True if still alive."""
+        self.ttl -= dt
+        return self.ttl > 0
