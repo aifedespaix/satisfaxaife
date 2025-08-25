@@ -1,20 +1,37 @@
-# app/cli.py
+from __future__ import annotations
+
+import random
+from pathlib import Path
+
 import typer
-from app.core.config import FPS
-from app.runner import run_match, run_batch  # à créer léger
+
+from app.core.config import settings
+from app.game.match import run_match
+from app.video.recorder import Recorder
 
 app = typer.Typer(help="Génération de vidéos satisfaction (TikTok).")
 
-@app.command()
-def run(weapon_a: str = "katana", weapon_b: str = "shuriken",
-        seed: int = 42, seconds: int = 22, out: str = "battle.mp4"):
-    """Lance un match unique et exporte la vidéo."""
-    run_match(weapon_a, weapon_b, seed, seconds, out)
 
 @app.command()
-def batch(count: int = 10, out_dir: str = "out"):
-    """Génère N vidéos (armes/seeds variées)."""
-    run_batch(count, out_dir)
+def run(
+    seconds: int = 3,
+    seed: int = 0,
+    weapon_a: str = "katana",
+    weapon_b: str = "shuriken",
+    out: Path = Path("out.mp4"),
+) -> None:
+    """Run a single match and export a video."""
+    random.seed(seed)
+    recorder = Recorder(settings.width, settings.height, settings.fps, out)
+    run_match(seconds, weapon_a, weapon_b, recorder)
+    typer.echo(f"Saved video to {recorder.path}")
 
-if __name__ == "__main__":
+
+@app.command()
+def batch(count: int = 1) -> None:  # noqa: ARG001 - placeholder
+    """Placeholder for batch generation."""
+    return
+
+
+if __name__ == "__main__":  # pragma: no cover
     app()
