@@ -14,7 +14,7 @@ app = typer.Typer(help="Génération de vidéos satisfaction (TikTok).")
 
 @app.command()
 def run(seconds: int = 3, seed: int = 0, out: Path = Path("out.mp4")) -> None:
-    """Run a single stub match and export a video."""
+    """Run a single match and export a video."""
     random.seed(seed)
     recorder = Recorder(settings.width, settings.height, settings.fps, out)
     run_match(seconds, recorder)
