@@ -145,6 +145,7 @@ uv run python -m app.cli batch \
 ## ⚙️ Configuration personnalisée
 
 - **Armes** disponibles : `app/weapons/`
+- Chaque arme expose un attribut `speed` (float) indiquant la vitesse de son projectile ou de son effet. Par exemple, la `Shuriken` voyage à `600.0` unités par seconde, tandis que la `Katana` reste à `0.0`.
 - **IA** : agressive, kite, support, teamplay.
 - **Équipes** : passer de 1v1 → 2v2 → FFA → Battle Royale.
 - **Rendu** : couleurs, arènes, effets visuels.

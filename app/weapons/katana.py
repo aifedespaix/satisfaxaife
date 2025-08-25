@@ -12,7 +12,7 @@ class Katana(Weapon):
     """Close-range melee weapon."""
 
     def __init__(self) -> None:
-        super().__init__(name="katana", cooldown=0.6, damage=Damage(18))
+        super().__init__(name="katana", cooldown=0.6, damage=Damage(18), speed=0.0)
 
     def _fire(self, owner: EntityId, view: WorldView, direction: Vec2) -> None:
         enemy = view.get_enemy(owner)

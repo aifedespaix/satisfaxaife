@@ -13,6 +13,7 @@ from app.video.recorder import NullRecorder, Recorder
 from app.weapons import weapon_registry
 from app.weapons.base import Weapon, WorldView
 from app.weapons.katana import Katana
+from app.weapons.shuriken import Shuriken
 
 
 @dataclass
@@ -52,6 +53,15 @@ def test_katana_cooldown_and_damage() -> None:
     weapon.step(0.6)
     weapon.trigger(owner, view, (1.0, 0.0))
     assert view.damage_values == [18, 18]
+
+
+def test_weapon_speed_attribute() -> None:
+    """Weapons expose their projectile speed on the base class."""
+    katana = Katana()
+    shuriken = Shuriken()
+
+    assert katana.speed == 0.0
+    assert shuriken.speed == 600.0
 
 
 class SpyWeapon(Weapon):
