@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import typing
 from dataclasses import dataclass
 
 from app.core.types import Color
+
+if typing.TYPE_CHECKING:
+    import pygame
 
 
 @dataclass(frozen=True)
@@ -22,8 +26,8 @@ class Theme:
 
 
 def draw_horizontal_gradient(
-    surface: 'pygame.Surface',
-    rect: 'pygame.Rect',
+    surface: pygame.Surface,
+    rect: pygame.Rect,
     start: Color,
     end: Color,
 ) -> None:
