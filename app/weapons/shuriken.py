@@ -10,11 +10,10 @@ class Shuriken(Weapon):
     """Ranged projectile weapon."""
 
     def __init__(self) -> None:
-        super().__init__(name="shuriken", cooldown=0.4, damage=Damage(10))
+        super().__init__(name="shuriken", cooldown=0.4, damage=Damage(10), speed=600.0)
 
     def _fire(self, owner: EntityId, view: WorldView, direction: Vec2) -> None:
-        speed = 600.0
-        velocity = (direction[0] * speed, direction[1] * speed)
+        velocity = (direction[0] * self.speed, direction[1] * self.speed)
         position = view.get_position(owner)
         view.spawn_projectile(
             owner,

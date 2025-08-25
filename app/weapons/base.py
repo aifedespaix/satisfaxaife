@@ -39,11 +39,26 @@ class WorldView(Protocol):
 
 @dataclass(slots=True)
 class Weapon:
-    """Base weapon with a cooldown timer."""
+    """Base weapon with a cooldown timer.
+
+    Attributes
+    ----------
+    name:
+        Unique weapon identifier.
+    cooldown:
+        Minimum delay in seconds between two consecutive shots.
+    damage:
+        Amount of damage inflicted on each successful hit.
+    speed:
+        Velocity of the weapon's projectile or effect in units per second.
+    _timer:
+        Internal cooldown tracker used to throttle fire rate.
+    """
 
     name: str
     cooldown: float
     damage: Damage
+    speed: float = 0.0
     _timer: float = 0.0
 
     def step(self, dt: float) -> None:
