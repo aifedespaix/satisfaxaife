@@ -131,7 +131,9 @@ uv run python -m app.cli batch \
 - **IA** : agressive, kite, support, teamplay.
 - **Équipes** : passer de 1v1 → 2v2 → FFA → Battle Royale.
 - **Rendu** : couleurs, arènes, effets visuels.
-- **FPS / résolution** : modifier `app/core/config.py`.
+- **Boucle & fin de match** : freeze 120 ms, ralenti ×0.35, bannière « VICTOIRE » puis fondu vers le début (400 ms).
+- **Configuration externe** : `app/config.json` regroupe canvas, palette (bleu/orange), HUD (titre, watermark) et paramètres d'**end screen** (textes, slow-mo, fade...).
+- **FPS / résolution** : ajuster `canvas` dans `app/config.json`.
 
 ---
 

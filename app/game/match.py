@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import sqrt
 
+import numpy as np
+import pygame
+
 from app.ai.policy import SimplePolicy
 from app.core.config import settings
 from app.core.types import Color, Damage, EntityId, Vec2
@@ -91,7 +94,7 @@ def run_match(seconds: int, weapon_a: str, weapon_b: str, recorder: Recorder) ->
     """Run a minimal match and record frames."""
     world = PhysicsWorld()
     renderer = Renderer(settings.width, settings.height)
-    hud = Hud()
+    hud = Hud(settings.theme)
 
     ball_a = Ball.spawn(world, (settings.width * 0.25, settings.height * 0.5))
     ball_b = Ball.spawn(world, (settings.width * 0.75, settings.height * 0.5))
@@ -102,7 +105,7 @@ def run_match(seconds: int, weapon_a: str, weapon_b: str, recorder: Recorder) ->
             weapon_registry.create(weapon_a),
             SimplePolicy("aggressive"),
             (1.0, 0.0),
-            (255, 0, 0),
+            settings.theme.team_a.primary,
         ),
         Player(
             ball_b.eid,
@@ -110,7 +113,7 @@ def run_match(seconds: int, weapon_a: str, weapon_b: str, recorder: Recorder) ->
             weapon_registry.create(weapon_b),
             SimplePolicy("kiter"),
             (-1.0, 0.0),
-            (0, 255, 0),
+            settings.theme.team_b.primary,
         ),
     ]
     projectiles: list[Projectile] = []
@@ -118,6 +121,9 @@ def run_match(seconds: int, weapon_a: str, weapon_b: str, recorder: Recorder) ->
 
     total_frames = int(seconds * settings.fps)
     winner: EntityId | None = None
+    first_frame: pygame.Surface | None = None
+    buffer: list[pygame.Surface] = []
+    buffer_len = int(settings.end_screen.slowmo_duration * settings.fps)
     for _ in range(total_frames):
         for p in players:
             if not p.alive:
@@ -176,15 +182,56 @@ def run_match(seconds: int, weapon_a: str, weapon_b: str, recorder: Recorder) ->
             players[0].ball.health / players[0].ball.stats.max_health,
             players[1].ball.health / players[1].ball.stats.max_health,
         )
-        renderer.draw_hp(renderer.surface, hud, (weapon_a.capitalize(), weapon_b.capitalize()))
+        hud.draw_title(renderer.surface, settings.hud.title)
+        renderer.draw_hp(
+            renderer.surface, hud, (weapon_a.capitalize(), weapon_b.capitalize())
+        )
+        hud.draw_watermark(renderer.surface, settings.hud.watermark)
         renderer.present()
-        frame = renderer.capture_frame()
-        recorder.add_frame(frame)
+        frame_surface = renderer.surface.copy()
+        frame = pygame.surfarray.array3d(frame_surface)
+        recorder.add_frame(np.swapaxes(frame, 0, 1))
+        if first_frame is None:
+            first_frame = frame_surface.copy()
+        buffer.append(frame_surface)
+        if len(buffer) > buffer_len:
+            buffer.pop(0)
 
         alive = [p for p in players if p.alive]
         if len(alive) == 1:
             winner = alive[0].eid
             break
+
+    if winner is not None and buffer:
+        title = settings.end_screen.victory_text.format(
+            team="A" if winner == players[0].eid else "B"
+        )
+        weapon_name = weapon_a if winner == players[0].eid else weapon_b
+        subtitle = settings.end_screen.subtitle_text.format(weapon=weapon_name)
+        banner_surface = buffer[-1].copy()
+        hud.draw_victory_banner(banner_surface, title, subtitle)
+        banner_frame = np.swapaxes(pygame.surfarray.array3d(banner_surface), 0, 1)
+        freeze_frames = int(settings.end_screen.freeze_ms / 1000 * settings.fps)
+        for _ in range(max(1, freeze_frames)):
+            recorder.add_frame(banner_frame)
+
+        slow_factor = settings.end_screen.slowmo
+        repeat = max(1, int(1 / slow_factor))
+        for surf in buffer:
+            surf_copy = surf.copy()
+            hud.draw_victory_banner(surf_copy, title, subtitle)
+            arr = np.swapaxes(pygame.surfarray.array3d(surf_copy), 0, 1)
+            for _ in range(repeat):
+                recorder.add_frame(arr)
+
+        if first_frame is not None:
+            start_arr = pygame.surfarray.array3d(first_frame)
+            end_arr = pygame.surfarray.array3d(banner_surface)
+            fade_frames = int(settings.end_screen.fade_ms / 1000 * settings.fps)
+            for i in range(max(1, fade_frames)):
+                t = (i + 1) / fade_frames
+                blended = (end_arr * (1 - t) + start_arr * t).astype(np.uint8)
+                recorder.add_frame(np.swapaxes(blended, 0, 1))
 
     recorder.close()
     return winner
