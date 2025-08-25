@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from app.core.types import Damage, EntityId, Vec2
+from app.render.renderer import Renderer
 
 
 class WorldView(Protocol):
@@ -24,6 +25,9 @@ class WorldView(Protocol):
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:
         """Apply an impulse to the entity's body."""
 
+    def spawn_effect(self, effect: WeaponEffect) -> None:
+        """Register a new weapon effect to be processed by the match."""
+
     def spawn_projectile(
         self,
         owner: EntityId,
@@ -33,8 +37,29 @@ class WorldView(Protocol):
         damage: Damage,
         knockback: float,
         ttl: float,
-    ) -> None:
-        """Spawn a projectile owned by *owner*."""
+    ) -> WeaponEffect:
+        """Spawn a projectile owned by *owner* and register it."""
+
+
+class WeaponEffect(Protocol):
+    """Dynamic entity created by a weapon."""
+
+    owner: EntityId
+
+    def step(self, dt: float) -> bool:
+        """Advance state and return ``True`` while the effect is active."""
+
+    def collides(self, view: WorldView, position: Vec2, radius: float) -> bool:
+        """Return ``True`` if the effect intersects a circle at *position*."""
+
+    def on_hit(self, view: WorldView, target: EntityId) -> bool:
+        """Handle a collision with *target* and return ``True`` to keep the effect."""
+
+    def draw(self, renderer: Renderer, view: WorldView) -> None:
+        """Render the effect on *renderer*."""
+
+    def destroy(self) -> None:
+        """Clean up resources when the effect is removed."""
 
 
 @dataclass(slots=True)

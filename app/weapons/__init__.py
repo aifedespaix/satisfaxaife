@@ -1,4 +1,17 @@
-"""Weapon plugins."""
+"""Weapon plugins and registry.
+
+Third-party packages can extend the game by registering new weapons::
+
+    from app.weapons import weapon_registry, Weapon
+
+    class MyWeapon(Weapon):
+        ...
+
+    weapon_registry.register("my_weapon", MyWeapon)
+
+All modules importing this package will automatically discover registered
+weapons.
+"""
 
 from app.core.registry import Registry
 

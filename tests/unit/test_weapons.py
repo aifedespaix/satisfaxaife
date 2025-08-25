@@ -11,7 +11,7 @@ from app.game.match import MatchTimeout, run_match
 from app.render.renderer import Renderer
 from app.video.recorder import NullRecorder, Recorder
 from app.weapons import weapon_registry
-from app.weapons.base import Weapon, WorldView
+from app.weapons.base import Weapon, WeaponEffect, WorldView
 from app.weapons.katana import Katana
 from app.weapons.shuriken import Shuriken
 
@@ -37,8 +37,29 @@ class DummyView(WorldView):
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:  # noqa: D401
         return
 
-    def spawn_projectile(self, *args: object, **kwargs: object) -> None:  # noqa: D401
+    def spawn_effect(self, effect: WeaponEffect) -> None:  # noqa: D401
         return
+
+    def spawn_projectile(self, *args: object, **kwargs: object) -> WeaponEffect:  # noqa: D401
+        class _Dummy(WeaponEffect):
+            owner: EntityId = EntityId(0)
+
+            def step(self, dt: float) -> bool:
+                return False
+
+            def collides(self, view: WorldView, position: Vec2, radius: float) -> bool:
+                return False
+
+            def on_hit(self, view: WorldView, target: EntityId) -> bool:
+                return False
+
+            def draw(self, renderer: object, view: WorldView) -> None:
+                return None
+
+            def destroy(self) -> None:
+                return None
+
+        return _Dummy()
 
 
 def test_katana_cooldown_and_damage() -> None:
