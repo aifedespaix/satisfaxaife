@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pytest import MonkeyPatch
 from typer.testing import CliRunner
 
 from app.cli import app
+from app.video.recorder import Recorder
 
 
 def test_run_creates_video(tmp_path: Path) -> None:
@@ -14,8 +16,6 @@ def test_run_creates_video(tmp_path: Path) -> None:
         app,
         [
             "run",
-            "--seconds",
-            "1",
             "--seed",
             "1",
             "--weapon-a",
@@ -31,15 +31,47 @@ def test_run_creates_video(tmp_path: Path) -> None:
     assert video_path.exists()
 
 
-def test_run_display_mode_no_file(tmp_path: Path) -> None:
+def test_run_timeout(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     runner = CliRunner()
-    out = tmp_path / "test.mp4"
+    out = tmp_path / "timeout.mp4"
+
+    # On force un timeout en remplaçant app.cli.run_match par un wrapper
+    from app.game import match as match_module
+
+    def run_match_short(weapon_a: str, weapon_b: str, recorder: Recorder, renderer=None) -> None:
+        # max_seconds=0 provoque systématiquement un MatchTimeout
+        match_module.run_match(weapon_a, weapon_b, recorder, renderer, max_seconds=0)
+
+    monkeypatch.setattr("app.cli.run_match", run_match_short)
+
     result = runner.invoke(
         app,
         [
             "run",
-            "--seconds",
+            "--seed",
             "1",
+            "--weapon-a",
+            "katana",
+            "--weapon-b",
+            "shuriken",
+            "--out",
+            str(out),
+        ],
+    )
+    assert result.exit_code != 0
+    assert "exceeded" in (result.stderr or "").lower()
+    # Le fichier ne doit pas exister après nettoyage du recorder sur timeout
+    assert not out.exists()
+    assert not out.with_suffix(".gif").exists()
+
+
+def test_run_display_mode_no_file(tmp_path: Path) -> None:
+    runner = CliRunner()
+    out = tmp_path / "display.mp4"
+    result = runner.invoke(
+        app,
+        [
+            "run",
             "--seed",
             "1",
             "--weapon-a",
@@ -52,5 +84,6 @@ def test_run_display_mode_no_file(tmp_path: Path) -> None:
         ],
     )
     assert result.exit_code == 0
+    # En mode display, aucun fichier ne doit être créé
     assert not out.exists()
     assert not out.with_suffix(".gif").exists()

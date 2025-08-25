@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from app.core.config import settings
 from app.render.hud import Hud
 from app.render.renderer import Renderer
-from app.core.config import settings
 
 
 def test_hud_draws_without_errors() -> None:
