@@ -84,6 +84,11 @@ frames/
 *.mp3
 *.ogg
 
+# Project output directories
+out/
+logs/
+artifacts/
+
 # ========================================
 # BLENDER (si tu utilises bpy)
 # ========================================

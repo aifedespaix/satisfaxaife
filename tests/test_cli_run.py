@@ -6,6 +6,7 @@ from pytest import MonkeyPatch
 from typer.testing import CliRunner
 
 from app.cli import app
+from app.render.renderer import Renderer
 from app.video.recorder import Recorder
 
 
@@ -38,7 +39,12 @@ def test_run_timeout(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     # On force un timeout en remplaçant app.cli.run_match par un wrapper
     from app.game import match as match_module
 
-    def run_match_short(weapon_a: str, weapon_b: str, recorder: Recorder, renderer=None) -> None:
+    def run_match_short(
+        weapon_a: str,
+        weapon_b: str,
+        recorder: Recorder,
+        renderer: Renderer | None = None,
+    ) -> None:
         # max_seconds=0 provoque systématiquement un MatchTimeout
         match_module.run_match(weapon_a, weapon_b, recorder, renderer, max_seconds=0)
 

@@ -1,11 +1,14 @@
 # 🎥 Battle Balls — Générateur automatique de vidéos satisfaction TikTok
 
-![Banner](docs/banner.png)
 
 **Battle Balls** est un moteur Python permettant de **générer automatiquement des vidéos "satisfaction" pour TikTok** 🎬  
 Le concept : des **boules armées** (katana, shuriken, etc.) s’affrontent dans une arène, et le moteur **simule physiquement** le combat en temps réel, puis **exporte la vidéo** en haute qualité, prête à être postée sur TikTok.
 
 Le code est **modulaire**, **extensible** et **typé**, pensé pour créer **des centaines de vidéos uniques** automatiquement.
+
+## 👀 Aperçu
+
+Image de prévisualisation à venir.
 
 ---
 
@@ -125,7 +128,11 @@ uv run python -m app.cli run --display
 
 ## 📦 Générer un batch de vidéos
 
-Générer **10 vidéos TikTok** aléatoires automatiquement :
+Génère plusieurs combats en série avec seeds et armes aléatoires. Les fichiers
+sont nommés `battle_seed<seed>_<armeA>_vs_<armeB>.mp4` et enregistrés dans le
+répertoire spécifié.
+
+Exemple pour créer **10 vidéos TikTok** :
 
 ```bash
 uv run python -m app.cli batch \
@@ -152,6 +159,20 @@ uv run python -m app.cli batch \
 ```bash
 uv run pytest
 ```
+
+---
+
+## 📱 Conseils TikTok
+
+- Utiliser une musique tendance et des hashtags pertinents.
+- Préparer une miniature accrocheuse.
+- Publier régulièrement pour alimenter l’algorithme.
+
+## 🛠️ Troubleshooting
+
+- **Aucune fenêtre** : forcer `SDL_VIDEODRIVER=dummy` pour l’exécution headless.
+- **Pas de vidéo générée** : vérifier l’installation de `imageio-ffmpeg`.
+- **Erreur SDL** : installer les bibliothèques systèmes `SDL2`.
 
 ---
 

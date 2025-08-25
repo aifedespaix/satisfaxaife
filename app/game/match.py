@@ -84,20 +84,20 @@ class _MatchView(WorldView):
                 p.ball.body.apply_impulse_at_local_point((vx, vy))
                 return
 
-def spawn_projectile(
-    self,
-    owner: EntityId,
-    position: Vec2,
-    velocity: Vec2,
-    radius: float,
-    damage: Damage,
-    knockback: float,
-    ttl: float,
-) -> None:
-    proj = Projectile.spawn(
-        self.world, owner, position, velocity, radius, damage, knockback, ttl
-    )
-    self.projectiles.append(proj)
+    def spawn_projectile(
+        self,
+        owner: EntityId,
+        position: Vec2,
+        velocity: Vec2,
+        radius: float,
+        damage: Damage,
+        knockback: float,
+        ttl: float,
+    ) -> None:
+        proj = Projectile.spawn(
+            self.world, owner, position, velocity, radius, damage, knockback, ttl
+        )
+        self.projectiles.append(proj)
 
 
 def run_match(  # noqa: C901
