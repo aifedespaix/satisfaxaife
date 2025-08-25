@@ -6,7 +6,7 @@ from pathlib import Path
 import typer
 
 from app.core.config import settings
-from app.game.match import run_match
+from app.game.match import MatchTimeout, run_match
 from app.video.recorder import Recorder
 
 app = typer.Typer(help="Génération de vidéos satisfaction (TikTok).")
@@ -14,7 +14,6 @@ app = typer.Typer(help="Génération de vidéos satisfaction (TikTok).")
 
 @app.command()
 def run(
-    seconds: int = 3,
     seed: int = 0,
     weapon_a: str = "katana",
     weapon_b: str = "shuriken",
@@ -23,7 +22,13 @@ def run(
     """Run a single match and export a video."""
     random.seed(seed)
     recorder = Recorder(settings.width, settings.height, settings.fps, out)
-    run_match(seconds, weapon_a, weapon_b, recorder)
+    try:
+        run_match(weapon_a, weapon_b, recorder)
+    except MatchTimeout as exc:
+        if recorder.path.exists():
+            recorder.path.unlink()
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1) from None
     typer.echo(f"Saved video to {recorder.path}")
 
 

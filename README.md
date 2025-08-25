@@ -97,19 +97,22 @@ uv run python -m app.cli --help
 
 ## 🎮 Lancer un match simple
 
-Exemple : **Katana VS Shuriken**, durée 22s, seed = 42 :
+Exemple : **Katana VS Shuriken**, seed = 42 :
 
 ```bash
 uv run python -m app.cli run \
   --weapon-a katana \
   --weapon-b shuriken \
-  --seconds 22 \
   --seed 42 \
   --out out/katana_vs_shuriken.mp4
 ```
 
-📌 **Résultat :**  
+📌 **Résultat :**
 Une vidéo **1080×1920, 60 FPS, .mp4**, prête pour TikTok.
+
+⏱️ *La durée du match dépend de la dynamique du jeu.*
+Si aucun vainqueur n’est déterminé après **2 minutes**, le moteur interrompt
+automatiquement la simulation et renvoie un **message d’erreur**.
 
 ---
 

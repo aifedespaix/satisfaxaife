@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pytest import MonkeyPatch
 from typer.testing import CliRunner
 
 from app.cli import app
+from app.video.recorder import Recorder
 
 
 def test_run_creates_video(tmp_path: Path) -> None:
@@ -14,8 +16,6 @@ def test_run_creates_video(tmp_path: Path) -> None:
         app,
         [
             "run",
-            "--seconds",
-            "1",
             "--seed",
             "1",
             "--weapon-a",
@@ -29,3 +29,36 @@ def test_run_creates_video(tmp_path: Path) -> None:
     assert result.exit_code == 0
     video_path = out if out.exists() else out.with_suffix(".gif")
     assert video_path.exists()
+
+
+def test_run_timeout(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    runner = CliRunner()
+    out = tmp_path / "timeout.mp4"
+
+    from app.game import match as match_module
+
+    def run_match_short(
+        weapon_a: str, weapon_b: str, recorder: Recorder
+    ) -> None:
+        match_module.run_match(weapon_a, weapon_b, recorder, max_seconds=0)
+
+    monkeypatch.setattr("app.cli.run_match", run_match_short)
+
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--seed",
+            "1",
+            "--weapon-a",
+            "katana",
+            "--weapon-b",
+            "shuriken",
+            "--out",
+            str(out),
+        ],
+    )
+    assert result.exit_code != 0
+    assert "exceeded" in result.stderr.lower()
+    assert not out.exists()
+    assert not out.with_suffix(".gif").exists()

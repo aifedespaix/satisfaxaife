@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import pygame
+
 from app.core.types import Color
 
 
@@ -22,13 +24,12 @@ class Theme:
 
 
 def draw_horizontal_gradient(
-    surface: 'pygame.Surface',
-    rect: 'pygame.Rect',
+    surface: pygame.Surface,
+    rect: pygame.Rect,
     start: Color,
     end: Color,
 ) -> None:
     """Draw a left-to-right linear gradient on the given surface."""
-    import pygame
 
     for x in range(rect.width):
         ratio = x / rect.width
