@@ -66,6 +66,7 @@ scalene.out
 # VIDEO & RENDER EXPORTS
 # ========================================
 # Export TikTok/YouTube assets
+out/
 *.mp4
 *.mov
 *.avi
@@ -78,6 +79,9 @@ frames/
 *.png
 *.jpg
 *.jpeg
+
+# Logs des runs
+logs/
 
 # Audio assets générés
 *.wav

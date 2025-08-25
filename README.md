@@ -1,8 +1,6 @@
 # 🎥 Battle Balls — Générateur automatique de vidéos satisfaction TikTok
 
-![Banner](docs/banner.png)
-
-**Battle Balls** est un moteur Python permettant de **générer automatiquement des vidéos "satisfaction" pour TikTok** 🎬  
+**Battle Balls** est un moteur Python permettant de **générer automatiquement des vidéos "satisfaction" pour TikTok** 🎬
 Le concept : des **boules armées** (katana, shuriken, etc.) s’affrontent dans une arène, et le moteur **simule physiquement** le combat en temps réel, puis **exporte la vidéo** en haute qualité, prête à être postée sur TikTok.
 
 Le code est **modulaire**, **extensible** et **typé**, pensé pour créer **des centaines de vidéos uniques** automatiquement.
@@ -115,13 +113,21 @@ Une vidéo **1080×1920, 60 FPS, .mp4**, prête pour TikTok.
 
 ## 📦 Générer un batch de vidéos
 
-Générer **10 vidéos TikTok** aléatoires automatiquement :
+Générer **10 vidéos TikTok** aléatoires automatiquement. La commande varie
+les seeds et sélectionne des armes aléatoires ; chaque fichier porte un nom
+explicite comme `battle_seed42_katana_vs_shuriken.mp4` :
 
 ```bash
 uv run python -m app.cli batch \
   --count 10 \
   --out-dir out
 ```
+
+## 🎯 Conseils TikTok
+
+- Utilise des musiques tendance depuis l'application.
+- Ajoute des hashtags populaires : `#foryou`, `#satisfying`, `#asmr`.
+- Privilégie des clips courts (20–40 s) pour maximiser le watch-time.
 
 ---
 
@@ -142,6 +148,12 @@ uv run python -m app.cli batch \
 ```bash
 uv run pytest
 ```
+
+## 🛠️ Troubleshooting
+
+- **Pygame: video system not initialized** → définir `SDL_VIDEODRIVER=dummy` en CI.
+- **FFmpeg introuvable** → installer `imageio-ffmpeg` via `uv sync`.
+- **Vidéo vide ou corrompue** → vérifier l'espace disque dans `out/`.
 
 ---
 

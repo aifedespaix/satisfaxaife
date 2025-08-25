@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -7,9 +8,11 @@ from typer.testing import CliRunner
 from app.cli import app
 
 
-def test_run_creates_video(tmp_path: Path) -> None:
+def test_run_creates_video() -> None:
+    os.environ["SDL_VIDEODRIVER"] = "dummy"
     runner = CliRunner()
-    out = tmp_path / "test.mp4"
+    out = Path("out") / "cli_run.mp4"
+    out.parent.mkdir(exist_ok=True)
     result = runner.invoke(
         app,
         [
@@ -27,5 +30,4 @@ def test_run_creates_video(tmp_path: Path) -> None:
         ],
     )
     assert result.exit_code == 0
-    video_path = out if out.exists() else out.with_suffix(".gif")
-    assert video_path.exists()
+    assert out.exists()

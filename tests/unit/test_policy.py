@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from app.ai.policy import SimplePolicy
@@ -36,3 +37,11 @@ def test_kiter_moves_away() -> None:
     accel, face, fire = policy.decide(EntityId(1), view)
     assert accel[0] < 0  # moves left, away from enemy
     assert fire is True
+
+
+def test_policy_returns_normalized_angle() -> None:
+    view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (100.0, 100.0))
+    policy = SimplePolicy("aggressive")
+    _, face, _ = policy.decide(EntityId(1), view)
+    assert face[0] > 0 and face[1] > 0
+    assert math.isclose(math.hypot(*face), 1.0, rel_tol=1e-6)
