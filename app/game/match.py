@@ -13,7 +13,7 @@ from app.render.hud import Hud
 from app.render.renderer import Renderer
 from app.video.recorder import Recorder
 from app.weapons import weapon_registry
-from app.weapons.base import Weapon, WorldView
+from app.weapons.base import Weapon, WeaponEffect, WorldView
 from app.world.entities import Ball
 from app.world.physics import PhysicsWorld
 from app.world.projectiles import Projectile
@@ -38,12 +38,12 @@ class _MatchView(WorldView):
     def __init__(
         self,
         players: list[Player],
-        projectiles: list[Projectile],
+        effects: list[WeaponEffect],
         world: PhysicsWorld,
         renderer: Renderer,
     ) -> None:
         self.players = players
-        self.projectiles = projectiles
+        self.effects = effects
         self.world = world
         self.renderer = renderer
 
@@ -57,10 +57,6 @@ class _MatchView(WorldView):
         for p in self.players:
             if p.eid == eid:
                 pos = p.ball.body.position
-                return (float(pos.x), float(pos.y))
-        for proj in self.projectiles:
-            if proj.owner == eid:
-                pos = proj.body.position
                 return (float(pos.x), float(pos.y))
         raise KeyError(eid)
 
@@ -84,6 +80,9 @@ class _MatchView(WorldView):
                 p.ball.body.apply_impulse_at_local_point((vx, vy))
                 return
 
+    def spawn_effect(self, effect: WeaponEffect) -> None:
+        self.effects.append(effect)
+
     def spawn_projectile(
         self,
         owner: EntityId,
@@ -93,11 +92,12 @@ class _MatchView(WorldView):
         damage: Damage,
         knockback: float,
         ttl: float,
-    ) -> None:
+    ) -> WeaponEffect:
         proj = Projectile.spawn(
             self.world, owner, position, velocity, radius, damage, knockback, ttl
         )
-        self.projectiles.append(proj)
+        self.effects.append(proj)
+        return proj
 
 
 def run_match(  # noqa: C901
@@ -156,8 +156,8 @@ def run_match(  # noqa: C901
             settings.theme.team_b.primary,
         ),
     ]
-    projectiles: list[Projectile] = []
-    view = _MatchView(players, projectiles, world, renderer)
+    effects: list[WeaponEffect] = []
+    view = _MatchView(players, effects, world, renderer)
 
     elapsed = 0.0
     winner: EntityId | None = None
@@ -182,33 +182,25 @@ def run_match(  # noqa: C901
                     p.weapon.trigger(p.eid, view, face)
                 p.ball.cap_speed()
 
-            for proj in list(projectiles):
-                if not proj.step(settings.dt):
-                    projectiles.remove(proj)
-                    world.space.remove(proj.body, proj.shape)
+            for eff in list(effects):
+                if not eff.step(settings.dt):
+                    eff.destroy()
+                    effects.remove(eff)
                     continue
                 for p in players:
-                    if p.eid == proj.owner or not p.alive:
+                    if p.eid == eff.owner or not p.alive:
                         continue
-                    pos_p = p.ball.body.position
-                    pos_proj = proj.body.position
-                    dx = pos_proj.x - pos_p.x
-                    dy = pos_proj.y - pos_p.y
-                    dist_sq = dx * dx + dy * dy
-                    if dist_sq <= (proj.shape.radius + p.ball.shape.radius) ** 2:
-                        view.deal_damage(p.eid, proj.damage)
-                        norm = sqrt(dist_sq) or 1.0
-                        view.apply_impulse(
-                            p.eid, dx / norm * proj.knockback, dy / norm * proj.knockback
-                        )
-                        world.space.remove(proj.body, proj.shape)
-                        projectiles.remove(proj)
+                    pos = (float(p.ball.body.position.x), float(p.ball.body.position.y))
+                    if eff.collides(view, pos, p.ball.shape.radius):
+                        keep = eff.on_hit(view, p.eid)
+                        if not keep:
+                            eff.destroy()
+                            effects.remove(eff)
                         break
             world.step(settings.dt)
             renderer.clear()
-            for proj in projectiles:
-                pos = (float(proj.body.position.x), float(proj.body.position.y))
-                renderer.draw_projectile(pos, int(proj.shape.radius), (255, 255, 0))
+            for eff in effects:
+                eff.draw(renderer, view)
             for p in players:
                 if not p.alive:
                     continue

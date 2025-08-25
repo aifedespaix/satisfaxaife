@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 
 from app.ai.policy import SimplePolicy
 from app.core.types import Damage, EntityId, Vec2
-from app.weapons.base import WorldView
+from app.weapons.base import WeaponEffect, WorldView
 from app.weapons.shuriken import Shuriken
 
 
@@ -31,6 +31,9 @@ class DummyView(WorldView):
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:  # noqa: D401
         return
 
+    def spawn_effect(self, effect: WeaponEffect) -> None:  # noqa: D401
+        return
+
     def spawn_projectile(
         self,
         owner: EntityId,
@@ -40,8 +43,28 @@ class DummyView(WorldView):
         damage: Damage,
         knockback: float,
         ttl: float,
-    ) -> None:  # noqa: D401
+    ) -> WeaponEffect:  # noqa: D401
         self.last_velocity = velocity
+
+        class _Dummy(WeaponEffect):
+            owner: EntityId = owner
+
+            def step(self, dt: float) -> bool:
+                return False
+
+            def collides(self, view: WorldView, position: Vec2, radius: float) -> bool:
+                return False
+
+            def on_hit(self, view: WorldView, target: EntityId) -> bool:
+                return False
+
+            def draw(self, renderer: object, view: WorldView) -> None:
+                return None
+
+            def destroy(self) -> None:
+                return None
+
+        return _Dummy()
 
 
 def test_policy_angle_has_vertical_component() -> None:
