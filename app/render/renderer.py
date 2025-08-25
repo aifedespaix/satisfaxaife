@@ -12,8 +12,6 @@ from app.core.config import settings
 from app.core.types import Color, Vec2
 from app.render.hud import Hud
 
-os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
-
 
 @dataclass(slots=True)
 class _BallState:
@@ -37,13 +35,30 @@ class _Impact:
 
 
 class Renderer:
-    """Off-screen renderer producing frames for the recorder."""
+    """Render match frames, optionally displaying them in a window."""
 
-    def __init__(self, width: int = settings.width, height: int = settings.height) -> None:
+    def __init__(
+        self,
+        width: int = settings.width,
+        height: int = settings.height,
+        display: bool = False,
+    ) -> None:
+        """Create a renderer.
+
+        Args:
+            width: Surface width in pixels.
+            height: Surface height in pixels.
+            display: Whether to show a window instead of rendering off-screen.
+        """
+        if not display:
+            os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
         pygame.init()
         pygame.font.init()
         self.width = width
         self.height = height
+        self._window: pygame.Surface | None = (
+            pygame.display.set_mode((width, height)) if display else None
+        )
         self.surface = pygame.Surface((width, height), flags=pygame.SRCALPHA)
         self._balls: dict[Color, _BallState] = {}
         self.frame_index = 0
@@ -178,6 +193,10 @@ class Renderer:
         hud.draw_hp_bars(surface, self._hp_display[0], self._hp_display[1], labels)
 
     def present(self) -> None:
+        """Advance to the next frame and update the display if enabled."""
+        if self._window is not None:
+            self._window.blit(self.surface, (0, 0))
+            pygame.display.flip()
         self.frame_index += 1
 
     def capture_frame(self) -> np.ndarray:
