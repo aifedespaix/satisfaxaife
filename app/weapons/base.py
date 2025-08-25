@@ -15,6 +15,9 @@ class WorldView(Protocol):
     def get_position(self, eid: EntityId) -> Vec2:
         """Return the current position of an entity."""
 
+    def get_health_ratio(self, eid: EntityId) -> float:
+        """Return the current health ratio ``health / max_health`` of an entity."""
+
     def deal_damage(self, eid: EntityId, damage: Damage) -> None:
         """Apply *damage* to the entity."""
 
