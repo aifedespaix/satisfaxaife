@@ -29,4 +29,13 @@ class EntityId:
     value: int
 
 
+@dataclass(slots=True)
+class ProjectileInfo:
+    """Snapshot of a projectile exposed to AI policies."""
+
+    owner: EntityId
+    position: Vec2
+    velocity: Vec2
+
+
 WeaponFactory = NewType("WeaponFactory", object)

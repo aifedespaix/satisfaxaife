@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from math import sqrt
 
@@ -8,7 +9,7 @@ import pygame
 
 from app.ai.policy import SimplePolicy
 from app.core.config import settings
-from app.core.types import Color, Damage, EntityId, Vec2
+from app.core.types import Color, Damage, EntityId, ProjectileInfo, Vec2
 from app.render.hud import Hud
 from app.render.renderer import Renderer
 from app.video.recorder import Recorder
@@ -109,6 +110,13 @@ class _MatchView(WorldView):
         )
         self.effects.append(proj)
         return proj
+
+    def iter_projectiles(self, excluding: EntityId | None = None) -> Iterable[ProjectileInfo]:
+        for eff in self.effects:
+            if isinstance(eff, Projectile) and eff.owner != excluding:
+                pos = (float(eff.body.position.x), float(eff.body.position.y))
+                vel = (float(eff.body.velocity.x), float(eff.body.velocity.y))
+                yield ProjectileInfo(eff.owner, pos, vel)
 
 
 def run_match(  # noqa: C901
