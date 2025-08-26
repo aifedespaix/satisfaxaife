@@ -118,7 +118,8 @@ Une vidéo **1080×1920, 60 FPS, .mp4**, prête pour TikTok.
 Si aucun vainqueur n’est déterminé après **2 minutes**, le moteur interrompt
 automatiquement la simulation et renvoie un **message d’erreur**.
 
-Pour afficher la simulation sans enregistrer de vidéo, ajoutez `--display` :
+Pour afficher la simulation sans enregistrer de vidéo, ajoutez `--display`.
+La fenêtre s'ouvre alors à la moitié de la résolution configurée afin de tenir sur l'écran :
 
 ```bash
 uv run python -m app.cli run --display

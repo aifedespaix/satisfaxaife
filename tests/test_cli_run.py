@@ -6,6 +6,7 @@ from pytest import MonkeyPatch
 from typer.testing import CliRunner
 
 from app.cli import app
+from app.core.config import settings
 from app.render.renderer import Renderer
 from app.video.recorder import Recorder
 
@@ -71,7 +72,24 @@ def test_run_timeout(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     assert not out.with_suffix(".gif").exists()
 
 
-def test_run_display_mode_no_file(tmp_path: Path) -> None:
+def test_run_display_mode_no_file(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    captured: dict[str, int | bool] = {}
+
+    original_init = Renderer.__init__
+
+    def spy_init(
+        self: Renderer,
+        width: int = settings.width,
+        height: int = settings.height,
+        display: bool = False,
+    ) -> None:
+        captured["width"] = width
+        captured["height"] = height
+        captured["display"] = display
+        original_init(self, width, height, display=display)
+
+    monkeypatch.setattr(Renderer, "__init__", spy_init)
+
     runner = CliRunner()
     out = tmp_path / "display.mp4"
     result = runner.invoke(
@@ -89,7 +107,11 @@ def test_run_display_mode_no_file(tmp_path: Path) -> None:
             "--display",
         ],
     )
+
     assert result.exit_code == 0
+    assert captured["width"] == settings.width // 2
+    assert captured["height"] == settings.height // 2
+    assert captured["display"] is True
     # En mode display, aucun fichier ne doit être créé
     assert not out.exists()
     assert not out.with_suffix(".gif").exists()
