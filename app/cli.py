@@ -28,9 +28,12 @@ def run(
     """Run a single match and optionally export a video."""
     random.seed(seed)
 
+    display_width = settings.width // 2
+    display_height = settings.height // 2
+
     recorder: Recorder | NullRecorder
     if display:
-        renderer = Renderer(settings.width, settings.height, display=True)
+        renderer = Renderer(display_width, display_height, display=True)
         recorder = NullRecorder()
     else:
         recorder = Recorder(settings.width, settings.height, settings.fps, out)
