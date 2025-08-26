@@ -6,7 +6,7 @@ from typing import Literal
 import pytest
 
 from app.ai.policy import SimplePolicy
-from app.core.types import Damage, EntityId, Vec2
+from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.weapons.base import WeaponEffect, WorldView
 from app.weapons.shuriken import Shuriken
 
@@ -73,6 +73,9 @@ class DummyView(WorldView):
 
         return _Dummy()
 
+    def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # noqa: D401
+        return []
+
 
 def test_kiter_moves_away() -> None:
     view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (50.0, 0.0))
@@ -104,3 +107,23 @@ def test_horizontal_alignment_has_vertical_component() -> None:
     weapon.trigger(me, view, face)
     assert view.last_velocity is not None
     assert view.last_velocity[1] != 0.0
+
+
+def test_aggressive_dodges_projectiles() -> None:
+    me = EntityId(1)
+    enemy = EntityId(2)
+
+    @dataclass
+    class ViewWithProjectile(DummyView):
+        proj_pos: Vec2 = (0.0, 0.0)
+        proj_vel: Vec2 = (0.0, 0.0)
+
+        def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # noqa: D401
+            return [ProjectileInfo(owner=enemy, position=self.proj_pos, velocity=self.proj_vel)]
+
+    view = ViewWithProjectile(
+        me, enemy, (0.0, 0.0), (100.0, 0.0), proj_pos=(40.0, 0.0), proj_vel=(-100.0, 0.0)
+    )
+    policy = SimplePolicy("aggressive")
+    accel, _, _ = policy.decide(me, view)
+    assert accel[1] < 0  # dodges downward

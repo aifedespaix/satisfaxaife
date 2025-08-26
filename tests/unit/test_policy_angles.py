@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from app.ai.policy import SimplePolicy
-from app.core.types import Damage, EntityId, Vec2
+from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.weapons.base import WeaponEffect, WorldView
 from app.weapons.shuriken import Shuriken
 
@@ -67,6 +67,9 @@ class DummyView(WorldView):
                 return None
 
         return _Dummy()
+
+    def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # noqa: D401
+        return []
 
 
 def test_policy_angle_has_vertical_component() -> None:
