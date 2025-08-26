@@ -73,7 +73,7 @@ def test_run_timeout(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
 
 
 def test_run_display_mode_no_file(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
-    captured: dict[str, int | bool] = {}
+    renderer_args: dict[str, int | bool] = {}
 
     original_init = Renderer.__init__
 
@@ -83,9 +83,9 @@ def test_run_display_mode_no_file(tmp_path: Path, monkeypatch: MonkeyPatch) -> N
         height: int = settings.height,
         display: bool = False,
     ) -> None:
-        captured["width"] = width
-        captured["height"] = height
-        captured["display"] = display
+        renderer_args["width"] = width
+        renderer_args["height"] = height
+        renderer_args["display"] = display
         original_init(self, width, height, display=display)
 
     monkeypatch.setattr(Renderer, "__init__", spy_init)
@@ -109,9 +109,11 @@ def test_run_display_mode_no_file(tmp_path: Path, monkeypatch: MonkeyPatch) -> N
     )
 
     assert result.exit_code == 0
-    assert captured["width"] == settings.width // 2
-    assert captured["height"] == settings.height // 2
-    assert captured["display"] is True
+    half_width = settings.width // 2
+    half_height = settings.height // 2
+    assert renderer_args["width"] == half_width
+    assert renderer_args["height"] == half_height
+    assert renderer_args["display"] is True
     # En mode display, aucun fichier ne doit être créé
     assert not out.exists()
     assert not out.with_suffix(".gif").exists()
