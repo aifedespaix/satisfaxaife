@@ -75,9 +75,6 @@ scalene.out
 
 # Frames temporaires
 frames/
-*.png
-*.jpg
-*.jpeg
 
 # Audio assets générés
 *.wav
