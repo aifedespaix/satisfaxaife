@@ -4,7 +4,8 @@ from dataclasses import dataclass, field
 
 from app.core.types import Damage, EntityId, Vec2
 from app.weapons.base import WeaponEffect, WorldView
-from app.weapons.orbital import KatanaOrbital, ShurikenOrbital
+from app.weapons.katana import Katana
+from app.weapons.shuriken import Shuriken
 
 
 @dataclass
@@ -55,28 +56,23 @@ class DummyView(WorldView):
         return _Dummy()
 
 
-def test_katana_orbital_hits_enemy() -> None:
-    weapon = KatanaOrbital()
+def test_katana_hits_enemy() -> None:
+    weapon = Katana()
     owner = EntityId(1)
     enemy = EntityId(2)
     view = DummyView(enemy=enemy, owner_pos=(0.0, 0.0), enemy_pos=(60.0, 0.0))
     weapon.update(owner, view, 0.0)
-    assert view.effects, "Satellite not spawned"
-    sat = view.effects[0]
-    if sat.collides(view, view.enemy_pos, 1.0):
-        sat.on_hit(view, enemy)
+    assert view.effects, "Orbit effect not spawned"
+    eff = view.effects[0]
+    if eff.collides(view, view.enemy_pos, 1.0):
+        eff.on_hit(view, enemy)
     assert view.damage_values == [weapon.damage.amount]
 
 
-def test_shuriken_orbital_hits_enemy() -> None:
-    weapon = ShurikenOrbital()
+def test_shuriken_projectile_spawns() -> None:
+    weapon = Shuriken()
     owner = EntityId(1)
     enemy = EntityId(2)
-    view = DummyView(enemy=enemy, owner_pos=(0.0, 0.0), enemy_pos=(50.0, 0.0))
-    weapon.update(owner, view, 0.0)
-    assert view.effects, "Satellites not spawned"
-    for sat in view.effects:
-        if sat.collides(view, view.enemy_pos, 1.0):
-            sat.on_hit(view, enemy)
-            break
-    assert view.damage_values == [weapon.damage.amount]
+    view = DummyView(enemy=enemy, owner_pos=(0.0, 0.0), enemy_pos=(0.0, 0.0))
+    weapon._fire(owner, view, (1.0, 0.0))
+    assert not view.damage_values

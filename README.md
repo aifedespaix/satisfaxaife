@@ -153,6 +153,12 @@ uv run python -m app.cli batch \
 - **Configuration externe** : `app/config.json` regroupe canvas, palette (bleu/orange), HUD (titre, watermark) et paramètres d'**end screen** (textes, slow-mo, fade...).
 - **FPS / résolution** : ajuster `canvas` dans `app/config.json`.
 
+### Développer une nouvelle arme
+
+1. **Skin** : placer l'image dans `assets/` puis la charger via `load_sprite`.
+2. **Paramètres** : définir vitesse, rayon et dégâts directement dans la classe de l'arme.
+3. **Attache à une boule** : instancier l'arme et l'enregistrer auprès d'un joueur dans `run_match`.
+
 ---
 
 ## 🧪 Lancer les tests

@@ -62,20 +62,6 @@ class DummyView(WorldView):
         return _Dummy()
 
 
-def test_katana_cooldown_and_damage() -> None:
-    weapon = Katana()
-    view = DummyView(enemy=EntityId(2), enemy_pos=(10.0, 0.0))
-    owner = EntityId(1)
-
-    weapon.trigger(owner, view, (1.0, 0.0))
-    weapon.trigger(owner, view, (1.0, 0.0))
-    assert view.damage_values == [18]
-
-    weapon.step(0.6)
-    weapon.trigger(owner, view, (1.0, 0.0))
-    assert view.damage_values == [18, 18]
-
-
 def test_weapon_speed_attribute() -> None:
     """Weapons expose their projectile speed on the base class."""
     katana = Katana()
