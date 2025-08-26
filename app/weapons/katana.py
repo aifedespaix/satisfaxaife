@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.core.types import Damage, EntityId, Vec2
 from app.render.sprites import load_sprite
+from app.world.entities import DEFAULT_BALL_RADIUS
 
 from . import weapon_registry
 from .base import Weapon, WorldView
@@ -14,7 +15,8 @@ class Katana(Weapon):
     def __init__(self) -> None:
         super().__init__(name="katana", cooldown=0.0, damage=Damage(18), speed=4.0)
         self._initialized = False
-        self._sprite = load_sprite("katana.png", scale=0.6)
+        blade_height = DEFAULT_BALL_RADIUS * 3.0
+        self._sprite = load_sprite("katana.png", max_dim=blade_height)
 
     def _fire(self, owner: EntityId, view: WorldView, direction: Vec2) -> None:
         return None
