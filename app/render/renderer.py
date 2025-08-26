@@ -52,13 +52,18 @@ class Renderer:
         """
         if not display:
             os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+
         pygame.init()
         pygame.font.init()
+
         self.width = width
         self.height = height
-        self._window: pygame.Surface | None = (
-            pygame.display.set_mode((width, height)) if display else None
-        )
+
+        # ``convert_alpha`` requires an initialized display surface. Even in headless mode
+        # a tiny hidden window is created so sprites can be loaded safely.
+        pygame.display.set_mode((width, height) if display else (1, 1))
+        self._window: pygame.Surface | None = pygame.display.get_surface() if display else None
+
         self.surface = pygame.Surface((width, height), flags=pygame.SRCALPHA)
         self._balls: dict[Color, _BallState] = {}
         self.frame_index = 0
