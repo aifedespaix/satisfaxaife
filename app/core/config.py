@@ -34,7 +34,7 @@ class HudConfig(BaseModel):  # type: ignore[misc]
 class EndScreenConfig(BaseModel):  # type: ignore[misc]
     """End screen behavior and texts."""
 
-    victory_text: str = "VICTOIRE : {team}"
+    victory_text: str = "Victory : {weapon}"
     subtitle_text: str = "{weapon} remporte le duel !"
     slowmo: float = 0.35
     slowmo_duration: float = 0.6
@@ -84,4 +84,3 @@ def load_settings(path: Path | None = None) -> Settings:
 
 
 settings = load_settings()
-

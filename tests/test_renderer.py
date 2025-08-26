@@ -12,3 +12,9 @@ def test_capture_frame_shape() -> None:
     frame = renderer.capture_frame()
     assert frame.shape == (200, 100, 3)
     assert frame.sum() > 0
+
+
+def test_set_hp_updates_display() -> None:
+    renderer = Renderer(100, 200)
+    renderer.set_hp(0.25, 0.75)
+    assert renderer._hp_display == [0.25, 0.75]

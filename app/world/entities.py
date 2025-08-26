@@ -26,7 +26,7 @@ class Ball:
         cls,
         world: PhysicsWorld,
         position: Vec2,
-        radius: float = 20.0,
+        radius: float = 40.0,
         stats: Stats | None = None,
     ) -> Ball:
         """Create and add a ball to the physics world."""

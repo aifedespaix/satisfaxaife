@@ -236,15 +236,53 @@ def run_match(  # noqa: C901
 
             elapsed += settings.dt
 
+        if winner is not None:
+            for p in players:
+                p.ball.body.velocity = (0.0, 0.0)
+            hp_a = max(0.0, players[0].ball.health / players[0].ball.stats.max_health)
+            hp_b = max(0.0, players[1].ball.health / players[1].ball.stats.max_health)
+            renderer.set_hp(hp_a, hp_b)
+            win_p = next(p for p in players if p.eid == winner)
+            lose_p = next(p for p in players if p.eid != winner)
+            anim_frames = int(settings.end_screen.freeze_ms / 1000 * settings.fps)
+            for i in range(max(1, anim_frames)):
+                t = (i + 1) / max(1, anim_frames)
+                renderer.clear()
+                win_pos = (
+                    float(win_p.ball.body.position.x),
+                    float(win_p.ball.body.position.y),
+                )
+                lose_pos = (
+                    float(lose_p.ball.body.position.x),
+                    float(lose_p.ball.body.position.y),
+                )
+                lose_radius = int(lose_p.ball.shape.radius * (1.0 - t))
+                if lose_radius > 0:
+                    renderer.draw_ball(lose_pos, lose_radius, settings.ball_color, lose_p.color)
+                win_radius = int(win_p.ball.shape.radius * (1.0 + t))
+                renderer.draw_ball(win_pos, win_radius, settings.ball_color, win_p.color)
+                renderer.draw_eyes(win_pos, win_p.face, win_radius, win_p.color)
+                renderer.draw_impacts()
+                renderer.draw_hp(
+                    renderer.surface,
+                    hud,
+                    (weapon_a.capitalize(), weapon_b.capitalize()),
+                )
+                hud.draw_title(renderer.surface, settings.hud.title)
+                renderer.present()
+                frame_surface = renderer.surface.copy()
+                recorder.add_frame(np.swapaxes(pygame.surfarray.array3d(frame_surface), 0, 1))
+                buffer.append(frame_surface)
+                if len(buffer) > buffer_len:
+                    buffer.pop(0)
+
         if len([p for p in players if p.alive]) >= 2 and elapsed >= max_seconds:
             raise MatchTimeout(f"Match exceeded {max_seconds} seconds")
 
         if winner is not None and buffer:
-            title = settings.end_screen.victory_text.format(
-                team="A" if winner == players[0].eid else "B"
-            )
             weapon_name = weapon_a if winner == players[0].eid else weapon_b
-            subtitle = settings.end_screen.subtitle_text.format(weapon=weapon_name)
+            title = settings.end_screen.victory_text.format(weapon=weapon_name.capitalize())
+            subtitle = settings.end_screen.subtitle_text.format(weapon=weapon_name.capitalize())
             banner_surface = buffer[-1].copy()
             hud.draw_victory_banner(banner_surface, title, subtitle)
             banner_frame = np.swapaxes(pygame.surfarray.array3d(banner_surface), 0, 1)
