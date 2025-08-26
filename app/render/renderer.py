@@ -10,6 +10,7 @@ import pygame
 
 from app.core.config import settings
 from app.core.types import Color, Vec2
+from app.display import Display
 from app.render.hud import Hud
 
 
@@ -61,8 +62,12 @@ class Renderer:
 
         # ``convert_alpha`` requires an initialized display surface. Even in headless mode
         # a tiny hidden window is created so sprites can be loaded safely.
-        pygame.display.set_mode((width, height) if display else (1, 1))
-        self._window: pygame.Surface | None = pygame.display.get_surface() if display else None
+        self._display: Display | None
+        if display:
+            self._display = Display(width, height)
+        else:
+            pygame.display.set_mode((1, 1))
+            self._display = None
 
         self.surface = pygame.Surface((width, height), flags=pygame.SRCALPHA)
         self._balls: dict[Color, _BallState] = {}
@@ -231,9 +236,8 @@ class Renderer:
 
     def present(self) -> None:
         """Advance to the next frame and update the display if enabled."""
-        if self._window is not None:
-            self._window.blit(self.surface, (0, 0))
-            pygame.display.flip()
+        if self._display is not None:
+            self._display.present(self.surface)
         self.frame_index += 1
 
     def capture_frame(self) -> np.ndarray:
