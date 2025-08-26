@@ -1,16 +1,16 @@
 {
-  "canvas": {"width": 1080, "height": 1920, "fps": 60},
-  "theme": {
-    "team_a": {"primary": [0, 102, 204], "hp_gradient": [[102, 178, 255], [0, 51, 102]]},
-    "team_b": {"primary": [255, 102, 0], "hp_gradient": [[255, 178, 102], [102, 51, 0]]}
-  },
-  "hud": {"title": "Battle Balls", "watermark": "@battleballs"},
-  "end_screen": {
-    "victory_text": "VICTOIRE : {team}",
-    "subtitle_text": "{weapon} remporte le duel !",
-    "slowmo": 0.35,
-    "slowmo_duration": 0.6,
-    "freeze_ms": 120,
-    "fade_ms": 400
-  }
+    "canvas": {"width": 1080, "height": 1920, "fps": 60},
+    "theme": {
+        "team_a": {"primary": [0, 102, 204], "hp_gradient": [[102, 178, 255], [0, 51, 102]]},
+        "team_b": {"primary": [255, 102, 0], "hp_gradient": [[255, 178, 102], [102, 51, 0]]},
+    },
+    "hud": {"title": "Battle Balls", "watermark": "@battleballs"},
+    "end_screen": {
+        "victory_text": "Victory : {weapon}",
+        "subtitle_text": "{weapon} remporte le duel !",
+        "slowmo": 0.35,
+        "slowmo_duration": 0.6,
+        "freeze_ms": 120,
+        "fade_ms": 400,
+    },
 }

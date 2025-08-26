@@ -19,3 +19,8 @@ def test_load_settings_from_file(tmp_path: Path) -> None:
     assert settings.fps == 30
     assert settings.hud.title == "X"
     assert settings.hud.watermark == "Y"
+
+
+def test_default_victory_text() -> None:
+    default_settings = config.Settings()
+    assert default_settings.end_screen.victory_text == "Victory : {weapon}"

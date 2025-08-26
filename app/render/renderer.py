@@ -129,6 +129,18 @@ class Renderer:
             step = settings.dt / 0.2
             self._hp_display[i] += diff * min(1.0, step)
 
+    def set_hp(self, hp_a: float, hp_b: float) -> None:
+        """Immediately set health bar ratios.
+
+        Parameters
+        ----------
+        hp_a : float
+            Ratio for team A between 0 and 1.
+        hp_b : float
+            Ratio for team B between 0 and 1.
+        """
+        self._hp_display = [hp_a, hp_b]
+
     def draw_ball(self, pos: Vec2, radius: int, color: Color, team_color: Color) -> None:
         state = self._get_state(team_color)
         if state.prev_pos is not None:
