@@ -19,7 +19,7 @@ Image de prévisualisation à venir.
 - 🧠 **IA configurable** : agressive, kite, support… ou comportements personnalisés.
 - 🎨 **Rendu vertical 1080×1920** optimisé pour TikTok.
 - 🎥 **Export vidéo automatique** en `.mp4` via [imageio-ffmpeg](https://imageio.readthedocs.io/).
-- 🖥️ **Mode affichage** sans enregistrement grâce à l'option `--display`.
+- 🖥️ **Mode affichage** sans enregistrement (`--display`), fenêtre à moitié de la taille originale pour tenir sur l'écran.
 - 🔄 **Reproductibilité totale** grâce aux seeds (mêmes combats → mêmes résultats).
 - 🧩 **Architecture plug-in** : ajout d'armes, IA ou effets visuels sans toucher au moteur.
 - 🔊 **Effets sonores & particules** (prévu pour la v2).
