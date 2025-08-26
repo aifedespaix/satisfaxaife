@@ -8,6 +8,9 @@ import pymunk
 from app.core.types import Damage, EntityId, Stats, Vec2
 from app.world.physics import PhysicsWorld
 
+DEFAULT_BALL_RADIUS: float = 40.0
+"""Default radius used for spawned balls in pixels."""
+
 _id_gen = itertools.count(1)
 
 
@@ -26,7 +29,7 @@ class Ball:
         cls,
         world: PhysicsWorld,
         position: Vec2,
-        radius: float = 40.0,
+        radius: float = DEFAULT_BALL_RADIUS,
         stats: Stats | None = None,
     ) -> Ball:
         """Create and add a ball to the physics world."""
