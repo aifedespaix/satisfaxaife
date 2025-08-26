@@ -92,9 +92,20 @@ class _MatchView(WorldView):
         damage: Damage,
         knockback: float,
         ttl: float,
+        sprite: pygame.Surface | None = None,
+        spin: float = 0.0,
     ) -> WeaponEffect:
         proj = Projectile.spawn(
-            self.world, owner, position, velocity, radius, damage, knockback, ttl
+            self.world,
+            owner,
+            position,
+            velocity,
+            radius,
+            damage,
+            knockback,
+            ttl,
+            sprite,
+            spin,
         )
         self.effects.append(proj)
         return proj

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from math import sqrt
 from typing import cast
 
+import pygame
 import pymunk
 
 from app.core.types import Damage, EntityId, Vec2
@@ -23,6 +24,9 @@ class Projectile(WeaponEffect):
     damage: Damage
     knockback: float
     ttl: float
+    sprite: pygame.Surface | None = None
+    angle: float = 0.0
+    spin: float = 0.0
 
     @classmethod
     def spawn(
@@ -35,6 +39,8 @@ class Projectile(WeaponEffect):
         damage: Damage,
         knockback: float,
         ttl: float,
+        sprite: pygame.Surface | None = None,
+        spin: float = 0.0,
     ) -> Projectile:
         """Create and add a projectile to the physics world."""
         moment = pymunk.moment_for_circle(1.0, 0, radius)
@@ -53,11 +59,15 @@ class Projectile(WeaponEffect):
             damage=damage,
             knockback=knockback,
             ttl=ttl,
+            sprite=sprite,
+            spin=spin,
         )
 
     def step(self, dt: float) -> bool:
         """Advance state and return ``True`` while the projectile is alive."""
         self.ttl -= dt
+        if self.sprite is not None and self.spin != 0.0:
+            self.angle = (self.angle + self.spin * dt) % (2 * 3.14159)
         return self.ttl > 0
 
     def collides(self, view: WorldView, position: Vec2, radius: float) -> bool:
@@ -79,7 +89,10 @@ class Projectile(WeaponEffect):
 
     def draw(self, renderer: Renderer, view: WorldView) -> None:
         pos = (float(self.body.position.x), float(self.body.position.y))
-        renderer.draw_projectile(pos, int(self.shape.radius), (255, 255, 0))
+        if self.sprite is not None:
+            renderer.draw_sprite(self.sprite, pos, self.angle)
+        else:
+            renderer.draw_projectile(pos, int(self.shape.radius), (255, 255, 0))
 
     def destroy(self) -> None:
         self.world.space.remove(self.body, self.shape)

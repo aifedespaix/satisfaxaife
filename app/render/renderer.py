@@ -112,6 +112,26 @@ class Renderer:
     def _offset(self, pos: Vec2) -> Vec2:
         return (pos[0] + self._shake[0], pos[1] + self._shake[1])
 
+    def draw_line(self, start: Vec2, end: Vec2, color: Color, width: int = 1) -> None:
+        """Draw a line between two points with camera shake applied."""
+        pygame.draw.line(self.surface, color, self._offset(start), self._offset(end), width)
+
+    def draw_sprite(self, sprite: pygame.Surface, pos: Vec2, angle: float) -> None:
+        """Render a rotated sprite centered at *pos*.
+
+        Parameters
+        ----------
+        sprite:
+            Image surface to draw.
+        pos:
+            Center position in world coordinates.
+        angle:
+            Rotation angle in radians.
+        """
+        rotated = pygame.transform.rotozoom(sprite, math.degrees(-angle), 1.0)
+        rect = rotated.get_rect(center=self._offset(pos))
+        self.surface.blit(rotated, rect)
+
     def add_impact(self, pos: Vec2) -> None:
         """Register an impact for visual feedback."""
         particles = []

@@ -43,6 +43,8 @@ class DummyView(WorldView):
         damage: Damage,
         knockback: float,
         ttl: float,
+        sprite: object | None = None,
+        spin: float = 0.0,
     ) -> WeaponEffect:  # noqa: D401
         self.last_velocity = velocity
 

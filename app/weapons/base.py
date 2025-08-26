@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
+import pygame
+
 from app.core.types import Damage, EntityId, Vec2
 from app.render.renderer import Renderer
 
@@ -37,6 +39,8 @@ class WorldView(Protocol):
         damage: Damage,
         knockback: float,
         ttl: float,
+        sprite: pygame.Surface | None = None,
+        spin: float = 0.0,
     ) -> WeaponEffect:
         """Spawn a projectile owned by *owner* and register it."""
 
