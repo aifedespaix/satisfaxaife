@@ -3,10 +3,10 @@ from __future__ import annotations
 import pygame
 
 from app.core.types import Damage, EntityId, Vec2
-from app.render.sprites import load_sprite
 from app.world.entities import DEFAULT_BALL_RADIUS
 
 from . import weapon_registry
+from .assets import load_weapon_sprite
 from .base import Weapon, WorldView
 from .effects import OrbitingSprite
 
@@ -18,7 +18,10 @@ class Katana(Weapon):
         super().__init__(name="katana", cooldown=0.0, damage=Damage(18), speed=4.0)
         self._initialized = False
         blade_height = DEFAULT_BALL_RADIUS * 3.0
-        self._sprite = pygame.transform.rotate(load_sprite("katana.png", max_dim=blade_height), -90)
+        self._sprite = pygame.transform.rotate(
+            load_weapon_sprite("katana", max_dim=blade_height),
+            -90,
+        )
 
     def _fire(self, owner: EntityId, view: WorldView, direction: Vec2) -> None:
         return None
