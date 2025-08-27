@@ -1,19 +1,18 @@
-from __future__ import annotations
-
 """High level helpers to play weapon related sounds."""
+
+from __future__ import annotations
 
 import threading
 import time
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
 from .engine import AudioEngine
-
 
 _DEFAULT_ENGINE: AudioEngine | None = None
 
 
-def _get_default_engine() -> AudioEngine:
+def get_default_engine() -> AudioEngine:
     """Return a shared :class:`AudioEngine` instance."""
     global _DEFAULT_ENGINE
     if _DEFAULT_ENGINE is None:
@@ -30,12 +29,12 @@ class WeaponAudio:
         name: str,
         *,
         base_dir: str = "assets/weapons",
-        engine: Optional[AudioEngine] = None,
+        engine: AudioEngine | None = None,
         idle_gap: float = 1.0,
     ) -> None:
         self._type = type
         self._name = name
-        self._engine = engine or _get_default_engine()
+        self._engine = engine or get_default_engine()
         self._idle_gap = idle_gap
         self._idle_thread: threading.Thread | None = None
         self._idle_running = threading.Event()
