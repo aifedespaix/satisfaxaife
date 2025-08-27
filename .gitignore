@@ -76,11 +76,6 @@ scalene.out
 # Frames temporaires
 frames/
 
-# Audio assets générés
-*.wav
-*.mp3
-*.ogg
-
 # Project output directories
 out/
 logs/
