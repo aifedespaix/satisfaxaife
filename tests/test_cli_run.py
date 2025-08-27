@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
+import imageio_ffmpeg
 from pytest import MonkeyPatch
 from typer.testing import CliRunner
 
@@ -31,6 +33,9 @@ def test_run_creates_video(tmp_path: Path) -> None:
     assert result.exit_code == 0
     video_path = out if out.exists() else out.with_suffix(".gif")
     assert video_path.exists()
+    ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+    info = subprocess.run([ffmpeg, "-i", str(video_path)], capture_output=True, text=True)
+    assert "Audio:" in info.stderr
 
 
 def test_run_timeout(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:

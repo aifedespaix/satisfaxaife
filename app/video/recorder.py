@@ -1,32 +1,70 @@
 from __future__ import annotations
 
+import subprocess
+import wave
 from pathlib import Path
 
 import imageio
+import imageio_ffmpeg
 import numpy as np
 
 
 class Recorder:
-    """Write frames to an MP4 file with GIF fallback."""
+    """Write frames to a video file and optionally mux audio."""
 
     def __init__(self, width: int, height: int, fps: int, path: Path) -> None:
         self.width = width
         self.height = height
         self.fps = fps
         self.path = Path(path)
+        self._format = "mp4"
+        self._video_path = self.path.with_suffix(".video.mp4")
         try:
-            self.writer = imageio.get_writer(self.path, fps=fps, codec="libx264")
+            self.writer = imageio.get_writer(self._video_path, fps=fps, codec="libx264")
         except Exception:
-            self.path = self.path.with_suffix(".gif")
-            self.writer = imageio.get_writer(self.path, fps=fps)
+            self._format = "gif"
+            self._video_path = self.path.with_suffix(".gif")
+            self.path = self._video_path
+            self.writer = imageio.get_writer(self._video_path, fps=fps)
 
     def add_frame(self, frame: np.ndarray) -> None:
         """Append a pre-rendered frame to the output video."""
         self.writer.append_data(frame)
 
-    def close(self) -> None:
-        """Finalize and close the video file."""
+    def close(self, audio: np.ndarray | None = None, rate: int = 48_000) -> None:
+        """Finalize the video and optionally mux an audio track."""
         self.writer.close()
+        if self._format != "mp4":
+            return
+        if audio is None or audio.size == 0:
+            if self._video_path != self.path:
+                self._video_path.rename(self.path)
+            return
+        audio_path = self.path.with_suffix(".wav")
+        with wave.open(str(audio_path), "wb") as wf:
+            channels = audio.shape[1] if audio.ndim == 2 else 1
+            wf.setnchannels(channels)
+            wf.setsampwidth(2)
+            wf.setframerate(rate)
+            wf.writeframes(audio.tobytes())
+        ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+        cmd = [
+            ffmpeg,
+            "-y",
+            "-i",
+            str(self._video_path),
+            "-i",
+            str(audio_path),
+            "-c:v",
+            "copy",
+            "-c:a",
+            "aac",
+            "-shortest",
+            str(self.path),
+        ]
+        subprocess.run(cmd, check=True, capture_output=True)
+        self._video_path.unlink(missing_ok=True)
+        audio_path.unlink(missing_ok=True)
 
 
 class NullRecorder:
@@ -35,5 +73,5 @@ class NullRecorder:
     def add_frame(self, _frame: np.ndarray) -> None:  # noqa: D401 - same interface
         """Ignore a pre-rendered frame."""
 
-    def close(self) -> None:  # noqa: D401 - same interface
+    def close(self, _audio: np.ndarray | None = None) -> None:  # noqa: D401 - same interface
         """No-op close method."""
