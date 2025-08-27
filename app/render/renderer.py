@@ -4,6 +4,7 @@ import math
 import os
 import random
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 import pygame
@@ -77,6 +78,15 @@ class Renderer:
         self._impacts: list[_Impact] = []
         self._shake: Vec2 = (0.0, 0.0)
         self._hp_display = [1.0, 1.0]
+        assets_dir = Path(__file__).resolve().parents[2] / "assets"
+        self._ball_sprites: dict[Color, pygame.Surface] = {
+            settings.theme.team_a.primary: pygame.image.load(
+                assets_dir / "ball-a.png"
+            ).convert_alpha(),
+            settings.theme.team_b.primary: pygame.image.load(
+                assets_dir / "ball-b.png"
+            ).convert_alpha(),
+        }
 
     def clear(self) -> None:
         """Clear frame, update impacts and draw arena background."""
@@ -180,12 +190,20 @@ class Renderer:
             state.trail.append((pos, min(255.0, speed * 10.0)))
         state.prev_pos = pos
         self._draw_trail(state, team_color, radius)
-        pygame.draw.circle(self.surface, color, self._offset(pos), radius)
-        pygame.draw.circle(self.surface, team_color, self._offset(pos), radius + 3, width=3)
-        highlight_pos = (pos[0] - radius * 0.3, pos[1] - radius * 0.3)
-        pygame.draw.circle(
-            self.surface, (255, 255, 255, 80), self._offset(highlight_pos), int(radius * 0.3)
-        )
+        sprite = self._ball_sprites.get(team_color)
+        if sprite is not None:
+            diameter = radius * 2
+            if sprite.get_width() != diameter:
+                sprite = pygame.transform.smoothscale(sprite, (diameter, diameter))
+            rect = sprite.get_rect(center=self._offset(pos))
+            self.surface.blit(sprite, rect)
+        else:
+            pygame.draw.circle(self.surface, color, self._offset(pos), radius)
+            pygame.draw.circle(self.surface, team_color, self._offset(pos), radius + 3, width=3)
+            highlight_pos = (pos[0] - radius * 0.3, pos[1] - radius * 0.3)
+            pygame.draw.circle(
+                self.surface, (255, 255, 255, 80), self._offset(highlight_pos), int(radius * 0.3)
+            )
 
     def draw_projectile(self, pos: Vec2, radius: int, color: Color) -> None:
         pygame.draw.circle(self.surface, color, self._offset(pos), radius)
@@ -215,10 +233,19 @@ class Renderer:
         if state.blink_timer <= 0:
             state.blink_timer = random.randint(60, 180)
             state.blink_progress = 5
-        offset = (gaze[0] * radius * 0.3, gaze[1] * radius * 0.3)
+        sclera_radius = int(radius * 0.25)
+        pupil_radius = int(radius * 0.12)
+        max_offset = sclera_radius - pupil_radius
         for dx in (-radius * 0.3, radius * 0.3):
-            center = (pos[0] + dx + offset[0], pos[1] - radius * 0.2 + offset[1])
-            pygame.draw.circle(self.surface, (0, 0, 0), self._offset(center), int(radius * 0.15))
+            sclera_center = (pos[0] + dx, pos[1] - radius * 0.2)
+            pygame.draw.circle(
+                self.surface, (255, 255, 255), self._offset(sclera_center), sclera_radius
+            )
+            pupil_center = (
+                sclera_center[0] + gaze[0] * max_offset,
+                sclera_center[1] + gaze[1] * max_offset,
+            )
+            pygame.draw.circle(self.surface, team_color, self._offset(pupil_center), pupil_radius)
 
     def trigger_blink(self, team_color: Color, strength: int) -> None:
         state = self._get_state(team_color)
