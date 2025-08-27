@@ -22,7 +22,7 @@ Image de prévisualisation à venir.
 - 🖥️ **Mode affichage** sans enregistrement grâce à l'option `--display`.
 - 🔄 **Reproductibilité totale** grâce aux seeds (mêmes combats → mêmes résultats).
 - 🧩 **Architecture plug-in** : ajout d'armes, IA ou effets visuels sans toucher au moteur.
-- 🔊 **Effets sonores & particules** (prévu pour la v2).
+- 🔊 **Effets sonores** intégrés dans la piste audio.
 - 📦 **Batch mode** : génération de **N vidéos** en une seule commande.
 - 🚀 Prêt pour la scalabilité : 1v1, 2v2, FFA, replay slow-mo, highlights TikTok.
 

@@ -8,6 +8,7 @@ import numpy as np
 import pygame
 
 from app.ai.policy import SimplePolicy
+from app.audio import get_default_engine
 from app.core.config import settings
 from app.core.types import Color, Damage, EntityId, ProjectileInfo, Vec2
 from app.render.hud import Hud
@@ -151,6 +152,8 @@ def run_match(  # noqa: C901
     MatchTimeout
         If the match exceeds ``max_seconds`` without a winner.
     """
+    engine = get_default_engine()
+    engine.start_capture()
     world = PhysicsWorld()
     renderer = renderer or Renderer(settings.width, settings.height)
     hud = Hud(settings.theme)
@@ -329,4 +332,5 @@ def run_match(  # noqa: C901
 
         return winner
     finally:
-        recorder.close()
+        audio = engine.end_capture()
+        recorder.close(audio)

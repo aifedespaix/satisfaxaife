@@ -3,7 +3,6 @@ import time
 
 from app.audio.engine import AudioEngine
 
-
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 
@@ -17,4 +16,15 @@ def test_cache_and_cooldown() -> None:
     assert engine._last_play[path] == first_time
     time.sleep(engine.COOLDOWN_MS / 1000 + 0.02)
     assert engine.play_variation(path) is True
+    engine.shutdown()
+
+
+def test_capture_mixdown() -> None:
+    engine = AudioEngine()
+    engine.start_capture()
+    path = "assets/weapons/katana/touch.ogg"
+    engine.play_variation(path)
+    audio = engine.end_capture()
+    assert audio.ndim == 2
+    assert audio.shape[0] > 0
     engine.shutdown()
