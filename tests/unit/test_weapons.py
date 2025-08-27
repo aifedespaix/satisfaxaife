@@ -6,7 +6,7 @@ from typing import cast
 import pytest
 
 from app.core.config import settings
-from app.core.types import Damage, EntityId, Vec2
+from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.game.match import MatchTimeout, run_match
 from app.render.renderer import Renderer
 from app.video.recorder import NullRecorder, Recorder
@@ -60,6 +60,9 @@ class DummyView(WorldView):
                 return None
 
         return _Dummy()
+
+    def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # noqa: D401
+        return []
 
 
 def test_weapon_speed_attribute() -> None:

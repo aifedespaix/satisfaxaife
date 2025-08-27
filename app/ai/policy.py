@@ -37,7 +37,23 @@ class SimplePolicy:
             return accel, face, fire
 
         if self.style == "aggressive":
-            accel = (direction[0] * 400.0, direction[1] * 400.0)
+            dodge = (0.0, 0.0)
+            for proj in view.iter_projectiles(excluding=me):
+                px, py = proj.position
+                vx, vy = proj.velocity
+                dxp = px - my_pos[0]
+                dyp = py - my_pos[1]
+                if dxp * vx + dyp * vy < 0 and dxp * dxp + dyp * dyp < 200**2:
+                    perp = (-vy, vx)
+                    norm = math.hypot(*perp) or 1.0
+                    dodge = (perp[0] / norm, perp[1] / norm)
+                    break
+            combined = (
+                direction[0] + 0.5 * dodge[0],
+                direction[1] + 0.5 * dodge[1],
+            )
+            norm = math.hypot(*combined) or 1.0
+            accel = (combined[0] / norm * 400.0, combined[1] / norm * 400.0)
             if dist <= 150 and direction[0] * face[0] + direction[1] * face[1] >= cos_thresh:
                 fire = True
         else:  # kiter

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Protocol
 
 import pygame
 
-from app.core.types import Damage, EntityId, Vec2
+from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.render.renderer import Renderer
 
 
@@ -43,6 +44,9 @@ class WorldView(Protocol):
         spin: float = 0.0,
     ) -> WeaponEffect:
         """Spawn a projectile owned by *owner* and register it."""
+
+    def iter_projectiles(self, excluding: EntityId | None = None) -> Iterable[ProjectileInfo]:
+        """Yield active projectiles, optionally skipping those owned by *excluding*."""
 
 
 class WeaponEffect(Protocol):
