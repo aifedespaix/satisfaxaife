@@ -31,3 +31,15 @@ def test_draw_eyes_team_color() -> None:
     renderer.present()
     frame = renderer.capture_frame()
     assert (frame == np.array(team_color)).all(axis=-1).any()
+
+
+def test_add_impact_custom_duration() -> None:
+    renderer = Renderer(100, 100)
+    duration = 0.5
+    renderer.add_impact((50.0, 50.0), duration=duration)
+    frames = int(duration / settings.dt)
+    for _ in range(frames - 1):
+        renderer.clear()
+    assert len(renderer._impacts) == 1
+    renderer.clear()
+    assert len(renderer._impacts) == 0

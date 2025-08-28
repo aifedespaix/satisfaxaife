@@ -82,11 +82,14 @@ class _MatchView(WorldView):
         """Apply ``damage`` to ``eid`` at the given ``timestamp``."""
         for p in self.players:
             if p.eid == eid and p.alive:
+                pos = self.get_position(eid)
                 p.alive = not p.ball.take_damage(damage)
-                self.renderer.add_impact(self.get_position(eid))
-                self.renderer.trigger_blink(p.color, int(damage.amount))
-                if not p.alive:
+                if p.alive:
+                    self.renderer.add_impact(pos)
+                else:
+                    self.renderer.add_impact(pos, duration=2.0)
                     p.audio.on_explode(timestamp=timestamp)
+                self.renderer.trigger_blink(p.color, int(damage.amount))
                 return
 
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:
@@ -315,10 +318,10 @@ def run_match(  # noqa: C901
                 float(lose_p.ball.body.position.x),
                 float(lose_p.ball.body.position.y),
             )
-            renderer.add_impact(lose_pos)
+            renderer.add_impact(lose_pos, duration=2.0)
             for frame_index in range(max(1, shrink_frames)):
                 if frame_index > 0 and frame_index % 4 == 0:
-                    renderer.add_impact(lose_pos)
+                    renderer.add_impact(lose_pos, duration=2.0)
                 progress = (frame_index + 1) / max(1, shrink_frames)
                 renderer.clear()
                 lose_radius = int(lose_p.ball.shape.radius * (1.0 - progress))

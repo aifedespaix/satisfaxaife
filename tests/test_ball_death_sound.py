@@ -32,7 +32,9 @@ if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
 
 
 class DummyRenderer:
-    def add_impact(self, pos: tuple[float, float]) -> None:  # pragma: no cover - stub
+    def add_impact(
+        self, pos: tuple[float, float], duration: float = 0.08
+    ) -> None:  # pragma: no cover - stub
         return
 
     def trigger_blink(
