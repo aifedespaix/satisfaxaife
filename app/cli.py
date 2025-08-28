@@ -8,6 +8,7 @@ from typing import Annotated, cast
 
 import typer
 
+from app.audio.env import temporary_sdl_audio_driver
 from app.core.config import settings
 from app.game.match import MatchTimeout, run_match
 from app.render.renderer import Renderer
@@ -49,14 +50,16 @@ def run(
         recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
         renderer = Renderer(settings.width, settings.height)
 
-    try:
-        winner = run_match(weapon_a, weapon_b, cast(Recorder, recorder), renderer)
-    except MatchTimeout as exc:
-        path = getattr(recorder, "path", None)
-        if path is not None and path.exists():
-            path.unlink()
-        typer.echo(f"Error: {exc}", err=True)
-        raise typer.Exit(code=1) from None
+    driver = None if display else "dummy"
+    with temporary_sdl_audio_driver(driver):
+        try:
+            winner = run_match(weapon_a, weapon_b, cast(Recorder, recorder), renderer)
+        except MatchTimeout as exc:
+            path = getattr(recorder, "path", None)
+            if path is not None and path.exists():
+                path.unlink()
+            typer.echo(f"Error: {exc}", err=True)
+            raise typer.Exit(code=1) from None
 
     if not display and isinstance(recorder, Recorder) and temp_path is not None:
         winner_name = _sanitize(winner) if winner is not None else "draw"
@@ -82,31 +85,32 @@ def batch(
     out_dir.mkdir(parents=True, exist_ok=True)
     names = weapon_registry.names()
 
-    for _ in range(count):
-        seed = random.randint(0, 1_000_000)
-        weapon_a, weapon_b = random.sample(names, k=2)
-        timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-        safe_a = _sanitize(weapon_a)
-        safe_b = _sanitize(weapon_b)
-        temp_path = out_dir / f"{timestamp}-{safe_a}-VS-{safe_b}.mp4"
+    with temporary_sdl_audio_driver("dummy"):
+        for _ in range(count):
+            seed = random.randint(0, 1_000_000)
+            weapon_a, weapon_b = random.sample(names, k=2)
+            timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+            safe_a = _sanitize(weapon_a)
+            safe_b = _sanitize(weapon_b)
+            temp_path = out_dir / f"{timestamp}-{safe_a}-VS-{safe_b}.mp4"
 
-        random.seed(seed)
-        recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
-        renderer = Renderer(settings.width, settings.height)
+            random.seed(seed)
+            recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
+            renderer = Renderer(settings.width, settings.height)
 
-        try:
-            winner = run_match(weapon_a, weapon_b, recorder, renderer)
-        except MatchTimeout as exc:
-            if temp_path.exists():
-                temp_path.unlink()
-            typer.echo(f"Match {seed} timed out: {exc}", err=True)
-        else:
-            winner_name = _sanitize(winner) if winner is not None else "draw"
-            final_path = temp_path.with_name(
-                f"{temp_path.stem}-{winner_name}_win{temp_path.suffix}"
-            )
-            temp_path.rename(final_path)
-            typer.echo(f"Saved video to {final_path}")
+            try:
+                winner = run_match(weapon_a, weapon_b, recorder, renderer)
+            except MatchTimeout as exc:
+                if temp_path.exists():
+                    temp_path.unlink()
+                typer.echo(f"Match {seed} timed out: {exc}", err=True)
+            else:
+                winner_name = _sanitize(winner) if winner is not None else "draw"
+                final_path = temp_path.with_name(
+                    f"{temp_path.stem}-{winner_name}_win{temp_path.suffix}"
+                )
+                temp_path.rename(final_path)
+                typer.echo(f"Saved video to {final_path}")
 
 
 if __name__ == "__main__":  # pragma: no cover
