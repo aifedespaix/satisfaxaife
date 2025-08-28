@@ -28,6 +28,9 @@ class DummyView(WorldView):
     def get_position(self, eid: EntityId) -> Vec2:  # noqa: D401
         return self.enemy_pos if eid == self.enemy else (0.0, 0.0)
 
+    def get_velocity(self, eid: EntityId) -> Vec2:  # noqa: D401
+        return (0.0, 0.0)
+
     def get_health_ratio(self, eid: EntityId) -> float:  # noqa: D401
         return 1.0
 

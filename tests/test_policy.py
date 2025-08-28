@@ -17,6 +17,8 @@ class DummyView(WorldView):
     enemy: EntityId
     pos_me: Vec2
     pos_enemy: Vec2
+    vel_me: Vec2 = (0.0, 0.0)
+    vel_enemy: Vec2 = (0.0, 0.0)
     health_me: float = 1.0
     health_enemy: float = 1.0
     last_velocity: Vec2 | None = field(default=None, init=False)
@@ -26,6 +28,9 @@ class DummyView(WorldView):
 
     def get_position(self, eid: EntityId) -> Vec2:  # noqa: D401
         return self.pos_me if eid == self.me else self.pos_enemy
+
+    def get_velocity(self, eid: EntityId) -> Vec2:  # noqa: D401
+        return self.vel_me if eid == self.me else self.vel_enemy
 
     def get_health_ratio(self, eid: EntityId) -> float:  # noqa: D401
         return self.health_me if eid == self.me else self.health_enemy
@@ -80,16 +85,29 @@ class DummyView(WorldView):
 def test_kiter_moves_away() -> None:
     view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (50.0, 0.0))
     policy = SimplePolicy("kiter")
-    accel, face, fire = policy.decide(EntityId(1), view)
+    accel, face, fire = policy.decide(EntityId(1), view, 600.0)
     assert accel[0] < 0  # moves left, away from enemy
     assert fire is True
+
+
+def test_kiter_leads_moving_target() -> None:
+    view = DummyView(
+        EntityId(1),
+        EntityId(2),
+        (0.0, 0.0),
+        (0.0, 100.0),
+        vel_enemy=(100.0, 0.0),
+    )
+    policy = SimplePolicy("kiter")
+    _, face, _ = policy.decide(EntityId(1), view, 300.0)
+    assert face[0] > 0  # aims ahead of the moving target
 
 
 @pytest.mark.parametrize("style", ["aggressive", "kiter"])
 def test_retreats_on_low_health(style: Literal["aggressive", "kiter"]) -> None:
     view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (50.0, 0.0), health_me=0.1)
     policy = SimplePolicy(style)
-    accel, face, fire = policy.decide(EntityId(1), view)
+    accel, face, fire = policy.decide(EntityId(1), view, 600.0)
     assert accel[0] < 0  # retreats from enemy
     assert face == (1.0, 0.0)  # still faces enemy
     assert fire is False
@@ -101,7 +119,7 @@ def test_horizontal_alignment_has_vertical_component() -> None:
     view = DummyView(me, enemy, (0.0, 0.0), (50.0, 0.0))
     policy = SimplePolicy("aggressive")
     weapon = Shuriken()
-    accel, face, fire = policy.decide(me, view)
+    accel, face, fire = policy.decide(me, view, 600.0)
     assert fire is True
     assert face[1] != 0.0
     weapon.trigger(me, view, face)
@@ -125,5 +143,5 @@ def test_aggressive_dodges_projectiles() -> None:
         me, enemy, (0.0, 0.0), (100.0, 0.0), proj_pos=(40.0, 0.0), proj_vel=(-100.0, 0.0)
     )
     policy = SimplePolicy("aggressive")
-    accel, _, _ = policy.decide(me, view)
+    accel, _, _ = policy.decide(me, view, 600.0)
     assert accel[1] < 0  # dodges downward

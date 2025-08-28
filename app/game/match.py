@@ -62,6 +62,13 @@ class _MatchView(WorldView):
                 return (float(pos.x), float(pos.y))
         raise KeyError(eid)
 
+    def get_velocity(self, eid: EntityId) -> Vec2:
+        for p in self.players:
+            if p.eid == eid:
+                vel = p.ball.body.velocity
+                return (float(vel.x), float(vel.y))
+        raise KeyError(eid)
+
     def get_health_ratio(self, eid: EntityId) -> float:
         for p in self.players:
             if p.eid == eid:
@@ -192,7 +199,7 @@ def run_match(  # noqa: C901
             for p in players:
                 if not p.alive:
                     continue
-                accel, face, fire = p.policy.decide(p.eid, view)
+                accel, face, fire = p.policy.decide(p.eid, view, p.weapon.speed)
                 p.face = face
                 p.ball.body.velocity = (
                     p.ball.body.velocity[0] + accel[0] * settings.dt,

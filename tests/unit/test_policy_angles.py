@@ -14,6 +14,8 @@ class DummyView(WorldView):
     enemy: EntityId
     pos_me: Vec2
     pos_enemy: Vec2
+    vel_me: Vec2 = (0.0, 0.0)
+    vel_enemy: Vec2 = (0.0, 0.0)
     last_velocity: Vec2 | None = field(default=None, init=False)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
@@ -21,6 +23,9 @@ class DummyView(WorldView):
 
     def get_position(self, eid: EntityId) -> Vec2:  # noqa: D401
         return self.pos_me if eid == self.me else self.pos_enemy
+
+    def get_velocity(self, eid: EntityId) -> Vec2:  # noqa: D401
+        return self.vel_me if eid == self.me else self.vel_enemy
 
     def get_health_ratio(self, eid: EntityId) -> float:  # noqa: D401
         return 1.0
@@ -77,7 +82,7 @@ def test_policy_angle_has_vertical_component() -> None:
     enemy = EntityId(2)
     view = DummyView(me, enemy, (0.0, 0.0), (50.0, 0.0))
     policy = SimplePolicy("aggressive")
-    accel, face, fire = policy.decide(me, view)
+    accel, face, fire = policy.decide(me, view, 600.0)
     assert fire is True
     assert face[1] != 0.0
     weapon = Shuriken()
