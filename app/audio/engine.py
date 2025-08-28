@@ -95,7 +95,12 @@ class AudioEngine:
         self._ensure_variations(path)
         return self._lengths[path]
 
-    def play_variation(self, path: str, volume: float | None = None) -> bool:
+    def play_variation(
+        self,
+        path: str,
+        volume: float | None = None,
+        timestamp: float | None = None,
+    ) -> bool:
         """Play ``path`` with a random pitch variation.
 
         Parameters
@@ -104,6 +109,10 @@ class AudioEngine:
             Path to the sound file.
         volume:
             Optional volume between 0 and 1. Defaults to ``DEFAULT_VOLUME``.
+        timestamp:
+            Optional simulated time in seconds when the sound occurs. Only
+            used when capturing; otherwise the current ``time.perf_counter`` is
+            applied.
 
         Returns
         -------
@@ -121,7 +130,10 @@ class AudioEngine:
             sound.set_volume(volume if volume is not None else self.DEFAULT_VOLUME)
             sound.play(fade_ms=self.FADE_MS)
             if self._capture_start is not None:
-                start = int((now - self._capture_start) * self.SAMPLE_RATE)
+                start_seconds = (
+                    timestamp if timestamp is not None else now - self._capture_start
+                )
+                start = int(start_seconds * self.SAMPLE_RATE)
                 # Store a copy to avoid mutation by Pygame internals
                 self._captures.append((start, array.copy()))
             self._last_play[path] = now

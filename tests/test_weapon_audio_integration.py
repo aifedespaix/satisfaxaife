@@ -17,13 +17,13 @@ class StubAudio:
         self.thrown = False
         self.touched = False
 
-    def start_idle(self) -> None:  # noqa: D401
+    def start_idle(self, timestamp: float | None = None) -> None:  # noqa: D401
         self.idle_started = True
 
-    def on_throw(self) -> None:  # noqa: D401
+    def on_throw(self, timestamp: float | None = None) -> None:  # noqa: D401
         self.thrown = True
 
-    def on_touch(self) -> None:  # noqa: D401
+    def on_touch(self, timestamp: float | None = None) -> None:  # noqa: D401
         self.touched = True
 
 

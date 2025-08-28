@@ -28,3 +28,17 @@ def test_capture_mixdown() -> None:
     assert audio.ndim == 2
     assert audio.shape[0] > 0
     engine.shutdown()
+
+
+def test_timestamp_offsets() -> None:
+    engine = AudioEngine()
+    engine.start_capture()
+    path = "assets/weapons/katana/touch.ogg"
+    first = 0.1
+    second = 0.3
+    engine.play_variation(path, timestamp=first)
+    engine.play_variation(path, timestamp=second)
+    assert engine._captures[0][0] == int(first * engine.SAMPLE_RATE)
+    assert engine._captures[1][0] == int(second * engine.SAMPLE_RATE)
+    engine.end_capture()
+    engine.shutdown()
