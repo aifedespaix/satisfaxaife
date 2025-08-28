@@ -20,6 +20,14 @@ def get_default_engine() -> AudioEngine:
     return _DEFAULT_ENGINE
 
 
+def reset_default_engine() -> None:
+    """Shutdown and clear the shared :class:`AudioEngine`."""
+    global _DEFAULT_ENGINE
+    if _DEFAULT_ENGINE is not None:
+        _DEFAULT_ENGINE.shutdown()
+        _DEFAULT_ENGINE = None
+
+
 class WeaponAudio:
     """Manage sounds for a single weapon."""
 
@@ -65,9 +73,7 @@ class WeaponAudio:
         if self._idle_thread and self._idle_thread.is_alive():
             return
         self._idle_running.set()
-        self._idle_thread = threading.Thread(
-            target=self._idle_loop, args=(timestamp,), daemon=True
-        )
+        self._idle_thread = threading.Thread(target=self._idle_loop, args=(timestamp,), daemon=True)
         self._idle_thread.start()
 
     def _idle_loop(self, timestamp: float | None) -> None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -7,6 +9,7 @@ import imageio_ffmpeg
 from pytest import MonkeyPatch
 from typer.testing import CliRunner
 
+from app.audio.engine import AudioEngine
 from app.cli import app
 from app.core.config import settings
 from app.render.renderer import Renderer
@@ -113,3 +116,38 @@ def test_run_display_mode_no_file(monkeypatch: MonkeyPatch) -> None:
     assert captured["display"] is True
     # En mode display, aucun fichier ne doit être créé
     assert not Path("generated").exists()
+
+
+def test_run_uses_dummy_audio_driver(monkeypatch: MonkeyPatch) -> None:
+    generated = Path("generated")
+    if generated.exists():
+        shutil.rmtree(generated)
+    monkeypatch.setenv("SDL_AUDIODRIVER", "original")
+
+    recorded: dict[str, str | None] = {}
+    original_init = AudioEngine.__init__
+
+    def spy_init(self: AudioEngine) -> None:
+        recorded["driver"] = os.environ.get("SDL_AUDIODRIVER")
+        original_init(self)
+
+    monkeypatch.setattr(AudioEngine, "__init__", spy_init)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--seed",
+            "1",
+            "--weapon-a",
+            "katana",
+            "--weapon-b",
+            "shuriken",
+        ],
+    )
+    assert result.exit_code == 0
+    assert recorded["driver"] == "dummy"
+    assert os.environ["SDL_AUDIODRIVER"] == "original"
+    if generated.exists():
+        shutil.rmtree(generated)
