@@ -8,7 +8,7 @@ import numpy as np
 import pygame
 
 from app.ai.policy import SimplePolicy
-from app.audio import get_default_engine
+from app.audio import AudioEngine, get_default_engine
 from app.core.config import settings
 from app.core.types import Color, Damage, EntityId, ProjectileInfo, Vec2
 from app.render.hud import Hud
@@ -125,6 +125,27 @@ class _MatchView(WorldView):
                 pos = (float(eff.body.position.x), float(eff.body.position.y))
                 vel = (float(eff.body.velocity.x), float(eff.body.velocity.y))
                 yield ProjectileInfo(eff.owner, pos, vel)
+
+
+def _append_slowmo_segment(audio: np.ndarray, engine: AudioEngine) -> np.ndarray:
+    """Append a slowed replay segment to ``audio``.
+
+    Parameters
+    ----------
+    audio:
+        Captured audio buffer.
+    engine:
+        Audio engine providing the resampling routine.
+
+    Returns
+    -------
+    np.ndarray
+        Audio buffer extended with the slow-motion replay segment.
+    """
+    slow_samples = int(settings.end_screen.slowmo_duration * AudioEngine.SAMPLE_RATE)
+    segment = audio[-slow_samples:]
+    slowed = engine._resample(segment, settings.end_screen.slowmo)
+    return np.concatenate([audio, slowed])
 
 
 def run_match(  # noqa: C901
@@ -340,4 +361,5 @@ def run_match(  # noqa: C901
         return winner
     finally:
         audio = engine.end_capture()
+        audio = _append_slowmo_segment(audio, engine)
         recorder.close(audio)
