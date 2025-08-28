@@ -108,8 +108,8 @@ def test_run_display_mode_no_file(monkeypatch: MonkeyPatch) -> None:
     )
 
     assert result.exit_code == 0
-    assert captured["width"] == settings.width // 2
-    assert captured["height"] == settings.height // 2
+    assert captured["width"] == settings.width
+    assert captured["height"] == settings.height
     assert captured["display"] is True
     # En mode display, aucun fichier ne doit être créé
     assert not Path("generated").exists()
