@@ -1,5 +1,5 @@
 import time
-from typing import List, cast
+from typing import cast
 
 from app.audio.engine import AudioEngine
 from app.audio.weapons import WeaponAudio
@@ -7,7 +7,7 @@ from app.audio.weapons import WeaponAudio
 
 class StubAudioEngine:
     def __init__(self) -> None:
-        self.played: List[str] = []
+        self.played: list[str] = []
 
     def play_variation(self, path: str, volume: float | None = None) -> bool:  # noqa: D401
         self.played.append(path)

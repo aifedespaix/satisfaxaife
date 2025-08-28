@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pygame
 
+from app.audio.weapons import WeaponAudio
 from app.core.types import Damage, EntityId, Vec2
 from app.world.entities import DEFAULT_BALL_RADIUS
 
@@ -16,6 +17,7 @@ class Katana(Weapon):
 
     def __init__(self) -> None:
         super().__init__(name="katana", cooldown=0.0, damage=Damage(18), speed=4.0)
+        self.audio = WeaponAudio("melee", "katana")
         self._initialized = False
         blade_height = DEFAULT_BALL_RADIUS * 3.0
         self._sprite = pygame.transform.rotate(
@@ -35,8 +37,10 @@ class Katana(Weapon):
                 radius=60.0,
                 angle=0.0,
                 speed=self.speed,
+                audio=self.audio,
             )
             view.spawn_effect(effect)
+            self.audio.start_idle()
             self._initialized = True
         super().update(owner, view, dt)
 
