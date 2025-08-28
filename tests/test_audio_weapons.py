@@ -9,7 +9,12 @@ class StubAudioEngine:
     def __init__(self) -> None:
         self.played: list[str] = []
 
-    def play_variation(self, path: str, volume: float | None = None) -> bool:  # noqa: D401
+    def play_variation(
+        self,
+        path: str,
+        volume: float | None = None,
+        timestamp: float | None = None,
+    ) -> bool:  # noqa: D401
         self.played.append(path)
         return True
 

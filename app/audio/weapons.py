@@ -58,21 +58,26 @@ class WeaponAudio:
     # ------------------------------------------------------------------
     # Melee idle management
     # ------------------------------------------------------------------
-    def start_idle(self) -> None:
+    def start_idle(self, timestamp: float | None = None) -> None:
         """Start looping the idle sound for melee weapons."""
         if self._type != "melee" or self._idle_path is None:
             raise RuntimeError("Idle sound is only available for melee weapons")
         if self._idle_thread and self._idle_thread.is_alive():
             return
         self._idle_running.set()
-        self._idle_thread = threading.Thread(target=self._idle_loop, daemon=True)
+        self._idle_thread = threading.Thread(
+            target=self._idle_loop, args=(timestamp,), daemon=True
+        )
         self._idle_thread.start()
 
-    def _idle_loop(self) -> None:
+    def _idle_loop(self, timestamp: float | None) -> None:
         assert self._idle_path is not None
+        current = timestamp
         while self._idle_running.is_set():
-            self._engine.play_variation(self._idle_path)
+            self._engine.play_variation(self._idle_path, timestamp=current)
             length = self._engine.get_length(self._idle_path)
+            if current is not None:
+                current += length + self._idle_gap
             time.sleep(length + self._idle_gap)
 
     def stop_idle(self) -> None:
@@ -86,14 +91,14 @@ class WeaponAudio:
     # ------------------------------------------------------------------
     # Events
     # ------------------------------------------------------------------
-    def on_throw(self) -> None:
+    def on_throw(self, timestamp: float | None = None) -> None:
         """Play the throw sound for throwable weapons."""
         if self._throw_path is None:
             raise RuntimeError("This weapon type cannot throw")
-        self._engine.play_variation(self._throw_path)
+        self._engine.play_variation(self._throw_path, timestamp=timestamp)
 
-    def on_touch(self) -> None:
+    def on_touch(self, timestamp: float | None = None) -> None:
         """Play the touch/hit sound for any weapon."""
         if self._touch_path is None:
             raise RuntimeError("Touch sound not configured")
-        self._engine.play_variation(self._touch_path)
+        self._engine.play_variation(self._touch_path, timestamp=timestamp)
