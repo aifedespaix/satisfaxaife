@@ -23,17 +23,12 @@ def test_replay_audio_matches_video_and_preserves_kill_sound() -> None:
     audio[-1, 0] = kill_amp
 
     engine = cast(AudioEngine, DummyEngine())
-    final_audio = _append_slowmo_segment(audio, engine)
+    final_audio = _append_slowmo_segment(audio, engine, death_ts=0.5)
 
-    base_frames = int(base_samples / sample_rate * settings.fps)
-    buffer_len = int(settings.end_screen.slowmo_duration * settings.fps)
-    repeat = max(1, int(1 / settings.end_screen.slowmo))
-    delay_frames = int(settings.end_screen.pre_slowmo_ms / 1000 * settings.fps)
-    freeze_frames = int(settings.end_screen.freeze_ms / 1000 * settings.fps)
-    fade_frames = int(settings.end_screen.fade_ms / 1000 * settings.fps)
-    expected_frames = base_frames + delay_frames + buffer_len * repeat + freeze_frames + fade_frames
-    expected_samples = int(expected_frames / settings.fps * sample_rate)
+    pad_samples = int(settings.end_screen.pre_slowmo_ms / 1000 * sample_rate)
+    segment_len = base_samples  # death replay segment covers entire audio here
+    expected = base_samples + pad_samples + int(segment_len / settings.end_screen.slowmo)
     tolerance = sample_rate // settings.fps
 
-    assert abs(final_audio.shape[0] - expected_samples) <= tolerance
+    assert abs(final_audio.shape[0] - expected) <= tolerance
     assert final_audio[-1, 0] == kill_amp

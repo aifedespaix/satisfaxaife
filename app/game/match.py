@@ -136,7 +136,9 @@ class _MatchView(WorldView):
                 yield ProjectileInfo(eff.owner, pos, vel)
 
 
-def _append_slowmo_segment(audio: np.ndarray, engine: AudioEngine) -> np.ndarray:
+def _append_slowmo_segment(
+    audio: np.ndarray, engine: AudioEngine, death_ts: float
+) -> np.ndarray:
     """Append a slowed replay segment to ``audio``.
 
     Parameters
@@ -145,14 +147,20 @@ def _append_slowmo_segment(audio: np.ndarray, engine: AudioEngine) -> np.ndarray
         Captured audio buffer.
     engine:
         Audio engine providing the resampling routine.
+    death_ts:
+        Timestamp of the kill event in seconds.
 
     Returns
     -------
     np.ndarray
         Audio buffer extended with the slow-motion replay segment.
     """
-    slow_samples = int(settings.end_screen.slowmo_duration * AudioEngine.SAMPLE_RATE)
-    segment = audio[-slow_samples:]
+    start = max(0, int((death_ts - settings.end_screen.slowmo_duration) * AudioEngine.SAMPLE_RATE))
+    end = min(
+        audio.shape[0],
+        int((death_ts + settings.end_screen.explosion_duration) * AudioEngine.SAMPLE_RATE),
+    )
+    segment = audio[start:end]
     pad_samples = int(settings.end_screen.pre_slowmo_ms / 1000 * AudioEngine.SAMPLE_RATE)
     padded = np.concatenate([audio, np.zeros((pad_samples, audio.shape[1]), dtype=np.int16)])
     slowed = engine._resample(segment, settings.end_screen.slowmo)
@@ -227,7 +235,11 @@ def run_match(  # noqa: C901
     winner_weapon: str | None = None
     first_frame: pygame.Surface | None = None
     buffer: list[pygame.Surface] = []
-    buffer_len = int(settings.end_screen.slowmo_duration * settings.fps)
+    buffer_len = int(
+        (settings.end_screen.slowmo_duration + settings.end_screen.explosion_duration)
+        * settings.fps
+    )
+    death_ts: float | None = None
 
     try:
         while len([p for p in players if p.alive]) >= 2 and elapsed < max_seconds:
@@ -313,6 +325,7 @@ def run_match(  # noqa: C901
             alive = [p for p in players if p.alive]
             if len(alive) == 1:
                 winner = alive[0].eid
+                death_ts = elapsed + settings.dt
                 break
 
             elapsed += settings.dt
@@ -326,7 +339,7 @@ def run_match(  # noqa: C901
             win_p = next(p for p in players if p.eid == winner)
             lose_p = next(p for p in players if p.eid != winner)
             winner_weapon = weapon_a if winner == players[0].eid else weapon_b
-            shrink_frames = int(settings.end_screen.pre_slowmo_ms / 1000 * settings.fps)
+            shrink_frames = int(settings.end_screen.explosion_duration * settings.fps)
             win_pos = (
                 float(win_p.ball.body.position.x),
                 float(win_p.ball.body.position.y),
@@ -400,5 +413,6 @@ def run_match(  # noqa: C901
         return winner_weapon
     finally:
         audio = engine.end_capture()
-        audio = _append_slowmo_segment(audio, engine)
+        if death_ts is not None:
+            audio = _append_slowmo_segment(audio, engine, death_ts)
         recorder.close(audio)
