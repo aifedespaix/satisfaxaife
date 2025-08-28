@@ -20,7 +20,12 @@ class Recorder:
         self._format = "mp4"
         self._video_path = self.path.with_suffix(".video.mp4")
         try:
-            self.writer = imageio.get_writer(self._video_path, fps=fps, codec="libx264")
+            self.writer = imageio.get_writer(
+                self._video_path,
+                fps=fps,
+                codec="libx264",
+                macro_block_size=1,
+            )
         except Exception:
             self._format = "gif"
             self._video_path = self.path.with_suffix(".gif")
