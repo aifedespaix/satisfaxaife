@@ -11,6 +11,7 @@
         "subtitle_text": "{weapon} wins!",
         "slowmo": 0.35,
         "slowmo_duration": 0.6,
+        "pre_slowmo_ms": 2000,
         "freeze_ms": 120,
         "fade_ms": 400,
     },

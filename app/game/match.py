@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from math import sqrt
+from pathlib import Path
 
 import numpy as np
 import pygame
@@ -19,6 +20,8 @@ from app.weapons.base import Weapon, WeaponEffect, WorldView
 from app.world.entities import Ball
 from app.world.physics import PhysicsWorld
 from app.world.projectiles import Projectile
+
+BALL_DEATH_SOUND = Path("assets/balls/explose.ogg").as_posix()
 
 
 @dataclass(slots=True)
@@ -43,11 +46,13 @@ class _MatchView(WorldView):
         effects: list[WeaponEffect],
         world: PhysicsWorld,
         renderer: Renderer,
+        engine: AudioEngine,
     ) -> None:
         self.players = players
         self.effects = effects
         self.world = world
         self.renderer = renderer
+        self.engine = engine
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:
         for p in self.players:
@@ -81,6 +86,8 @@ class _MatchView(WorldView):
                 p.alive = not p.ball.take_damage(damage)
                 self.renderer.add_impact(self.get_position(eid))
                 self.renderer.trigger_blink(p.color, int(damage.amount))
+                if not p.alive:
+                    self.engine.play_variation(BALL_DEATH_SOUND)
                 return
 
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:
@@ -144,8 +151,10 @@ def _append_slowmo_segment(audio: np.ndarray, engine: AudioEngine) -> np.ndarray
     """
     slow_samples = int(settings.end_screen.slowmo_duration * AudioEngine.SAMPLE_RATE)
     segment = audio[-slow_samples:]
+    pad_samples = int(settings.end_screen.pre_slowmo_ms / 1000 * AudioEngine.SAMPLE_RATE)
+    padded = np.concatenate([audio, np.zeros((pad_samples, audio.shape[1]), dtype=np.int16)])
     slowed = engine._resample(segment, settings.end_screen.slowmo)
-    return np.concatenate([audio, slowed])
+    return np.concatenate([padded, slowed])
 
 
 def run_match(  # noqa: C901
@@ -207,7 +216,7 @@ def run_match(  # noqa: C901
         ),
     ]
     effects: list[WeaponEffect] = []
-    view = _MatchView(players, effects, world, renderer)
+    view = _MatchView(players, effects, world, renderer, engine)
 
     elapsed = 0.0
     winner: EntityId | None = None
@@ -296,6 +305,28 @@ def run_match(  # noqa: C901
             win_p = next(p for p in players if p.eid == winner)
             lose_p = next(p for p in players if p.eid != winner)
             winner_weapon = weapon_a if winner == players[0].eid else weapon_b
+            delay_frames = int(settings.end_screen.pre_slowmo_ms / 1000 * settings.fps)
+            for _ in range(max(1, delay_frames)):
+                renderer.clear()
+                for p in players:
+                    pos = (
+                        float(p.ball.body.position.x),
+                        float(p.ball.body.position.y),
+                    )
+                    radius = int(p.ball.shape.radius)
+                    renderer.draw_ball(pos, radius, settings.ball_color, p.color)
+                    renderer.draw_eyes(pos, p.face, radius, p.color)
+                renderer.draw_impacts()
+                renderer.draw_hp(
+                    renderer.surface,
+                    hud,
+                    (weapon_a.capitalize(), weapon_b.capitalize()),
+                )
+                hud.draw_title(renderer.surface, settings.hud.title)
+                hud.draw_watermark(renderer.surface, settings.hud.watermark)
+                renderer.present()
+                frame_surface = renderer.surface.copy()
+                recorder.add_frame(np.swapaxes(pygame.surfarray.array3d(frame_surface), 0, 1))
             anim_frames = int(settings.end_screen.freeze_ms / 1000 * settings.fps)
             for i in range(max(1, anim_frames)):
                 t = (i + 1) / max(1, anim_frames)

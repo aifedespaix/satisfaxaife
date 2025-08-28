@@ -38,6 +38,7 @@ class EndScreenConfig(BaseModel):  # type: ignore[misc]
     subtitle_text: str = "{weapon} remporte le duel !"
     slowmo: float = 0.35
     slowmo_duration: float = 0.6
+    pre_slowmo_ms: int = 2000
     freeze_ms: int = 120
     fade_ms: int = 400
 
