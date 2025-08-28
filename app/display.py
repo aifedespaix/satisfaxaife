@@ -76,7 +76,14 @@ class Display:
             msg = "pygame is required for Display"
             raise RuntimeError(msg)
         self._flags = pygame.RESIZABLE
-        self._window = pygame.display.set_mode(self.target_size, self._flags)
+        info = pygame.display.Info()
+        screen_w, screen_h = info.current_w, info.current_h
+        scale = calculate_scale((screen_w, screen_h), self.target_size)
+        window_size = (
+            int(self.target_width * scale),
+            int(self.target_height * scale),
+        )
+        self._window = pygame.display.set_mode(window_size, self._flags)
 
     @property
     def target_size(self) -> Size:

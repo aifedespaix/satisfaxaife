@@ -34,13 +34,10 @@ def run(
     """Run a single match and export a video to ``./generated``."""
     random.seed(seed)
 
-    display_width = settings.width // 2
-    display_height = settings.height // 2
-
     recorder: Recorder | NullRecorder
     temp_path: Path | None = None
     if display:
-        renderer = Renderer(display_width, display_height, display=True)
+        renderer = Renderer(settings.width, settings.height, display=True)
         recorder = NullRecorder()
     else:
         out_dir = Path("generated")
