@@ -108,12 +108,13 @@ Exemple : **Katana VS Shuriken**, seed = 42 :
 uv run python -m app.cli run \
   --weapon-a katana \
   --weapon-b shuriken \
-  --seed 42 \
-  --out out/katana_vs_shuriken.mp4
+  --seed 42
 ```
 
 📌 **Résultat :**
-Une vidéo **1080×1920, 60 FPS, .mp4**, prête pour TikTok.
+Une vidéo **1080×1920, 60 FPS, .mp4**, prête pour TikTok, enregistrée dans
+`./generated` sous la forme
+`YYYY_MM_DD_HH_MM_SS-katana-VS-shuriken-<arme_vainqueur>_win.mp4`.
 
 ⏱️ _La durée du match dépend de la dynamique du jeu._
 Si aucun vainqueur n’est déterminé après **2 minutes**, le moteur interrompt
@@ -131,15 +132,14 @@ uv run python -m app.cli run --display
 ## 📦 Générer un batch de vidéos
 
 Génère plusieurs combats en série avec seeds et armes aléatoires. Les fichiers
-sont nommés `battle_seed<seed>_<armeA>_vs_<armeB>.mp4` et enregistrés dans le
-répertoire spécifié.
+sont nommés `YYYY_MM_DD_HH_MM_SS-<armeA>-VS-<armeB>-<arme_vainqueur>_win.mp4` et
+enregistrés dans `./generated` par défaut.
 
 Exemple pour créer **10 vidéos TikTok** :
 
 ```bash
 uv run python -m app.cli batch \
-  --count 10 \
-  --out-dir out
+  --count 10
 ```
 
 ---
