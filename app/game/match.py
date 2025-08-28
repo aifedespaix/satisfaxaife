@@ -251,6 +251,23 @@ def run_match(  # noqa: C901
                     eff.destroy()
                     effects.remove(eff)
                     continue
+                if isinstance(eff, Projectile):
+                    proj_pos = (float(eff.body.position.x), float(eff.body.position.y))
+                    proj_rad = float(eff.shape.radius)
+                    deflected = False
+                    for other in effects:
+                        if other is eff:
+                            continue
+                        collide = getattr(other, "collides", None)
+                        if collide is None or not collide(view, proj_pos, proj_rad):
+                            continue
+                        reflector = getattr(other, "deflect_projectile", None)
+                        if reflector is not None:
+                            reflector(view, eff, elapsed)
+                            deflected = True
+                            break
+                    if deflected:
+                        continue
                 for p in players:
                     if p.eid == eff.owner or not p.alive:
                         continue

@@ -9,6 +9,7 @@ import pygame
 from app.audio.weapons import WeaponAudio
 from app.core.types import Color, Damage, EntityId, Vec2
 from app.render.renderer import Renderer
+from app.world.projectiles import Projectile
 
 from .base import WeaponEffect, WorldView
 
@@ -50,6 +51,16 @@ class OrbitingSprite(WeaponEffect):
         if self.audio is not None:
             self.audio.on_touch(timestamp)
         return True
+
+    def deflect_projectile(
+        self, view: WorldView, projectile: Projectile, timestamp: float
+    ) -> None:
+        """Reflect ``projectile`` away from the owner."""
+        vx, vy = projectile.body.velocity
+        projectile.body.velocity = (-vx, -vy)
+        projectile.owner = self.owner
+        if projectile.audio is not None:
+            projectile.audio.on_touch(timestamp)
 
     def draw(self, renderer: Renderer, view: WorldView) -> None:  # noqa: D401
         pos = self._position(view)
