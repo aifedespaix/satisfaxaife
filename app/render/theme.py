@@ -17,10 +17,21 @@ class TeamColors:
 
 @dataclass(frozen=True)
 class Theme:
-    """Complete color palette for the renderer and HUD."""
+    """Complete color palette for the renderer and HUD.
+
+    Attributes
+    ----------
+    team_a:
+        Colors for team A.
+    team_b:
+        Colors for team B.
+    hp_empty:
+        Color displayed for lost health.
+    """
 
     team_a: TeamColors
     team_b: TeamColors
+    hp_empty: Color
 
 
 def draw_horizontal_gradient(
