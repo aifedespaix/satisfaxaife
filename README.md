@@ -1,6 +1,5 @@
 # 🎥 Battle Balls — Générateur automatique de vidéos satisfaction TikTok
 
-
 **Battle Balls** est un moteur Python permettant de **générer automatiquement des vidéos "satisfaction" pour TikTok** 🎬  
 Le concept : des **boules armées** (katana, shuriken, etc.) s’affrontent dans une arène, et le moteur **simule physiquement** le combat en temps réel, puis **exporte la vidéo** en haute qualité, prête à être postée sur TikTok.
 
@@ -37,7 +36,7 @@ Les vidéos générées sont pensées pour **maximiser le watch-time** :
 - 🌈 **Satisfying vibes** : couleurs pop, mouvements fluides, bruitages ASMR.
 - 🧩 **Variabilité infinie** : armes, seeds, couleurs → des milliers de vidéos uniques.
 - 🔮 **Prédictions TikTok** (optionnel) :  
-  *"L’arme qui gagne choisira ton destin ✨"* → fort potentiel viral.
+  _"L’arme qui gagne choisira ton destin ✨"_ → fort potentiel viral.
 
 ---
 
@@ -97,7 +96,9 @@ source .venv/bin/activate  # Linux/Mac
 uv run python -m app.cli --help
 ```
 
----
+### Clean Images
+
+## `magick mogrify -strip ./assets/*.png`
 
 ## 🎮 Lancer un match simple
 
@@ -114,12 +115,12 @@ uv run python -m app.cli run \
 📌 **Résultat :**
 Une vidéo **1080×1920, 60 FPS, .mp4**, prête pour TikTok.
 
-⏱️ *La durée du match dépend de la dynamique du jeu.*
-Si aucun vainqueur n’est déterminé après **2 minutes**, le moteur interrompt
+⏱️ _La durée du match dépend de la dynamique du jeu._
+Si aucun vainqueur n’est déterminé après **2 minutes**, le moteur interrompt
 automatiquement la simulation et renvoie un **message d’erreur**.
 
 Pour afficher la simulation sans enregistrer de vidéo, ajoutez `--display`.
-La fenêtre s'ouvre alors à la moitié de la résolution configurée afin de tenir sur l'écran :
+La fenêtre s'ouvre alors à la moitié de la résolution configurée afin de tenir sur l'écran :
 
 ```bash
 uv run python -m app.cli run --display
@@ -150,7 +151,7 @@ uv run python -m app.cli batch \
 - **IA** : agressive, kite, support, teamplay.
 - **Équipes** : passer de 1v1 → 2v2 → FFA → Battle Royale.
 - **Rendu** : couleurs, arènes, effets visuels.
-- **Boucle & fin de match** : freeze 120 ms, ralenti ×0.35, bannière « VICTOIRE » puis fondu vers le début (400 ms).
+- **Boucle & fin de match** : freeze 120 ms, ralenti ×0.35, bannière « VICTOIRE » puis fondu vers le début (400 ms).
 - **Configuration externe** : `app/config.json` regroupe canvas, palette (bleu/orange), HUD (titre, watermark) et paramètres d'**end screen** (textes, slow-mo, fade...).
 - **FPS / résolution** : ajuster `canvas` dans `app/config.json`.
 
@@ -193,7 +194,7 @@ uv run pytest
 - [ ] 🔁 Boucles TikTok parfaites (match → replay → restart).
 - [ ] 🔊 Effets sonores & ASMR optimisés.
 - [ ] 🌈 FX visuels : particules, traînées, éclats.
-- [ ] 🤖 Mode *full batch* : générer **100+ vidéos par nuit**.
+- [ ] 🤖 Mode _full batch_ : générer **100+ vidéos par nuit**.
 
 ---
 
