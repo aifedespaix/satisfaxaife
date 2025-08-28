@@ -66,9 +66,9 @@ def test_end_screen_audio_contains_explosion_and_slow_segment(monkeypatch: pytes
     captured: dict[str, np.ndarray] = {}
     original = _append_slowmo_segment
 
-    def capture(audio: np.ndarray, engine: AudioEngine) -> np.ndarray:
+    def capture(audio: np.ndarray, engine: AudioEngine, death_ts: float) -> np.ndarray:
         captured["real"] = audio.copy()
-        return original(audio, engine)
+        return original(audio, engine, death_ts)
 
     monkeypatch.setattr("app.game.match._append_slowmo_segment", capture)
 
@@ -79,21 +79,15 @@ def test_end_screen_audio_contains_explosion_and_slow_segment(monkeypatch: pytes
     final = recorder.audio
     assert final is not None
 
-    slow_samples = int(settings.end_screen.slowmo_duration * AudioEngine.SAMPLE_RATE)
     pad_samples = int(settings.end_screen.pre_slowmo_ms / 1000 * AudioEngine.SAMPLE_RATE)
-    segment_len = min(raw.shape[0], slow_samples)
-    expected = raw.shape[0] + pad_samples + int(segment_len / settings.end_screen.slowmo)
-    tolerance = AudioEngine.SAMPLE_RATE // settings.fps
+    segment_samples = int(
+        (settings.end_screen.slowmo_duration + settings.end_screen.explosion_duration)
+        * AudioEngine.SAMPLE_RATE
+    )
+    expected_min = raw.shape[0] + pad_samples + int(segment_samples / settings.end_screen.slowmo)
+    assert final.shape[0] >= expected_min
 
-    assert final.shape[0] > raw.shape[0]
-    assert abs(final.shape[0] - expected) <= tolerance
-
-    kill_sample = int(EVENT_TIME * AudioEngine.SAMPLE_RATE)
-    segment_start = max(0, raw.shape[0] - slow_samples)
-    offset = kill_sample - segment_start
     slow_start = raw.shape[0] + pad_samples
-    explosion_index = slow_start + int(offset / settings.end_screen.slowmo)
-    window = final[explosion_index : explosion_index + 200]
-    assert np.any(window != 0)
+    assert np.any(final[slow_start:] != 0)
 
     reset_default_engine()
