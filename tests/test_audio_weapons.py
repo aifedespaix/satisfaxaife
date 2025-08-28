@@ -28,9 +28,9 @@ class StubAudioEngine:
 def test_melee_idle_and_touch() -> None:
     engine = StubAudioEngine()
     audio = WeaponAudio("melee", "katana", engine=cast(AudioEngine, engine), idle_gap=0.01)
-    audio.start_idle()
+    audio.start_idle(timestamp=0.0)
     time.sleep(0.05)
-    audio.on_touch()
+    audio.on_touch(timestamp=0.05)
     audio.stop_idle()
     assert any(path.endswith("idle.ogg") for path in engine.played)
     assert any(path.endswith("touch.ogg") for path in engine.played)
@@ -39,7 +39,7 @@ def test_melee_idle_and_touch() -> None:
 def test_throw_events() -> None:
     engine = StubAudioEngine()
     audio = WeaponAudio("throw", "shuriken", engine=cast(AudioEngine, engine))
-    audio.on_throw()
-    audio.on_touch()
+    audio.on_throw(timestamp=0.0)
+    audio.on_touch(timestamp=0.1)
     assert any(path.endswith("throw.ogg") for path in engine.played)
     assert any(path.endswith("touch.ogg") for path in engine.played)
