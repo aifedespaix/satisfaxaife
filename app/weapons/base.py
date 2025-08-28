@@ -25,8 +25,8 @@ class WorldView(Protocol):
     def get_health_ratio(self, eid: EntityId) -> float:
         """Return the current health ratio ``health / max_health`` of an entity."""
 
-    def deal_damage(self, eid: EntityId, damage: Damage) -> None:
-        """Apply *damage* to the entity."""
+    def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:
+        """Apply ``damage`` to ``eid`` at the given ``timestamp``."""
 
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:
         """Apply an impulse to the entity's body."""
@@ -63,8 +63,8 @@ class WeaponEffect(Protocol):
     def collides(self, view: WorldView, position: Vec2, radius: float) -> bool:
         """Return ``True`` if the effect intersects a circle at *position*."""
 
-    def on_hit(self, view: WorldView, target: EntityId) -> bool:
-        """Handle a collision with *target* and return ``True`` to keep the effect."""
+    def on_hit(self, view: WorldView, target: EntityId, timestamp: float) -> bool:
+        """Handle a collision with ``target`` at ``timestamp`` and return ``True`` to keep the effect."""
 
     def draw(self, renderer: Renderer, view: WorldView) -> None:
         """Render the effect on *renderer*."""

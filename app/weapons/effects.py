@@ -44,10 +44,11 @@ class OrbitingSprite(WeaponEffect):
         hit_rad = max(self.sprite.get_width(), self.sprite.get_height()) / 2
         return bool(dx * dx + dy * dy <= (hit_rad + radius) ** 2)
 
-    def on_hit(self, view: WorldView, target: EntityId) -> bool:  # noqa: D401
-        view.deal_damage(target, self.damage)
+    def on_hit(self, view: WorldView, target: EntityId, timestamp: float) -> bool:  # noqa: D401
+        """Apply damage to ``target`` at ``timestamp``."""
+        view.deal_damage(target, self.damage, timestamp)
         if self.audio is not None:
-            self.audio.on_touch()
+            self.audio.on_touch(timestamp)
         return True
 
     def draw(self, renderer: Renderer, view: WorldView) -> None:  # noqa: D401

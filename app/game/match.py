@@ -80,14 +80,15 @@ class _MatchView(WorldView):
                 return p.ball.health / p.ball.stats.max_health
         raise KeyError(eid)
 
-    def deal_damage(self, eid: EntityId, damage: Damage) -> None:
+    def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:
+        """Apply ``damage`` to ``eid`` at the given ``timestamp``."""
         for p in self.players:
             if p.eid == eid and p.alive:
                 p.alive = not p.ball.take_damage(damage)
                 self.renderer.add_impact(self.get_position(eid))
                 self.renderer.trigger_blink(p.color, int(damage.amount))
                 if not p.alive:
-                    self.engine.play_variation(BALL_DEATH_SOUND)
+                    self.engine.play_variation(BALL_DEATH_SOUND, timestamp=timestamp)
                 return
 
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:
@@ -252,7 +253,7 @@ def run_match(  # noqa: C901
                         continue
                     pos = (float(p.ball.body.position.x), float(p.ball.body.position.y))
                     if eff.collides(view, pos, p.ball.shape.radius):
-                        keep = eff.on_hit(view, p.eid)
+                        keep = eff.on_hit(view, p.eid, elapsed)
                         if not keep:
                             eff.destroy()
                             effects.remove(eff)

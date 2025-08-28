@@ -42,7 +42,7 @@ def test_katana_audio_events() -> None:
         def get_position(self, eid: EntityId) -> Vec2:  # noqa: D401
             return (0.0, 0.0)
 
-        def deal_damage(self, eid: EntityId, damage: Damage) -> None:  # noqa: D401
+        def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:  # noqa: D401
             pass
 
     view_obj = View()
@@ -50,7 +50,7 @@ def test_katana_audio_events() -> None:
     katana.update(EntityId(1), view, 0.0)
     assert stub_audio.idle_started
     effect = view_obj.effects[0]
-    effect.on_hit(view, EntityId(2))
+    effect.on_hit(view, EntityId(2), timestamp=0.0)
     assert stub_audio.touched
 
 
@@ -95,7 +95,7 @@ def test_shuriken_audio_events() -> None:
             self.projectile = proj
             return proj
 
-        def deal_damage(self, eid: EntityId, damage: Damage) -> None:  # noqa: D401
+        def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:  # noqa: D401
             pass
 
         def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:  # noqa: D401
@@ -107,5 +107,5 @@ def test_shuriken_audio_events() -> None:
     assert stub_audio.thrown
     projectile = view_obj.projectile
     assert projectile is not None
-    projectile.on_hit(view, EntityId(2))
+    projectile.on_hit(view, EntityId(2), timestamp=0.0)
     assert stub_audio.touched
