@@ -79,10 +79,11 @@ class Projectile(WeaponEffect):
         rad = cast(float, self.shape.radius) + radius
         return dx * dx + dy * dy <= rad * rad
 
-    def on_hit(self, view: WorldView, target: EntityId) -> bool:
-        view.deal_damage(target, self.damage)
+    def on_hit(self, view: WorldView, target: EntityId, timestamp: float) -> bool:
+        """Apply damage to ``target`` at ``timestamp`` and transfer momentum."""
+        view.deal_damage(target, self.damage, timestamp)
         if self.audio is not None:
-            self.audio.on_touch()
+            self.audio.on_touch(timestamp)
         target_pos = view.get_position(target)
         pos = self.body.position
         dx = pos.x - target_pos[0]

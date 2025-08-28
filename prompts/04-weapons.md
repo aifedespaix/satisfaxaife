@@ -5,7 +5,7 @@ But : gameplay minimal 1v1.
 
 - `app/weapons/base.py` :
   - classe Weapon(name, cooldown, dmg: Damage) avec timer
-  - WorldView Protocol : get_enemy(owner_id), get_position(eid), deal_damage(eid, Damage), apply_impulse(eid, vx, vy), spawn_projectile(...)
+  - WorldView Protocol : get_enemy(owner_id), get_position(eid), deal_damage(eid, Damage, timestamp), apply_impulse(eid, vx, vy), spawn_projectile(...)
 - `app/weapons/katana.py` :
   - arc 70°, portée ~140, cooldown 0.6s, dmg 18, knockback 220, enregistre `katana`
 - `app/weapons/shuriken.py` :

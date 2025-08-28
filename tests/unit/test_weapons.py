@@ -34,7 +34,7 @@ class DummyView(WorldView):
     def get_health_ratio(self, eid: EntityId) -> float:  # noqa: D401
         return 1.0
 
-    def deal_damage(self, eid: EntityId, damage: Damage) -> None:  # noqa: D401
+    def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:  # noqa: D401
         self.damage_values.append(damage.amount)
 
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:  # noqa: D401
@@ -53,7 +53,7 @@ class DummyView(WorldView):
             def collides(self, view: WorldView, position: Vec2, radius: float) -> bool:
                 return False
 
-            def on_hit(self, view: WorldView, target: EntityId) -> bool:
+            def on_hit(self, view: WorldView, target: EntityId, timestamp: float) -> bool:
                 return False
 
             def draw(self, renderer: object, view: WorldView) -> None:

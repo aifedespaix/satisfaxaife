@@ -39,11 +39,13 @@ class DummyRenderer:
 class DummyEngine:
     def __init__(self) -> None:
         self.paths: list[str] = []
+        self.timestamps: list[float | None] = []
 
     def play_variation(
         self, path: str, volume: float | None = None, timestamp: float | None = None
     ) -> bool:
         self.paths.append(path)
+        self.timestamps.append(timestamp)
         return True
 
 
@@ -58,6 +60,8 @@ def test_deal_damage_triggers_explosion_sound_on_death() -> None:
     renderer = cast("Renderer", DummyRenderer())
     view = _MatchView([player], [], world, renderer, engine)
 
-    view.deal_damage(player.eid, Damage(amount=200.0))
+    view.deal_damage(player.eid, Damage(amount=200.0), timestamp=1.23)
 
-    assert Path("assets/balls/explose.ogg").as_posix() in dummy_engine.paths
+    path = Path("assets/balls/explose.ogg").as_posix()
+    assert path in dummy_engine.paths
+    assert dummy_engine.timestamps[dummy_engine.paths.index(path)] == 1.23
