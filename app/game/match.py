@@ -306,44 +306,25 @@ def run_match(  # noqa: C901
             win_p = next(p for p in players if p.eid == winner)
             lose_p = next(p for p in players if p.eid != winner)
             winner_weapon = weapon_a if winner == players[0].eid else weapon_b
-            delay_frames = int(settings.end_screen.pre_slowmo_ms / 1000 * settings.fps)
-            for _ in range(max(1, delay_frames)):
+            shrink_frames = int(settings.end_screen.pre_slowmo_ms / 1000 * settings.fps)
+            win_pos = (
+                float(win_p.ball.body.position.x),
+                float(win_p.ball.body.position.y),
+            )
+            lose_pos = (
+                float(lose_p.ball.body.position.x),
+                float(lose_p.ball.body.position.y),
+            )
+            renderer.add_impact(lose_pos)
+            for frame_index in range(max(1, shrink_frames)):
+                if frame_index > 0 and frame_index % 4 == 0:
+                    renderer.add_impact(lose_pos)
+                progress = (frame_index + 1) / max(1, shrink_frames)
                 renderer.clear()
-                for p in players:
-                    pos = (
-                        float(p.ball.body.position.x),
-                        float(p.ball.body.position.y),
-                    )
-                    radius = int(p.ball.shape.radius)
-                    renderer.draw_ball(pos, radius, settings.ball_color, p.color)
-                    renderer.draw_eyes(pos, p.face, radius, p.color)
-                renderer.draw_impacts()
-                renderer.draw_hp(
-                    renderer.surface,
-                    hud,
-                    (weapon_a.capitalize(), weapon_b.capitalize()),
-                )
-                hud.draw_title(renderer.surface, settings.hud.title)
-                hud.draw_watermark(renderer.surface, settings.hud.watermark)
-                renderer.present()
-                frame_surface = renderer.surface.copy()
-                recorder.add_frame(np.swapaxes(pygame.surfarray.array3d(frame_surface), 0, 1))
-            anim_frames = int(settings.end_screen.freeze_ms / 1000 * settings.fps)
-            for i in range(max(1, anim_frames)):
-                t = (i + 1) / max(1, anim_frames)
-                renderer.clear()
-                win_pos = (
-                    float(win_p.ball.body.position.x),
-                    float(win_p.ball.body.position.y),
-                )
-                lose_pos = (
-                    float(lose_p.ball.body.position.x),
-                    float(lose_p.ball.body.position.y),
-                )
-                lose_radius = int(lose_p.ball.shape.radius * (1.0 - t))
+                lose_radius = int(lose_p.ball.shape.radius * (1.0 - progress))
                 if lose_radius > 0:
                     renderer.draw_ball(lose_pos, lose_radius, settings.ball_color, lose_p.color)
-                win_radius = int(win_p.ball.shape.radius * (1.0 + t))
+                win_radius = int(win_p.ball.shape.radius)
                 renderer.draw_ball(win_pos, win_radius, settings.ball_color, win_p.color)
                 renderer.draw_eyes(win_pos, win_p.face, win_radius, win_p.color)
                 renderer.draw_impacts()
@@ -353,6 +334,7 @@ def run_match(  # noqa: C901
                     (weapon_a.capitalize(), weapon_b.capitalize()),
                 )
                 hud.draw_title(renderer.surface, settings.hud.title)
+                hud.draw_watermark(renderer.surface, settings.hud.watermark)
                 renderer.present()
                 frame_surface = renderer.surface.copy()
                 recorder.add_frame(np.swapaxes(pygame.surfarray.array3d(frame_surface), 0, 1))
