@@ -6,6 +6,7 @@ from math import tau
 import numpy as np
 import pygame
 
+from app.audio.weapons import WeaponAudio
 from app.core.types import Color, Damage, EntityId, Vec2
 from app.render.renderer import Renderer
 
@@ -25,6 +26,7 @@ class OrbitingSprite(WeaponEffect):
     trail_color: Color = (255, 255, 255)
     trail: list[Vec2] = field(default_factory=list)
     trail_len: int = 8
+    audio: WeaponAudio | None = None
 
     def step(self, dt: float) -> bool:  # noqa: D401
         self.angle = float(np.float32(self.angle + self.speed * dt) % np.float32(tau))
@@ -44,6 +46,8 @@ class OrbitingSprite(WeaponEffect):
 
     def on_hit(self, view: WorldView, target: EntityId) -> bool:  # noqa: D401
         view.deal_damage(target, self.damage)
+        if self.audio is not None:
+            self.audio.on_touch()
         return True
 
     def draw(self, renderer: Renderer, view: WorldView) -> None:  # noqa: D401

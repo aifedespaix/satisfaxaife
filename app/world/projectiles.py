@@ -7,6 +7,7 @@ from typing import cast
 import pygame
 import pymunk
 
+from app.audio.weapons import WeaponAudio
 from app.core.types import Damage, EntityId, Vec2
 from app.render.renderer import Renderer
 from app.weapons.base import WeaponEffect, WorldView
@@ -27,6 +28,7 @@ class Projectile(WeaponEffect):
     sprite: pygame.Surface | None = None
     angle: float = 0.0
     spin: float = 0.0
+    audio: WeaponAudio | None = None
 
     @classmethod
     def spawn(
@@ -79,6 +81,8 @@ class Projectile(WeaponEffect):
 
     def on_hit(self, view: WorldView, target: EntityId) -> bool:
         view.deal_damage(target, self.damage)
+        if self.audio is not None:
+            self.audio.on_touch()
         target_pos = view.get_position(target)
         pos = self.body.position
         dx = pos.x - target_pos[0]
