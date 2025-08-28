@@ -3,13 +3,12 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from math import sqrt
-from pathlib import Path
 
 import numpy as np
 import pygame
 
 from app.ai.policy import SimplePolicy
-from app.audio import AudioEngine, get_default_engine
+from app.audio import AudioEngine, BallAudio, get_default_engine
 from app.core.config import settings
 from app.core.types import Color, Damage, EntityId, ProjectileInfo, Vec2
 from app.render.hud import Hud
@@ -21,8 +20,6 @@ from app.world.entities import Ball
 from app.world.physics import PhysicsWorld
 from app.world.projectiles import Projectile
 
-BALL_DEATH_SOUND = Path("assets/balls/explose.ogg").as_posix()
-
 
 @dataclass(slots=True)
 class Player:
@@ -32,6 +29,7 @@ class Player:
     policy: SimplePolicy
     face: Vec2
     color: Color
+    audio: BallAudio
     alive: bool = True
 
 
@@ -88,7 +86,7 @@ class _MatchView(WorldView):
                 self.renderer.add_impact(self.get_position(eid))
                 self.renderer.trigger_blink(p.color, int(damage.amount))
                 if not p.alive:
-                    self.engine.play_variation(BALL_DEATH_SOUND, timestamp=timestamp)
+                    p.audio.on_explode(timestamp=timestamp)
                 return
 
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:
@@ -206,6 +204,7 @@ def run_match(  # noqa: C901
             SimplePolicy("aggressive"),
             (1.0, 0.0),
             settings.theme.team_a.primary,
+            BallAudio(engine=engine),
         ),
         Player(
             ball_b.eid,
@@ -214,6 +213,7 @@ def run_match(  # noqa: C901
             SimplePolicy("kiter"),
             (-1.0, 0.0),
             settings.theme.team_b.primary,
+            BallAudio(engine=engine),
         ),
     ]
     effects: list[WeaponEffect] = []
