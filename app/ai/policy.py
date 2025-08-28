@@ -86,7 +86,7 @@ class SimplePolicy:
         if self.style == "aggressive":
             accel, fire = self._aggressive(me, view, my_pos, direction, dist, face, cos_thresh)
         else:
-            accel, fire = self._kiter(direction, dist, face, cos_thresh)
+            accel, fire = self._kiter(direction, dist, face, cos_thresh, projectile_speed)
 
         if abs(dy) <= 1e-6:
             offset_face = (direction[0], self.vertical_offset)
@@ -105,19 +105,39 @@ class SimplePolicy:
         face: Vec2,
         cos_thresh: float,
     ) -> tuple[Vec2, bool]:
+        """Close combat behaviour prioritising projectile dodging."""
+
         dodge = (0.0, 0.0)
+        closest_t = float("inf")
+        best_vel: Vec2 | None = None
         for proj in view.iter_projectiles(excluding=me):
             px, py = proj.position
             vx, vy = proj.velocity
-            dxp = px - my_pos[0]
-            dyp = py - my_pos[1]
-            if dxp * vx + dyp * vy < 0 and dxp * dxp + dyp * dyp < 200**2:
-                perp = (-vy, vx)
-                norm = math.hypot(*perp) or 1.0
-                dodge = (perp[0] / norm, perp[1] / norm)
-                break
-        if dodge == (0.0, 0.0):
+            rx = px - my_pos[0]
+            ry = py - my_pos[1]
+            approach = rx * vx + ry * vy
+            if approach >= 0.0:
+                continue
+            speed_sq = vx * vx + vy * vy
+            if speed_sq <= 1e-6:
+                continue
+            t = -approach / speed_sq
+            if t >= closest_t or t > 1.0 or t <= 0.0:
+                continue
+            hit_x = rx + vx * t
+            hit_y = ry + vy * t
+            if hit_x * hit_x + hit_y * hit_y > 200.0**2:
+                continue
+            closest_t = t
+            best_vel = (vx, vy)
+
+        if best_vel is not None:
+            perp = (-best_vel[1], best_vel[0])
+            norm = math.hypot(*perp) or 1.0
+            dodge = (perp[0] / norm, perp[1] / norm)
+        else:
             dodge = (-direction[1], direction[0])
+
         combined = (
             direction[0] + 0.5 * dodge[0],
             direction[1] + 0.5 * dodge[1],
@@ -133,12 +153,22 @@ class SimplePolicy:
         dist: float,
         face: Vec2,
         cos_thresh: float,
+        projectile_speed: float | None,
     ) -> tuple[Vec2, bool]:
-        desired = 250.0
+        """Keep distance while staying within weapon range."""
+
+        if projectile_speed and projectile_speed > 0.0:
+            desired = projectile_speed * 0.5
+            fire_range = projectile_speed * 0.8
+        else:
+            desired = 250.0
+            fire_range = 300.0
+
         accel: Vec2 = (0.0, 0.0)
         if dist < desired:
             accel = (-direction[0] * 400.0, -direction[1] * 400.0)
-        elif dist > desired + 50:
+        elif dist > fire_range:
             accel = (direction[0] * 400.0, direction[1] * 400.0)
-        fire = dist <= 300 and direction[0] * face[0] + direction[1] * face[1] >= cos_thresh
+
+        fire = dist <= fire_range and direction[0] * face[0] + direction[1] * face[1] >= cos_thresh
         return accel, fire
