@@ -8,6 +8,7 @@ from typing import Annotated, cast
 
 import typer
 
+from app.audio import reset_default_engine
 from app.audio.env import temporary_sdl_audio_driver
 from app.core.config import settings
 from app.game.match import MatchTimeout, run_match
@@ -60,6 +61,8 @@ def run(
                 path.unlink()
             typer.echo(f"Error: {exc}", err=True)
             raise typer.Exit(code=1) from None
+        finally:
+            reset_default_engine()
 
     if not display and isinstance(recorder, Recorder) and temp_path is not None:
         winner_name = _sanitize(winner) if winner is not None else "draw"
@@ -111,6 +114,8 @@ def batch(
                 )
                 temp_path.rename(final_path)
                 typer.echo(f"Saved video to {final_path}")
+            finally:
+                reset_default_engine()
 
 
 if __name__ == "__main__":  # pragma: no cover

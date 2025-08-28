@@ -54,7 +54,15 @@ class AudioEngine:
     # Public API
     # ------------------------------------------------------------------
     def shutdown(self) -> None:
-        """Stop all sounds and quit the mixer."""
+        """Stop all sounds and quit the mixer.
+
+        The shutdown operation is idempotent; calling it multiple times has
+        no effect once the mixer has been closed. This behaviour ensures that
+        cleanup routines can invoke :meth:`shutdown` safely even if another
+        part of the application already terminated the audio subsystem.
+        """
+        if pygame.mixer.get_init() is None:
+            return
         pygame.mixer.stop()
         pygame.mixer.quit()
 
