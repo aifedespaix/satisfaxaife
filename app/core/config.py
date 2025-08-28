@@ -49,6 +49,7 @@ class Settings(BaseModel):  # type: ignore[misc]
     theme: Theme = Theme(
         team_a=TeamColors(primary=(0, 102, 204), hp_gradient=((102, 178, 255), (0, 51, 102))),
         team_b=TeamColors(primary=(255, 102, 0), hp_gradient=((255, 178, 102), (102, 51, 0))),
+        hp_empty=(51, 51, 51),
     )
     hud: HudConfig = HudConfig()
     end_screen: EndScreenConfig = EndScreenConfig()

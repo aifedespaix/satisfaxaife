@@ -24,21 +24,19 @@ class Hud:
     def draw_hp_bars(
         self, surface: pygame.Surface, hp_a: float, hp_b: float, labels: tuple[str, str]
     ) -> None:
-        """Draw two symmetrical health bars with labels using theme gradients."""
+        """Draw two symmetrical health bars with labels."""
+
         bar_width = 300
         bar_height = 25
         margin = 40
 
         # Left bar (team A)
         left_rect = pygame.Rect(margin, 120, bar_width, bar_height)
-        draw_horizontal_gradient(
-            surface, left_rect, *self.theme.team_a.hp_gradient
-        )
-        pygame.draw.rect(
-            surface,
-            self.theme.team_a.primary,
-            (left_rect.x, left_rect.y, int(bar_width * hp_a), bar_height),
-        )
+        pygame.draw.rect(surface, self.theme.hp_empty, left_rect)
+        width_a = int(bar_width * hp_a)
+        if width_a > 0:
+            filled_rect = pygame.Rect(left_rect.x, left_rect.y, width_a, bar_height)
+            draw_horizontal_gradient(surface, filled_rect, *self.theme.team_a.hp_gradient)
         label_a = self.bar_font.render(labels[0], True, (255, 255, 255))
         surface.blit(label_a, (left_rect.x, left_rect.y - 30))
 
@@ -46,19 +44,14 @@ class Hud:
         right_rect = pygame.Rect(
             surface.get_width() - margin - bar_width, 120, bar_width, bar_height
         )
-        # Gradient drawn right-to-left
-        grad_start, grad_end = self.theme.team_b.hp_gradient
-        draw_horizontal_gradient(surface, right_rect, grad_end, grad_start)
-        pygame.draw.rect(
-            surface,
-            self.theme.team_b.primary,
-            (
-                right_rect.x + bar_width - int(bar_width * hp_b),
-                right_rect.y,
-                int(bar_width * hp_b),
-                bar_height,
-            ),
-        )
+        pygame.draw.rect(surface, self.theme.hp_empty, right_rect)
+        width_b = int(bar_width * hp_b)
+        if width_b > 0:
+            filled_rect = pygame.Rect(
+                right_rect.x + bar_width - width_b, right_rect.y, width_b, bar_height
+            )
+            grad_start, grad_end = self.theme.team_b.hp_gradient
+            draw_horizontal_gradient(surface, filled_rect, grad_end, grad_start)
         label_b = self.bar_font.render(labels[1], True, (255, 255, 255))
         surface.blit(
             label_b,
@@ -72,9 +65,7 @@ class Hud:
         rect.bottomleft = (10, surface.get_height() - 10)
         surface.blit(mark, rect)
 
-    def draw_victory_banner(
-        self, surface: pygame.Surface, title: str, subtitle: str
-    ) -> None:
+    def draw_victory_banner(self, surface: pygame.Surface, title: str, subtitle: str) -> None:
         """Draw the final victory banner at the center of the screen."""
         title_surf = self.title_font.render(title, True, (255, 255, 255))
         sub_surf = self.bar_font.render(subtitle, True, (255, 255, 255))
