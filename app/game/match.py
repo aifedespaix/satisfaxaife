@@ -425,3 +425,4 @@ def run_match(  # noqa: C901
         if death_ts is not None:
             audio = _append_slowmo_segment(audio, engine, death_ts)
         recorder.close(audio)
+        engine.shutdown()
