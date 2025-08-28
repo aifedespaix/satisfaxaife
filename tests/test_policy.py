@@ -90,6 +90,14 @@ def test_kiter_moves_away() -> None:
     assert fire is True
 
 
+def test_kiter_closes_distance_when_out_of_range() -> None:
+    view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (600.0, 0.0))
+    policy = SimplePolicy("kiter")
+    accel, _, fire = policy.decide(EntityId(1), view, 600.0)
+    assert accel[0] > 0  # moves right, toward enemy
+    assert fire is False
+
+
 def test_kiter_leads_moving_target() -> None:
     view = DummyView(
         EntityId(1),
