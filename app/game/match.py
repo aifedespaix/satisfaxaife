@@ -133,7 +133,7 @@ def run_match(  # noqa: C901
     recorder: Recorder,
     renderer: Renderer | None = None,
     max_seconds: int = 120,
-) -> EntityId | None:
+) -> str | None:
     """Run a minimal match and record frames.
 
     Parameters
@@ -151,8 +151,8 @@ def run_match(  # noqa: C901
 
     Returns
     -------
-    EntityId | None
-        Winning entity identifier or ``None`` if no winner.
+    str | None
+        Winning weapon name or ``None`` if no winner.
 
     Raises
     ------
@@ -190,6 +190,7 @@ def run_match(  # noqa: C901
 
     elapsed = 0.0
     winner: EntityId | None = None
+    winner_weapon: str | None = None
     first_frame: pygame.Surface | None = None
     buffer: list[pygame.Surface] = []
     buffer_len = int(settings.end_screen.slowmo_duration * settings.fps)
@@ -273,6 +274,7 @@ def run_match(  # noqa: C901
             renderer.set_hp(hp_a, hp_b)
             win_p = next(p for p in players if p.eid == winner)
             lose_p = next(p for p in players if p.eid != winner)
+            winner_weapon = weapon_a if winner == players[0].eid else weapon_b
             anim_frames = int(settings.end_screen.freeze_ms / 1000 * settings.fps)
             for i in range(max(1, anim_frames)):
                 t = (i + 1) / max(1, anim_frames)
@@ -305,39 +307,42 @@ def run_match(  # noqa: C901
                 if len(buffer) > buffer_len:
                     buffer.pop(0)
 
+            if buffer:
+                title = settings.end_screen.victory_text.format(weapon=winner_weapon.capitalize())
+                subtitle = settings.end_screen.subtitle_text.format(
+                    weapon=winner_weapon.capitalize()
+                )
+                banner_surface = buffer[-1].copy()
+                hud.draw_victory_banner(banner_surface, title, subtitle)
+                banner_frame = np.swapaxes(pygame.surfarray.array3d(banner_surface), 0, 1)
+                freeze_frames = int(settings.end_screen.freeze_ms / 1000 * settings.fps)
+                for _ in range(max(1, freeze_frames)):
+                    recorder.add_frame(banner_frame)
+
+                slow_factor = settings.end_screen.slowmo
+                repeat = max(1, int(1 / slow_factor))
+                for surf in buffer:
+                    surf_copy = surf.copy()
+                    hud.draw_victory_banner(surf_copy, title, subtitle)
+                    arr = np.swapaxes(pygame.surfarray.array3d(surf_copy), 0, 1)
+                    for _ in range(repeat):
+                        recorder.add_frame(arr)
+
+                if first_frame is not None:
+                    start_arr = pygame.surfarray.array3d(first_frame)
+                    end_arr = pygame.surfarray.array3d(banner_surface)
+                    fade_frames = int(settings.end_screen.fade_ms / 1000 * settings.fps)
+                    for i in range(max(1, fade_frames)):
+                        t = (i + 1) / fade_frames
+                        blended = (end_arr * (1 - t) + start_arr * t).astype(np.uint8)
+                        recorder.add_frame(np.swapaxes(blended, 0, 1))
+
+            return winner_weapon
+
         if len([p for p in players if p.alive]) >= 2 and elapsed >= max_seconds:
             raise MatchTimeout(f"Match exceeded {max_seconds} seconds")
 
-        if winner is not None and buffer:
-            weapon_name = weapon_a if winner == players[0].eid else weapon_b
-            title = settings.end_screen.victory_text.format(weapon=weapon_name.capitalize())
-            subtitle = settings.end_screen.subtitle_text.format(weapon=weapon_name.capitalize())
-            banner_surface = buffer[-1].copy()
-            hud.draw_victory_banner(banner_surface, title, subtitle)
-            banner_frame = np.swapaxes(pygame.surfarray.array3d(banner_surface), 0, 1)
-            freeze_frames = int(settings.end_screen.freeze_ms / 1000 * settings.fps)
-            for _ in range(max(1, freeze_frames)):
-                recorder.add_frame(banner_frame)
-
-            slow_factor = settings.end_screen.slowmo
-            repeat = max(1, int(1 / slow_factor))
-            for surf in buffer:
-                surf_copy = surf.copy()
-                hud.draw_victory_banner(surf_copy, title, subtitle)
-                arr = np.swapaxes(pygame.surfarray.array3d(surf_copy), 0, 1)
-                for _ in range(repeat):
-                    recorder.add_frame(arr)
-
-            if first_frame is not None:
-                start_arr = pygame.surfarray.array3d(first_frame)
-                end_arr = pygame.surfarray.array3d(banner_surface)
-                fade_frames = int(settings.end_screen.fade_ms / 1000 * settings.fps)
-                for i in range(max(1, fade_frames)):
-                    t = (i + 1) / fade_frames
-                    blended = (end_arr * (1 - t) + start_arr * t).astype(np.uint8)
-                    recorder.add_frame(np.swapaxes(blended, 0, 1))
-
-        return winner
+        return winner_weapon
     finally:
         audio = engine.end_capture()
         recorder.close(audio)

@@ -15,7 +15,6 @@ from app.video.recorder import Recorder
 
 def test_run_creates_video(tmp_path: Path) -> None:
     runner = CliRunner()
-    out = tmp_path / "test.mp4"
     result = runner.invoke(
         app,
         [
@@ -26,21 +25,21 @@ def test_run_creates_video(tmp_path: Path) -> None:
             "katana",
             "--weapon-b",
             "shuriken",
-            "--out",
-            str(out),
         ],
     )
     assert result.exit_code == 0
-    video_path = out if out.exists() else out.with_suffix(".gif")
+    generated_dir = Path("generated")
+    files = list(generated_dir.glob("*.mp4")) or list(generated_dir.glob("*.gif"))
+    assert len(files) == 1
+    video_path = files[0]
     assert video_path.exists()
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
     info = subprocess.run([ffmpeg, "-i", str(video_path)], capture_output=True, text=True)
     assert "Audio:" in info.stderr
 
 
-def test_run_timeout(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+def test_run_timeout(monkeypatch: MonkeyPatch) -> None:
     runner = CliRunner()
-    out = tmp_path / "timeout.mp4"
 
     # On force un timeout en remplaçant app.cli.run_match par un wrapper
     from app.game import match as match_module
@@ -66,18 +65,16 @@ def test_run_timeout(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
             "katana",
             "--weapon-b",
             "shuriken",
-            "--out",
-            str(out),
         ],
     )
     assert result.exit_code != 0
     assert "exceeded" in (result.stderr or "").lower()
-    # Le fichier ne doit pas exister après nettoyage du recorder sur timeout
-    assert not out.exists()
-    assert not out.with_suffix(".gif").exists()
+    generated_dir = Path("generated")
+    assert generated_dir.exists()
+    assert list(generated_dir.glob("*")) == []
 
 
-def test_run_display_mode_no_file(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+def test_run_display_mode_no_file(monkeypatch: MonkeyPatch) -> None:
     captured: dict[str, int | bool] = {}
 
     original_init = Renderer.__init__
@@ -96,7 +93,6 @@ def test_run_display_mode_no_file(tmp_path: Path, monkeypatch: MonkeyPatch) -> N
     monkeypatch.setattr(Renderer, "__init__", spy_init)
 
     runner = CliRunner()
-    out = tmp_path / "display.mp4"
     result = runner.invoke(
         app,
         [
@@ -107,8 +103,6 @@ def test_run_display_mode_no_file(tmp_path: Path, monkeypatch: MonkeyPatch) -> N
             "katana",
             "--weapon-b",
             "shuriken",
-            "--out",
-            str(out),
             "--display",
         ],
     )
@@ -118,5 +112,4 @@ def test_run_display_mode_no_file(tmp_path: Path, monkeypatch: MonkeyPatch) -> N
     assert captured["height"] == settings.height // 2
     assert captured["display"] is True
     # En mode display, aucun fichier ne doit être créé
-    assert not out.exists()
-    assert not out.with_suffix(".gif").exists()
+    assert not Path("generated").exists()

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import random
+import re
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated, cast
 
@@ -15,32 +17,43 @@ from app.weapons import weapon_registry
 app = typer.Typer(help="Génération de vidéos satisfaction (TikTok).")
 
 
+def _sanitize(name: str) -> str:
+    """Return a filesystem-safe version of ``name``."""
+    return re.sub(r"[^A-Za-z0-9_-]", "_", name)
+
+
 @app.command()  # type: ignore[misc]
 def run(
     seed: int = 0,
     weapon_a: str = "katana",
     weapon_b: str = "shuriken",
-    out: Path = Path("out.mp4"),
     display: bool = typer.Option(
         False, "--display/--no-display", help="Display simulation instead of recording"
     ),
 ) -> None:
-    """Run a single match and optionally export a video."""
+    """Run a single match and export a video to ``./generated``."""
     random.seed(seed)
 
     display_width = settings.width // 2
     display_height = settings.height // 2
 
     recorder: Recorder | NullRecorder
+    temp_path: Path | None = None
     if display:
         renderer = Renderer(display_width, display_height, display=True)
         recorder = NullRecorder()
     else:
-        recorder = Recorder(settings.width, settings.height, settings.fps, out)
+        out_dir = Path("generated")
+        out_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+        safe_a = _sanitize(weapon_a)
+        safe_b = _sanitize(weapon_b)
+        temp_path = out_dir / f"{timestamp}-{safe_a}-VS-{safe_b}.mp4"
+        recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
         renderer = Renderer(settings.width, settings.height)
 
     try:
-        run_match(weapon_a, weapon_b, cast(Recorder, recorder), renderer)
+        winner = run_match(weapon_a, weapon_b, cast(Recorder, recorder), renderer)
     except MatchTimeout as exc:
         path = getattr(recorder, "path", None)
         if path is not None and path.exists():
@@ -48,8 +61,11 @@ def run(
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(code=1) from None
 
-    if isinstance(recorder, Recorder):
-        typer.echo(f"Saved video to {recorder.path}")
+    if not display and isinstance(recorder, Recorder) and temp_path is not None:
+        winner_name = _sanitize(winner) if winner is not None else "draw"
+        final_path = temp_path.with_name(f"{temp_path.stem}-{winner_name}_win{temp_path.suffix}")
+        temp_path.rename(final_path)
+        typer.echo(f"Saved video to {final_path}")
 
 
 @app.command()  # type: ignore[misc]
@@ -63,7 +79,7 @@ def batch(
             dir_okay=True,
             help="Directory where generated videos are written",
         ),
-    ] = Path("out"),
+    ] = Path("generated"),
 ) -> None:
     """Generate multiple match videos with varied seeds and weapons."""
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -72,21 +88,28 @@ def batch(
     for _ in range(count):
         seed = random.randint(0, 1_000_000)
         weapon_a, weapon_b = random.sample(names, k=2)
-        filename = f"battle_seed{seed}_{weapon_a}_vs_{weapon_b}.mp4"
-        out_path = out_dir / filename
+        timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+        safe_a = _sanitize(weapon_a)
+        safe_b = _sanitize(weapon_b)
+        temp_path = out_dir / f"{timestamp}-{safe_a}-VS-{safe_b}.mp4"
 
         random.seed(seed)
-        recorder = Recorder(settings.width, settings.height, settings.fps, out_path)
+        recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
         renderer = Renderer(settings.width, settings.height)
 
         try:
-            run_match(weapon_a, weapon_b, recorder, renderer)
+            winner = run_match(weapon_a, weapon_b, recorder, renderer)
         except MatchTimeout as exc:
-            if out_path.exists():
-                out_path.unlink()
+            if temp_path.exists():
+                temp_path.unlink()
             typer.echo(f"Match {seed} timed out: {exc}", err=True)
         else:
-            typer.echo(f"Saved video to {out_path}")
+            winner_name = _sanitize(winner) if winner is not None else "draw"
+            final_path = temp_path.with_name(
+                f"{temp_path.stem}-{winner_name}_win{temp_path.suffix}"
+            )
+            temp_path.rename(final_path)
+            typer.echo(f"Saved video to {final_path}")
 
 
 if __name__ == "__main__":  # pragma: no cover
