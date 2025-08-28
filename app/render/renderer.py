@@ -33,6 +33,7 @@ class _Particle:
 class _Impact:
     pos: Vec2
     timer: float
+    duration: float
     particles: list[_Particle]
 
 
@@ -108,7 +109,7 @@ class Renderer:
                     particle.pos[0] + particle.vel[0] * settings.dt,
                     particle.pos[1] + particle.vel[1] * settings.dt,
                 )
-            strength = impact.timer / 0.08
+            strength = impact.timer / impact.duration
             self._shake = (
                 self._shake[0] + random.uniform(-1, 1) * strength,
                 self._shake[1] + random.uniform(-1, 1) * strength,
@@ -152,15 +153,26 @@ class Renderer:
         rect = rotated.get_rect(center=self._offset(pos))
         self.surface.blit(rotated, rect)
 
-    def add_impact(self, pos: Vec2) -> None:
-        """Register an impact for visual feedback."""
-        particles = []
+    def add_impact(self, pos: Vec2, duration: float = 0.08) -> None:
+        """Register an impact at ``pos`` lasting ``duration`` seconds.
+
+        Parameters
+        ----------
+        pos:
+            Impact position in world coordinates.
+        duration:
+            Lifetime of the impact in seconds. Defaults to ``0.08`` seconds.
+        """
+        if duration <= 0:
+            raise ValueError("duration must be positive")
+
+        particles: list[_Particle] = []
         for _ in range(random.randint(6, 10)):
             ang = random.uniform(0, 2 * 3.14159)
             speed = random.uniform(80, 160)
             vel = (math.cos(ang) * speed, math.sin(ang) * speed)
             particles.append(_Particle(pos=pos, vel=vel))
-        self._impacts.append(_Impact(pos=pos, timer=0.08, particles=particles))
+        self._impacts.append(_Impact(pos=pos, timer=duration, duration=duration, particles=particles))
 
     def update_hp(self, hp_a: float, hp_b: float) -> None:
         target = [hp_a, hp_b]
@@ -253,7 +265,7 @@ class Renderer:
 
     def draw_impacts(self) -> None:
         for impact in self._impacts:
-            alpha = int(255 * (impact.timer / 0.08))
+            alpha = int(255 * (impact.timer / impact.duration))
             pygame.draw.circle(self.surface, (255, 255, 255, alpha), self._offset(impact.pos), 20)
             for particle in impact.particles:
                 pygame.draw.circle(self.surface, (255, 180, 0), self._offset(particle.pos), 3)
