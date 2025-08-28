@@ -89,6 +89,10 @@ class _MatchView(WorldView):
                 else:
                     self.renderer.add_impact(pos, duration=2.0)
                     p.audio.on_explode(timestamp=timestamp)
+                    # Stop the weapon's idle audio thread when the player dies.
+                    weapon_audio = getattr(p.weapon, "audio", None)
+                    if weapon_audio is not None:
+                        weapon_audio.stop_idle()
                 self.renderer.trigger_blink(p.color, int(damage.amount))
                 return
 
@@ -136,9 +140,7 @@ class _MatchView(WorldView):
                 yield ProjectileInfo(eff.owner, pos, vel)
 
 
-def _append_slowmo_segment(
-    audio: np.ndarray, engine: AudioEngine, death_ts: float
-) -> np.ndarray:
+def _append_slowmo_segment(audio: np.ndarray, engine: AudioEngine, death_ts: float) -> np.ndarray:
     """Append a slowed replay segment to ``audio``.
 
     Parameters
@@ -412,6 +414,13 @@ def run_match(  # noqa: C901
 
         return winner_weapon
     finally:
+        # Ensure all weapon idle sounds stop when the match concludes.
+        for player in players:
+            weapon_audio = getattr(player.weapon, "audio", None)
+            if weapon_audio is not None:
+                weapon_audio.stop_idle()
+        # Optionally cut any remaining sound immediately.
+        engine.stop_all()
         audio = engine.end_capture()
         if death_ts is not None:
             audio = _append_slowmo_segment(audio, engine, death_ts)
