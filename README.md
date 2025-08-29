@@ -24,6 +24,7 @@ Image de prévisualisation à venir.
 - 🔊 **Effets sonores** intégrés dans la piste audio.
 - 📦 **Batch mode** : génération de **N vidéos** en une seule commande.
 - 🚀 Prêt pour la scalabilité : 1v1, 2v2, FFA, replay slow-mo, highlights TikTok.
+- 🎞️ **Ralentit automatique** du coup fatal ajouté à la fin de la vidéo.
 
 ---
 
@@ -117,7 +118,8 @@ Si aucun vainqueur n’est déterminé après **2 minutes**, le moteur interromp
 automatiquement la simulation et renvoie un **message d’erreur**.
 
 Pour afficher la simulation sans enregistrer de vidéo, ajoutez `--display`.
-La fenêtre s'ouvre alors à la moitié de la résolution configurée afin de tenir sur l'écran :
+La fenêtre s'ouvre alors à la moitié de la résolution configurée et s'arrête
+après l'animation de fin **sans** rejouer le ralenti :
 
 ```bash
 uv run python -m app.cli run --display
@@ -147,7 +149,7 @@ uv run python -m app.cli batch \
 - **IA** : agressive, kite, support, teamplay.
 - **Équipes** : passer de 1v1 → 2v2 → FFA → Battle Royale.
 - **Rendu** : couleurs, arènes, effets visuels.
-- **Boucle & fin de match** : freeze 120 ms, ralenti ×0.35, bannière « VICTOIRE » puis fondu vers le début (400 ms).
+- **Boucle & fin de match** : animation de victoire puis segment ralenti configurable.
 - **Configuration externe** : `app/config.json` regroupe canvas, palette (bleu/orange), HUD (titre, watermark) et paramètres d'**end screen** (textes, slow-mo, fade...).
 - **FPS / résolution** : ajuster `canvas` dans `app/config.json`.
 
