@@ -1,20 +1,22 @@
-import pygame
 from dataclasses import dataclass, field
 
-from app.core.types import Damage, EntityId, Vec2
+import pygame
+
+from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
+from app.weapons.base import WeaponEffect, WorldView
 from app.weapons.effects import OrbitingSprite
 from app.world.physics import PhysicsWorld
 from app.world.projectiles import Projectile
-from app.weapons.base import WorldView, WeaponEffect
 
 
 @dataclass
 class DummyView(WorldView):
     positions: dict[EntityId, Vec2]
+    enemies: dict[EntityId, EntityId]
     damage: dict[EntityId, float] = field(default_factory=dict)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:
-        return None
+        return self.enemies.get(owner)
 
     def get_position(self, eid: EntityId) -> Vec2:
         return self.positions[eid]
@@ -48,7 +50,7 @@ class DummyView(WorldView):
     ) -> WeaponEffect:
         raise NotImplementedError
 
-    def iter_projectiles(self, excluding: EntityId | None = None):
+    def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # noqa: D401
         return []
 
 
@@ -58,7 +60,8 @@ def test_katana_deflects_projectile() -> None:
     owner = EntityId(1)
     enemy = EntityId(2)
     positions = {owner: (0.0, 0.0), enemy: (30.0, 0.0)}
-    view = DummyView(positions)
+    enemies = {owner: enemy, enemy: owner}
+    view = DummyView(positions, enemies)
     sprite = pygame.Surface((20, 20))
     katana = OrbitingSprite(
         owner=owner,
@@ -78,6 +81,7 @@ def test_katana_deflects_projectile() -> None:
         knockback=0.0,
         ttl=1.0,
     )
+    projectile.ttl = 0.1
     pos = (float(projectile.body.position.x), float(projectile.body.position.y))
     assert katana.collides(view, pos, float(projectile.shape.radius))
 
@@ -85,6 +89,7 @@ def test_katana_deflects_projectile() -> None:
 
     assert projectile.owner == owner
     assert projectile.body.velocity.x == 100.0
+    assert projectile.ttl == projectile.max_ttl
     assert view.damage == {}
 
     projectile.on_hit(view, enemy, timestamp=0.1)

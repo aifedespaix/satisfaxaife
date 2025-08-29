@@ -52,13 +52,17 @@ class OrbitingSprite(WeaponEffect):
             self.audio.on_touch(timestamp)
         return True
 
-    def deflect_projectile(
-        self, view: WorldView, projectile: Projectile, timestamp: float
-    ) -> None:
-        """Reflect ``projectile`` away from the owner."""
-        vx, vy = projectile.body.velocity
-        projectile.body.velocity = (-vx, -vy)
-        projectile.owner = self.owner
+    def deflect_projectile(self, view: WorldView, projectile: Projectile, timestamp: float) -> None:
+        """Reflect ``projectile`` and aim it at the current enemy."""
+        enemy = view.get_enemy(self.owner)
+        if enemy is not None:
+            target = view.get_position(enemy)
+            projectile.retarget(target, self.owner)
+        else:
+            vx, vy = projectile.body.velocity
+            projectile.body.velocity = (-vx, -vy)
+            projectile.owner = self.owner
+            projectile.ttl = projectile.max_ttl
         if projectile.audio is not None:
             projectile.audio.on_touch(timestamp)
 
