@@ -342,6 +342,10 @@ def run_match(  # noqa: C901
 
         if winner is not None:
             for p in players:
+                weapon_audio = getattr(p.weapon, "audio", None)
+                if weapon_audio is not None:
+                    weapon_audio.stop_idle(death_ts)
+            for p in players:
                 p.ball.body.velocity = (0.0, 0.0)
             hp_a = max(0.0, players[0].ball.health / players[0].ball.stats.max_health)
             hp_b = max(0.0, players[1].ball.health / players[1].ball.stats.max_health)
