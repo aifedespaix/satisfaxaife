@@ -25,6 +25,7 @@ class Projectile(WeaponEffect):
     damage: Damage
     knockback: float
     ttl: float
+    max_ttl: float
     sprite: pygame.Surface | None = None
     angle: float = 0.0
     spin: float = 0.0
@@ -61,6 +62,7 @@ class Projectile(WeaponEffect):
             damage=damage,
             knockback=knockback,
             ttl=ttl,
+            max_ttl=ttl,
             sprite=sprite,
             spin=spin,
         )
@@ -91,6 +93,17 @@ class Projectile(WeaponEffect):
         norm = sqrt(dx * dx + dy * dy) or 1.0
         view.apply_impulse(target, dx / norm * self.knockback, dy / norm * self.knockback)
         return False
+
+    def retarget(self, target: Vec2, new_owner: EntityId) -> None:
+        """Aim the projectile toward ``target`` and reset its lifetime."""
+        px, py = float(self.body.position.x), float(self.body.position.y)
+        dx, dy = target[0] - px, target[1] - py
+        norm = sqrt(dx * dx + dy * dy) or 1.0
+        vx, vy = float(self.body.velocity.x), float(self.body.velocity.y)
+        speed = sqrt(vx * vx + vy * vy)
+        self.body.velocity = (dx / norm * speed, dy / norm * speed)
+        self.owner = new_owner
+        self.ttl = self.max_ttl
 
     def draw(self, renderer: Renderer, view: WorldView) -> None:
         pos = (float(self.body.position.x), float(self.body.position.y))
