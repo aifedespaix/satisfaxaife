@@ -9,6 +9,9 @@
     "end_screen": {
         "victory_text": "Victory : {weapon}",
         "subtitle_text": "{weapon} wins!",
-        "explosion_duration": 2.0
+        "explosion_duration": 2.0,
+        "pre_s": 1.0,
+        "post_s": 1.0,
+        "slow_factor": 0.5
     }
 }

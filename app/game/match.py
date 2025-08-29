@@ -14,6 +14,7 @@ from app.core.types import Color, Damage, EntityId, ProjectileInfo, Vec2
 from app.render.hud import Hud
 from app.render.renderer import Renderer
 from app.video.recorder import Recorder
+from app.video.slowmo import append_slowmo_ending
 from app.weapons import weapon_registry
 from app.weapons.base import Weapon, WeaponEffect, WorldView
 from app.world.entities import Ball
@@ -358,4 +359,12 @@ def run_match(  # noqa: C901
         audio = engine.end_capture() if not display else None
         engine.stop_all()
         recorder.close(audio)
+        if not display and death_ts is not None:
+            append_slowmo_ending(
+                recorder.path,
+                death_ts,
+                settings.end_screen.pre_s,
+                settings.end_screen.post_s,
+                settings.end_screen.slow_factor,
+            )
         engine.shutdown()

@@ -37,6 +37,9 @@ class EndScreenConfig(BaseModel):  # type: ignore[misc]
     victory_text: str = "Victory : {weapon}"
     subtitle_text: str = "{weapon} remporte le duel !"
     explosion_duration: float = 2.0
+    pre_s: float = 1.0
+    post_s: float = 1.0
+    slow_factor: float = 0.5
 
 
 class Settings(BaseModel):  # type: ignore[misc]
