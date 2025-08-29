@@ -138,53 +138,15 @@ class _MatchView(WorldView):
                 pos = (float(eff.body.position.x), float(eff.body.position.y))
                 vel = (float(eff.body.velocity.x), float(eff.body.velocity.y))
                 yield ProjectileInfo(eff.owner, pos, vel)
-
-
-def _append_slowmo_segment(audio: np.ndarray, engine: AudioEngine, death_ts: float) -> np.ndarray:
-    """Append a slowed replay segment to ``audio``.
-
-    Parameters
-    ----------
-    audio:
-        Captured audio buffer.
-    engine:
-        Audio engine providing the resampling routine.
-    death_ts:
-        Timestamp of the kill event in seconds.
-
-    Returns
-    -------
-    np.ndarray
-        Audio buffer extended with the slow-motion replay segment.
-
-    Raises
-    ------
-    ValueError
-        If the window around ``death_ts`` contains no samples.
-    """
-    start = max(0, int((death_ts - settings.end_screen.slowmo_duration) * AudioEngine.SAMPLE_RATE))
-    end = min(
-        audio.shape[0],
-        int((death_ts + settings.end_screen.explosion_duration) * AudioEngine.SAMPLE_RATE),
-    )
-    segment = audio[start:end]
-    if segment.size == 0:
-        msg = "Slow-motion window around death timestamp is empty"
-        raise ValueError(msg)
-    pad_samples = int(settings.end_screen.pre_slowmo_ms / 1000 * AudioEngine.SAMPLE_RATE)
-    padded = np.concatenate([audio, np.zeros((pad_samples, audio.shape[1]), dtype=np.int16)])
-    slowed = engine._resample(segment, settings.end_screen.slowmo)
-    return np.concatenate([padded, slowed])
-
-
 def run_match(  # noqa: C901
     weapon_a: str,
     weapon_b: str,
     recorder: Recorder,
     renderer: Renderer | None = None,
     max_seconds: int = 120,
+    display: bool = False,
 ) -> str | None:
-    """Run a minimal match and record frames.
+    """Run a minimal match and optionally record frames.
 
     Parameters
     ----------
@@ -198,6 +160,8 @@ def run_match(  # noqa: C901
         Optional renderer instance. If ``None``, an off-screen renderer is created.
     max_seconds : int, optional
         Maximum duration of the match. Default is 120 seconds.
+    display : bool, optional
+        When ``True``, show the match in a window and skip all capture logic.
 
     Returns
     -------
@@ -210,9 +174,10 @@ def run_match(  # noqa: C901
         If the match exceeds ``max_seconds`` without a winner.
     """
     engine = get_default_engine()
-    engine.start_capture()
+    if not display:
+        engine.start_capture()
     world = PhysicsWorld()
-    renderer = renderer or Renderer(settings.width, settings.height)
+    renderer = renderer or Renderer(settings.width, settings.height, display=display)
     hud = Hud(settings.theme)
 
     ball_a = Ball.spawn(world, (settings.width * 0.25, settings.height * 0.5))
@@ -243,12 +208,6 @@ def run_match(  # noqa: C901
     elapsed = 0.0
     winner: EntityId | None = None
     winner_weapon: str | None = None
-    first_frame: pygame.Surface | None = None
-    buffer: list[pygame.Surface] = []
-    buffer_len = int(
-        (settings.end_screen.slowmo_duration + settings.end_screen.explosion_duration)
-        * settings.fps
-    )
     death_ts: float | None = None
 
     try:
@@ -323,14 +282,10 @@ def run_match(  # noqa: C901
             renderer.draw_hp(renderer.surface, hud, (weapon_a.capitalize(), weapon_b.capitalize()))
             hud.draw_watermark(renderer.surface, settings.hud.watermark)
             renderer.present()
-            frame_surface = renderer.surface.copy()
-            frame = pygame.surfarray.array3d(frame_surface)
-            recorder.add_frame(np.swapaxes(frame, 0, 1))
-            if first_frame is None:
-                first_frame = frame_surface.copy()
-            buffer.append(frame_surface)
-            if len(buffer) > buffer_len:
-                buffer.pop(0)
+            if not display:
+                frame_surface = renderer.surface.copy()
+                frame = pygame.surfarray.array3d(frame_surface)
+                recorder.add_frame(np.swapaxes(frame, 0, 1))
 
             alive = [p for p in players if p.alive]
             if len(alive) == 1:
@@ -383,42 +338,11 @@ def run_match(  # noqa: C901
                 hud.draw_title(renderer.surface, settings.hud.title)
                 hud.draw_watermark(renderer.surface, settings.hud.watermark)
                 renderer.present()
-                frame_surface = renderer.surface.copy()
-                recorder.add_frame(np.swapaxes(pygame.surfarray.array3d(frame_surface), 0, 1))
-                buffer.append(frame_surface)
-                if len(buffer) > buffer_len:
-                    buffer.pop(0)
-
-            if buffer:
-                title = settings.end_screen.victory_text.format(weapon=winner_weapon.capitalize())
-                subtitle = settings.end_screen.subtitle_text.format(
-                    weapon=winner_weapon.capitalize()
-                )
-                banner_surface = buffer[-1].copy()
-                hud.draw_victory_banner(banner_surface, title, subtitle)
-                banner_frame = np.swapaxes(pygame.surfarray.array3d(banner_surface), 0, 1)
-                freeze_frames = int(settings.end_screen.freeze_ms / 1000 * settings.fps)
-                for _ in range(max(1, freeze_frames)):
-                    recorder.add_frame(banner_frame)
-
-                slow_factor = settings.end_screen.slowmo
-                repeat = max(1, int(1 / slow_factor))
-                for surf in buffer:
-                    surf_copy = surf.copy()
-                    hud.draw_victory_banner(surf_copy, title, subtitle)
-                    arr = np.swapaxes(pygame.surfarray.array3d(surf_copy), 0, 1)
-                    for _ in range(repeat):
-                        recorder.add_frame(arr)
-
-                if first_frame is not None:
-                    start_arr = pygame.surfarray.array3d(first_frame)
-                    end_arr = pygame.surfarray.array3d(banner_surface)
-                    fade_frames = int(settings.end_screen.fade_ms / 1000 * settings.fps)
-                    for i in range(max(1, fade_frames)):
-                        t = (i + 1) / fade_frames
-                        blended = (end_arr * (1 - t) + start_arr * t).astype(np.uint8)
-                        recorder.add_frame(np.swapaxes(blended, 0, 1))
-
+                if not display:
+                    frame_surface = renderer.surface.copy()
+                    recorder.add_frame(
+                        np.swapaxes(pygame.surfarray.array3d(frame_surface), 0, 1)
+                    )
             return winner_weapon
 
         if len([p for p in players if p.alive]) >= 2 and elapsed >= max_seconds:
@@ -431,9 +355,7 @@ def run_match(  # noqa: C901
             weapon_audio = getattr(player.weapon, "audio", None)
             if weapon_audio is not None:
                 weapon_audio.stop_idle(None)
-        audio = engine.end_capture()
-        if death_ts is not None:
-            audio = _append_slowmo_segment(audio, engine, death_ts)
+        audio = engine.end_capture() if not display else None
         engine.stop_all()
         recorder.close(audio)
         engine.shutdown()
