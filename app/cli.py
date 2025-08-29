@@ -36,23 +36,28 @@ def run(
     """Run a single match and export a video to ``./generated``."""
     random.seed(seed)
 
-    recorder: Recorder | NullRecorder
-    temp_path: Path | None = None
-    if display:
-        renderer = Renderer(settings.width, settings.height, display=True)
-        recorder = NullRecorder()
-    else:
-        out_dir = Path("generated")
-        out_dir.mkdir(parents=True, exist_ok=True)
-        timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-        safe_a = _sanitize(weapon_a)
-        safe_b = _sanitize(weapon_b)
-        temp_path = out_dir / f"{timestamp}-{safe_a}-VS-{safe_b}.mp4"
-        recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
-        renderer = Renderer(settings.width, settings.height)
-
     driver = None if display else "dummy"
+
+    recorder: Recorder | NullRecorder | None = None
+    temp_path: Path | None = None
+    winner: str | None = None
+
     with temporary_sdl_audio_driver(driver):
+        if display:
+            renderer = Renderer(settings.width, settings.height, display=True)
+            recorder = NullRecorder()
+        else:
+            out_dir = Path("generated")
+            out_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+            safe_a = _sanitize(weapon_a)
+            safe_b = _sanitize(weapon_b)
+            temp_path = out_dir / f"{timestamp}-{safe_a}-VS-{safe_b}.mp4"
+            recorder = Recorder(
+                settings.width, settings.height, settings.fps, temp_path
+            )
+            renderer = Renderer(settings.width, settings.height)
+
         try:
             winner = run_match(weapon_a, weapon_b, cast(Recorder, recorder), renderer)
         except MatchTimeout as exc:
@@ -66,7 +71,9 @@ def run(
 
     if not display and isinstance(recorder, Recorder) and temp_path is not None:
         winner_name = _sanitize(winner) if winner is not None else "draw"
-        final_path = temp_path.with_name(f"{temp_path.stem}-{winner_name}_win{temp_path.suffix}")
+        final_path = temp_path.with_name(
+            f"{temp_path.stem}-{winner_name}_win{temp_path.suffix}"
+        )
         temp_path.rename(final_path)
         typer.echo(f"Saved video to {final_path}")
 
