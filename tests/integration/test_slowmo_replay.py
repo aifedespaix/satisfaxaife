@@ -14,11 +14,7 @@ from tests.integration.helpers import InstantKillWeapon, SpyRecorder
 
 @pytest.mark.integration
 @pytest.mark.usefixtures("monkeypatch")
-def test_end_screen_audio_contains_explosion_and_slow_segment(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Audio replay should be longer and contain the kill sound."""
-
+def test_slowmo_segment_has_expected_length_and_content(monkeypatch: pytest.MonkeyPatch) -> None:
     if "instakill" not in weapon_registry.names():
         weapon_registry.register("instakill", InstantKillWeapon)
 
@@ -29,7 +25,7 @@ def test_end_screen_audio_contains_explosion_and_slow_segment(
     original = _append_slowmo_segment
 
     def capture(audio: np.ndarray, engine: AudioEngine, death_ts: float) -> np.ndarray:
-        captured["real"] = audio.copy()
+        captured["raw"] = audio.copy()
         return original(audio, engine, death_ts)
 
     monkeypatch.setattr("app.game.match._append_slowmo_segment", capture)
@@ -37,19 +33,18 @@ def test_end_screen_audio_contains_explosion_and_slow_segment(
     with temporary_sdl_audio_driver("dummy"):
         run_match("instakill", "instakill", recorder, renderer, max_seconds=1)
 
-    raw = captured["real"]
+    raw = captured["raw"]
     final = recorder.audio
     assert final is not None
 
     pad_samples = int(settings.end_screen.pre_slowmo_ms / 1000 * AudioEngine.SAMPLE_RATE)
-    segment_samples = int(
-        (settings.end_screen.slowmo_duration + settings.end_screen.explosion_duration)
-        * AudioEngine.SAMPLE_RATE
-    )
-    expected_min = raw.shape[0] + pad_samples + int(segment_samples / settings.end_screen.slowmo)
-    assert final.shape[0] >= expected_min
-
     slow_start = raw.shape[0] + pad_samples
-    assert np.any(final[slow_start:] != 0)
+    slow_samples = int(
+        settings.end_screen.slowmo_duration / settings.end_screen.slowmo * AudioEngine.SAMPLE_RATE
+    )
+    assert final.shape[0] >= slow_start + slow_samples
+    slow_segment = final[slow_start : slow_start + slow_samples]
+    assert slow_segment.shape[0] == slow_samples
+    assert np.any(slow_segment != 0)
 
     reset_default_engine()

@@ -156,6 +156,11 @@ def _append_slowmo_segment(audio: np.ndarray, engine: AudioEngine, death_ts: flo
     -------
     np.ndarray
         Audio buffer extended with the slow-motion replay segment.
+
+    Raises
+    ------
+    ValueError
+        If the window around ``death_ts`` contains no samples.
     """
     start = max(0, int((death_ts - settings.end_screen.slowmo_duration) * AudioEngine.SAMPLE_RATE))
     end = min(
@@ -163,6 +168,9 @@ def _append_slowmo_segment(audio: np.ndarray, engine: AudioEngine, death_ts: flo
         int((death_ts + settings.end_screen.explosion_duration) * AudioEngine.SAMPLE_RATE),
     )
     segment = audio[start:end]
+    if segment.size == 0:
+        msg = "Slow-motion window around death timestamp is empty"
+        raise ValueError(msg)
     pad_samples = int(settings.end_screen.pre_slowmo_ms / 1000 * AudioEngine.SAMPLE_RATE)
     padded = np.concatenate([audio, np.zeros((pad_samples, audio.shape[1]), dtype=np.int16)])
     slowed = engine._resample(segment, settings.end_screen.slowmo)
@@ -419,10 +427,9 @@ def run_match(  # noqa: C901
             weapon_audio = getattr(player.weapon, "audio", None)
             if weapon_audio is not None:
                 weapon_audio.stop_idle(None)
-        # Optionally cut any remaining sound immediately.
-        engine.stop_all()
         audio = engine.end_capture()
         if death_ts is not None:
             audio = _append_slowmo_segment(audio, engine, death_ts)
+        engine.stop_all()
         recorder.close(audio)
         engine.shutdown()
