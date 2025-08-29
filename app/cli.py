@@ -53,9 +53,7 @@ def run(
             safe_a = _sanitize(weapon_a)
             safe_b = _sanitize(weapon_b)
             temp_path = out_dir / f"{timestamp}-{safe_a}-VS-{safe_b}.mp4"
-            recorder = Recorder(
-                settings.width, settings.height, settings.fps, temp_path
-            )
+            recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
             renderer = Renderer(settings.width, settings.height)
 
         try:
@@ -66,14 +64,10 @@ def run(
                 path.unlink()
             typer.echo(f"Error: {exc}", err=True)
             raise typer.Exit(code=1) from None
-        finally:
-            reset_default_engine()
 
     if not display and isinstance(recorder, Recorder) and temp_path is not None:
         winner_name = _sanitize(winner) if winner is not None else "draw"
-        final_path = temp_path.with_name(
-            f"{temp_path.stem}-{winner_name}_win{temp_path.suffix}"
-        )
+        final_path = temp_path.with_name(f"{temp_path.stem}-{winner_name}_win{temp_path.suffix}")
         temp_path.rename(final_path)
         typer.echo(f"Saved video to {final_path}")
 
