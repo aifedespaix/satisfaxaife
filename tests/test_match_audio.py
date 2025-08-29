@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import cast
 
 import numpy as np
+import pytest
 
 from app.audio.engine import AudioEngine
 from app.core.config import settings
@@ -32,3 +33,10 @@ def test_replay_audio_matches_video_and_preserves_kill_sound() -> None:
 
     assert abs(final_audio.shape[0] - expected) <= tolerance
     assert final_audio[-1, 0] == kill_amp
+
+
+def test_append_slowmo_segment_raises_on_empty_window() -> None:
+    audio = np.zeros((1, 1), dtype=np.int16)
+    engine = cast(AudioEngine, DummyEngine())
+    with pytest.raises(ValueError):
+        _append_slowmo_segment(audio, engine, death_ts=10.0)
