@@ -23,7 +23,6 @@ def test_end_screen_audio_contains_explosion_and_slow_segment(
         weapon_registry.register("instakill", InstantKillWeapon)
 
     recorder = SpyRecorder()
-    renderer = Renderer(settings.width, settings.height)
 
     captured: dict[str, np.ndarray] = {}
     original = _append_slowmo_segment
@@ -35,6 +34,7 @@ def test_end_screen_audio_contains_explosion_and_slow_segment(
     monkeypatch.setattr("app.game.match._append_slowmo_segment", capture)
 
     with temporary_sdl_audio_driver("dummy"):
+        renderer = Renderer(settings.width, settings.height)
         run_match("instakill", "instakill", recorder, renderer, max_seconds=1)
 
     raw = captured["real"]

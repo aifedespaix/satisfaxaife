@@ -19,7 +19,6 @@ def test_slowmo_segment_has_expected_length_and_content(monkeypatch: pytest.Monk
         weapon_registry.register("instakill", InstantKillWeapon)
 
     recorder = SpyRecorder()
-    renderer = Renderer(settings.width, settings.height)
 
     captured: dict[str, np.ndarray] = {}
     original = _append_slowmo_segment
@@ -31,6 +30,7 @@ def test_slowmo_segment_has_expected_length_and_content(monkeypatch: pytest.Monk
     monkeypatch.setattr("app.game.match._append_slowmo_segment", capture)
 
     with temporary_sdl_audio_driver("dummy"):
+        renderer = Renderer(settings.width, settings.height)
         run_match("instakill", "instakill", recorder, renderer, max_seconds=1)
 
     raw = captured["raw"]
