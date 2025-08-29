@@ -96,11 +96,16 @@ class WeaponAudio:
     def stop_idle(self, timestamp: float | None = None) -> None:
         """Stop the idle loop for melee weapons.
 
+        The idle sound is stopped using :meth:`AudioEngine.stop_handle` so
+        that other effects (for example the explosion triggered on death)
+        keep playing.  Passing ``timestamp`` trims the captured idle audio at
+        the provided time.
+
         Parameters
         ----------
         timestamp:
             Optional capture time in seconds used to truncate the recorded
-            sound. If provided, only the current idle handle is stopped.
+            idle sound.
         """
         if self._idle_thread and self._idle_thread.is_alive():
             self._idle_running.clear()
