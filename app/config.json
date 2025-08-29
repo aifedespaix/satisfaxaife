@@ -9,12 +9,6 @@
     "end_screen": {
         "victory_text": "Victory : {weapon}",
         "subtitle_text": "{weapon} wins!",
-        "slowmo": 0.35,
-        "slowmo": 0.5,
-        "slowmo_duration": 2.0,
-        "explosion_duration": 2.0,
-        "pre_slowmo_ms": 2000,
-        "freeze_ms": 120,
-        "fade_ms": 400,
-    },
+        "explosion_duration": 2.0
+    }
 }
