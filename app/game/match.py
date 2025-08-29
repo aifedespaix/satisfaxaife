@@ -92,7 +92,7 @@ class _MatchView(WorldView):
                     # Stop the weapon's idle audio thread when the player dies.
                     weapon_audio = getattr(p.weapon, "audio", None)
                     if weapon_audio is not None:
-                        weapon_audio.stop_idle()
+                        weapon_audio.stop_idle(timestamp)
                 self.renderer.trigger_blink(p.color, int(damage.amount))
                 return
 
@@ -418,7 +418,7 @@ def run_match(  # noqa: C901
         for player in players:
             weapon_audio = getattr(player.weapon, "audio", None)
             if weapon_audio is not None:
-                weapon_audio.stop_idle()
+                weapon_audio.stop_idle(None)
         # Optionally cut any remaining sound immediately.
         engine.stop_all()
         audio = engine.end_capture()

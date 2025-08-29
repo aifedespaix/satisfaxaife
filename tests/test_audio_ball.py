@@ -23,10 +23,10 @@ class StubAudioEngine:
 
     def play_variation(
         self, path: str, volume: float | None = None, timestamp: float | None = None
-    ) -> bool:  # noqa: D401
+    ) -> object:  # noqa: D401
         self.played.append(path)
         self.timestamps.append(timestamp)
-        return True
+        return object()
 
 
 def test_ball_explosion_event() -> None:

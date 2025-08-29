@@ -50,10 +50,10 @@ class DummyEngine:
 
     def play_variation(
         self, path: str, volume: float | None = None, timestamp: float | None = None
-    ) -> bool:
+    ) -> object:
         self.paths.append(path)
         self.timestamps.append(timestamp)
-        return True
+        return object()
 
 
 def test_deal_damage_triggers_explosion_sound_on_death() -> None:

@@ -7,6 +7,8 @@ import time
 from pathlib import Path
 from typing import Literal
 
+import pygame
+
 from .engine import AudioEngine
 
 _DEFAULT_ENGINE: AudioEngine | None = None
@@ -46,6 +48,8 @@ class WeaponAudio:
         self._idle_gap = idle_gap
         self._idle_thread: threading.Thread | None = None
         self._idle_running = threading.Event()
+        self._idle_handle: pygame.mixer.Channel | None = None
+        self._idle_lock = threading.Lock()
 
         base = Path(base_dir) / name
         self._idle_path: str | None
@@ -80,19 +84,33 @@ class WeaponAudio:
         assert self._idle_path is not None
         current = timestamp
         while self._idle_running.is_set():
-            self._engine.play_variation(self._idle_path, timestamp=current)
+            handle = self._engine.play_variation(self._idle_path, timestamp=current)
+            if handle is not None:
+                with self._idle_lock:
+                    self._idle_handle = handle
             length = self._engine.get_length(self._idle_path)
             if current is not None:
                 current += length + self._idle_gap
             time.sleep(length + self._idle_gap)
 
-    def stop_idle(self) -> None:
-        """Stop the idle loop for melee weapons."""
+    def stop_idle(self, timestamp: float | None = None) -> None:
+        """Stop the idle loop for melee weapons.
+
+        Parameters
+        ----------
+        timestamp:
+            Optional capture time in seconds used to truncate the recorded
+            sound. If provided, only the current idle handle is stopped.
+        """
         if self._idle_thread and self._idle_thread.is_alive():
             self._idle_running.clear()
+            with self._idle_lock:
+                handle = self._idle_handle
+                self._idle_handle = None
+            if handle is not None:
+                self._engine.stop_handle(handle, timestamp)
             self._idle_thread.join()
             self._idle_thread = None
-            self._engine.stop_all()
 
     # ------------------------------------------------------------------
     # Events

@@ -45,10 +45,12 @@ class AudioEngine:
         self._lock = threading.Lock()
         # Attributes used when capturing audio for recording.  ``_capture_start``
         # stores the time reference (``time.perf_counter``) while ``_captures``
-        # accumulates tuples of ``(start_sample, array)`` for each triggered
-        # sound.
+        # accumulates tuples of ``(handle, start_sample, array)`` for each
+        # triggered sound.  The ``handle`` is the :class:`pygame.mixer.Channel`
+        # returned when playing the variation and allows targeted truncation
+        # when a sound must stop at a specific timestamp.
         self._capture_start: float | None = None
-        self._captures: list[tuple[int, np.ndarray]] = []
+        self._captures: list[tuple[pygame.mixer.Channel, int, np.ndarray]] = []
 
     # ------------------------------------------------------------------
     # Public API
@@ -87,10 +89,10 @@ class AudioEngine:
         if self._capture_start is None:
             return np.zeros((0, self.CHANNELS), dtype=np.int16)
         total = 0
-        for start, arr in self._captures:
+        for _handle, start, arr in self._captures:
             total = max(total, start + arr.shape[0])
         mix = np.zeros((total, self.CHANNELS), dtype=np.int32)
-        for start, arr in self._captures:
+        for _handle, start, arr in self._captures:
             end = start + arr.shape[0]
             mix[start:end, : arr.shape[1]] += arr
         mix = np.clip(mix, -32768, 32767).astype(np.int16)
@@ -108,7 +110,7 @@ class AudioEngine:
         path: str,
         volume: float | None = None,
         timestamp: float | None = None,
-    ) -> bool:
+    ) -> pygame.mixer.Channel | None:
         """Play ``path`` with a random pitch variation.
 
         Parameters
@@ -124,28 +126,61 @@ class AudioEngine:
 
         Returns
         -------
-        bool
-            ``True`` if the sound was played, ``False`` if skipped due to
-            cooldown.
+        pygame.mixer.Channel | None
+            Playback handle, or ``None`` if skipped due to cooldown.
         """
         now = time.perf_counter()
         with self._lock:
             last = self._last_play.get(path)
             if last is not None and (now - last) * 1000 < self.COOLDOWN_MS:
-                return False
+                return None
             variations = self._ensure_variations(path)
             sound, array = random.choice(variations)
             sound.set_volume(volume if volume is not None else self.DEFAULT_VOLUME)
-            sound.play(fade_ms=self.FADE_MS)
+            channel = sound.play(fade_ms=self.FADE_MS)
             if self._capture_start is not None:
                 start_seconds = (
                     timestamp if timestamp is not None else now - self._capture_start
                 )
                 start = int(start_seconds * self.SAMPLE_RATE)
                 # Store a copy to avoid mutation by Pygame internals
-                self._captures.append((start, array.copy()))
+                self._captures.append((channel, start, array.copy()))
             self._last_play[path] = now
-            return True
+            return channel
+
+    def stop_handle(
+        self, handle: pygame.mixer.Channel, timestamp: float | None = None
+    ) -> None:
+        """Stop a specific playback handle and optionally truncate capture.
+
+        Parameters
+        ----------
+        handle:
+            Channel returned by :meth:`play_variation`.
+        timestamp:
+            Absolute capture time in seconds at which the sound should stop.
+            When provided, the recorded array is truncated at this timestamp
+            with a short fade to avoid clicks.
+        """
+        handle.fadeout(self.FADE_MS)
+        if self._capture_start is None or timestamp is None:
+            return
+        end_sample = int(timestamp * self.SAMPLE_RATE)
+        for idx, (h, start, arr) in enumerate(self._captures):
+            if h == handle:
+                rel_end = max(0, min(end_sample - start, arr.shape[0]))
+                if rel_end < arr.shape[0]:
+                    fade = min(int(0.005 * self.SAMPLE_RATE), rel_end)
+                    if fade > 0:
+                        ramp = np.linspace(1.0, 0.0, fade, endpoint=False, dtype=np.float32)
+                        arr = arr.copy()
+                        arr[rel_end - fade : rel_end] = (
+                            arr[rel_end - fade : rel_end].astype(np.float32)
+                            * ramp[:, None]
+                        ).astype(np.int16)
+                    arr = arr[:rel_end]
+                    self._captures[idx] = (h, start, arr)
+                break
 
     # ------------------------------------------------------------------
     # Internal helpers
