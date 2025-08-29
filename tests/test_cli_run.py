@@ -9,6 +9,8 @@ import imageio_ffmpeg
 from pytest import MonkeyPatch
 from typer.testing import CliRunner
 
+import app.audio.weapons as weapons
+from app.audio import reset_default_engine
 from app.audio.engine import AudioEngine
 from app.cli import app
 from app.core.config import settings
@@ -122,6 +124,7 @@ def test_run_uses_dummy_audio_driver(monkeypatch: MonkeyPatch) -> None:
     generated = Path("generated")
     if generated.exists():
         shutil.rmtree(generated)
+    reset_default_engine()
     monkeypatch.setenv("SDL_AUDIODRIVER", "original")
 
     recorded: dict[str, str | None] = {}
@@ -149,5 +152,6 @@ def test_run_uses_dummy_audio_driver(monkeypatch: MonkeyPatch) -> None:
     assert result.exit_code == 0
     assert recorded["driver"] == "dummy"
     assert os.environ["SDL_AUDIODRIVER"] == "original"
+    assert weapons._DEFAULT_ENGINE is None
     if generated.exists():
         shutil.rmtree(generated)
