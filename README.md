@@ -104,12 +104,8 @@ uv run python -m app.cli --help
 
 Exemple : **Katana VS Shuriken**, seed = 42 :
 
-```bash
-uv run python -m app.cli run \
-  --weapon-a katana \
-  --weapon-b shuriken \
-  --seed 42
-```
+````bash
+v```
 
 📌 **Résultat :**
 Une vidéo **1080×1920, 60 FPS, .mp4**, prête pour TikTok, enregistrée dans
@@ -125,7 +121,7 @@ La fenêtre s'ouvre alors à la moitié de la résolution configurée afin de te
 
 ```bash
 uv run python -m app.cli run --display
-```
+````
 
 ---
 
