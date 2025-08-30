@@ -16,7 +16,7 @@ class Katana(Weapon):
     """Orbiting blade rotating around the owner."""
 
     def __init__(self) -> None:
-        super().__init__(name="katana", cooldown=0.0, damage=Damage(18), speed=4.0)
+        super().__init__(name="katana", cooldown=0.0, damage=Damage(18), speed=5.0)
         self.audio = WeaponAudio("melee", "katana")
         self._initialized = False
         blade_height = DEFAULT_BALL_RADIUS * 3.0
