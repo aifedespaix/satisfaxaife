@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pygame
 
+from app.core.utils import ping_pong
 from app.render.sprites import ASSET_DIR, load_sprite
 from app.render.theme import Theme, draw_horizontal_gradient
 
@@ -112,7 +113,7 @@ class Hud:
         margin = 40
 
         self.gradient_phase = (self.gradient_phase + self.gradient_speed) % 2.0
-        phase = self.gradient_phase if self.gradient_phase <= 1.0 else 2.0 - self.gradient_phase
+        phase = ping_pong(self.gradient_phase)
         self.update_hp(hp_a, hp_b)
 
         # Left bar (team A)
