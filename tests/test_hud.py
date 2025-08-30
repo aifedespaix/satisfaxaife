@@ -113,19 +113,9 @@ def test_hp_label_and_vs_positions() -> None:
     assert vs_rect.width == int(surface.get_width() * Hud.VS_WIDTH_RATIO)
 
 
-def test_gradient_phase_increments() -> None:
+def test_hp_gradient_static() -> None:
     surface = pygame.Surface((800, 300))
-    hud = Hud(settings.theme, gradient_speed=1.2)
-    hud.draw_hp_bars(surface, 1.0, 1.0, ("A", "B"))
-    assert hud.gradient_phase == pytest.approx(1.2, abs=1e-6)
-    hud.draw_hp_bars(surface, 1.0, 1.0, ("A", "B"))
-    # Phase cycles modulo 2.0
-    assert hud.gradient_phase == pytest.approx(0.4, abs=1e-6)
-
-
-def test_gradient_phase_shifts_colors() -> None:
-    surface = pygame.Surface((800, 300))
-    hud = Hud(settings.theme, gradient_speed=0.5)
+    hud = Hud(settings.theme)
     bar_width = int(surface.get_width() * Hud.BAR_WIDTH_RATIO)
     bar_height = int(surface.get_height() * Hud.BAR_HEIGHT_RATIO)
     x = 40 + bar_width // 4
@@ -138,9 +128,18 @@ def test_gradient_phase_shifts_colors() -> None:
     hud.draw_hp_bars(surface, 1.0, 1.0, ("A", "B"))
     color2 = surface.get_at((x, y))[:3]
 
-    surface.fill((0, 0, 0))
-    hud.draw_hp_bars(surface, 1.0, 1.0, ("A", "B"))
-    color3 = surface.get_at((x, y))[:3]
+    assert color1 == color2
 
-    assert color1 != color2
-    assert color1 == color3
+
+def test_hp_gradient_diagonal_orientation() -> None:
+    surface = pygame.Surface((400, 200))
+    hud = Hud(settings.theme)
+    hud.draw_hp_bars(surface, 1.0, 1.0, ("A", "B"))
+
+    bar_width = int(surface.get_width() * Hud.BAR_WIDTH_RATIO)
+    bar_height = int(surface.get_height() * Hud.BAR_HEIGHT_RATIO)
+    left_rect = pygame.Rect(40, 120, bar_width, bar_height)
+
+    c1 = surface.get_at((left_rect.x + 5, left_rect.y + 10))[:3]
+    c2 = surface.get_at((left_rect.x + 10, left_rect.y + 5))[:3]
+    assert c1 == c2
