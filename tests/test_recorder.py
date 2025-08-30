@@ -6,7 +6,7 @@ import imageio
 import numpy as np
 from pytest import CaptureFixture
 
-from app.video.recorder import Recorder
+from app.video.recorder import NullRecorder, Recorder
 
 
 def test_recorder_preserves_dimensions(tmp_path: Path, capfd: CaptureFixture[str]) -> None:
@@ -20,3 +20,9 @@ def test_recorder_preserves_dimensions(tmp_path: Path, capfd: CaptureFixture[str
     with imageio.get_reader(tmp_path / "out.mp4") as reader:
         out_frame = reader.get_data(0)
     assert out_frame.shape == (height, width, 3)
+
+
+def test_null_recorder_path_is_none() -> None:
+    """NullRecorder exposes a path attribute set to ``None``."""
+    recorder = NullRecorder()
+    assert recorder.path is None

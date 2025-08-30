@@ -73,17 +73,22 @@ class Recorder:
 
 
 class NullRecorder(Recorder):
-    """Recorder that discards frames and writes nothing."""
+    """Recorder that discards frames and writes nothing.
+
+    Attributes:
+        path: Unused output path kept for API compatibility. Always ``None``.
+    """
+
+    path: Path | None  # type: ignore[assignment]
 
     def __init__(self) -> None:
-        # ``path`` is required by :class:`Recorder` but is never used here.
-        # It defaults to the current directory to keep the attribute typed.
-        self.path = Path()
+        # ``Recorder`` expects an output path but ``NullRecorder`` never writes
+        # anything. ``path`` is therefore set to ``None`` and should not be
+        # relied upon by callers.
+        self.path = None
 
     def add_frame(self, _frame: np.ndarray) -> None:  # noqa: D401 - same interface
         """Ignore a pre-rendered frame."""
 
-    def close(
-        self, _audio: np.ndarray | None = None, rate: int = 48_000
-    ) -> None:  # noqa: D401 - same interface
+    def close(self, _audio: np.ndarray | None = None, rate: int = 48_000) -> None:  # noqa: D401 - same interface
         """No-op close method."""
