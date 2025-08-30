@@ -8,7 +8,7 @@ from app.render.theme import Theme, draw_horizontal_gradient
 class Hud:
     """Draw heads-up display elements."""
 
-    BAR_WIDTH_RATIO: float = 0.3
+    BAR_WIDTH_RATIO: float = 0.45
     BAR_HEIGHT_RATIO: float = 0.03
 
     def __init__(self, theme: Theme) -> None:
