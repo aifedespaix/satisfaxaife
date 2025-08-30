@@ -11,6 +11,7 @@ class Hud:
     BAR_WIDTH_RATIO: float = 0.45
     BAR_HEIGHT_RATIO: float = 0.03
     HP_INTERPOLATION_RATE: float = 0.2
+    LOW_HP_THRESHOLD: float = 0.3
 
     def __init__(self, theme: Theme) -> None:
         pygame.font.init()
@@ -64,7 +65,12 @@ class Hud:
         width_a = int(bar_width * self.current_hp_a)
         if width_a > 0:
             filled_rect = pygame.Rect(left_rect.x, left_rect.y, width_a, bar_height)
-            draw_horizontal_gradient(surface, filled_rect, *self.theme.team_a.hp_gradient)
+            colors_a = (
+                (self.theme.hp_warning,)
+                if self.current_hp_a < self.LOW_HP_THRESHOLD
+                else self.theme.team_a.hp_gradient
+            )
+            draw_horizontal_gradient(surface, filled_rect, colors_a)
         label_a = self.bar_font.render(labels[0], True, (255, 255, 255))
         surface.blit(label_a, (left_rect.x, left_rect.y - 30))
 
@@ -78,8 +84,12 @@ class Hud:
             filled_rect = pygame.Rect(
                 right_rect.x + bar_width - width_b, right_rect.y, width_b, bar_height
             )
-            grad_start, grad_end = self.theme.team_b.hp_gradient
-            draw_horizontal_gradient(surface, filled_rect, grad_end, grad_start)
+            colors_b = (
+                (self.theme.hp_warning,)
+                if self.current_hp_b < self.LOW_HP_THRESHOLD
+                else tuple(reversed(self.theme.team_b.hp_gradient))
+            )
+            draw_horizontal_gradient(surface, filled_rect, colors_b)
         label_b = self.bar_font.render(labels[1], True, (255, 255, 255))
         surface.blit(
             label_b,

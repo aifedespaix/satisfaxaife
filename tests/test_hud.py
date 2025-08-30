@@ -37,6 +37,21 @@ def test_hp_bar_background_color() -> None:
     assert renderer.surface.get_at((right_rect_start + 1, y))[:3] == empty
 
 
+def test_hp_bar_low_hp_color() -> None:
+    renderer = Renderer(800, 300)
+    hud = Hud(settings.theme)
+    renderer.clear()
+    for _ in range(25):
+        hud.draw_hp_bars(renderer.surface, 0.2, 0.8, ("A", "B"))
+    bar_width = int(renderer.surface.get_width() * Hud.BAR_WIDTH_RATIO)
+    bar_height = int(renderer.surface.get_height() * Hud.BAR_HEIGHT_RATIO)
+    x = 40 + bar_width // 10
+    y = 120 + bar_height // 2
+    assert renderer.surface.get_at((x, y))[:3] == settings.theme.hp_warning
+    right_x = renderer.surface.get_width() - 40 - bar_width + bar_width // 2
+    assert renderer.surface.get_at((right_x, y))[:3] != settings.theme.hp_warning
+
+
 def test_hp_bars_scale_with_surface(monkeypatch: pytest.MonkeyPatch) -> None:
     hud = Hud(settings.theme)
 
