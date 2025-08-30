@@ -87,6 +87,7 @@ class _MatchView(WorldView):
                 p.alive = not p.ball.take_damage(damage)
                 if p.alive:
                     self.renderer.add_impact(pos)
+                    p.audio.on_hit(timestamp=timestamp)
                 else:
                     self.renderer.add_impact(pos, duration=2.0)
                     p.audio.on_explode(timestamp=timestamp)
@@ -139,6 +140,8 @@ class _MatchView(WorldView):
                 pos = (float(eff.body.position.x), float(eff.body.position.y))
                 vel = (float(eff.body.velocity.x), float(eff.body.velocity.y))
                 yield ProjectileInfo(eff.owner, pos, vel)
+
+
 def run_match(  # noqa: C901
     weapon_a: str,
     weapon_b: str,
@@ -341,9 +344,7 @@ def run_match(  # noqa: C901
                 renderer.present()
                 if not display:
                     frame_surface = renderer.surface.copy()
-                    recorder.add_frame(
-                        np.swapaxes(pygame.surfarray.array3d(frame_surface), 0, 1)
-                    )
+                    recorder.add_frame(np.swapaxes(pygame.surfarray.array3d(frame_surface), 0, 1))
             return winner_weapon
 
         if len([p for p in players if p.alive]) >= 2 and elapsed >= max_seconds:
