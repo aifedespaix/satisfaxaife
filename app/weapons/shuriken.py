@@ -14,7 +14,7 @@ class Shuriken(Weapon):
     """Ranged projectile weapon."""
 
     def __init__(self) -> None:
-        super().__init__(name="shuriken", cooldown=0.4, damage=Damage(10), speed=600.0)
+        super().__init__(name="shuriken", cooldown=0.4, damage=Damage(8), speed=600.0)
         self.audio = WeaponAudio("throw", "shuriken")
         self._radius = DEFAULT_BALL_RADIUS / 3.0
         sprite_size = self._radius * 2.0
