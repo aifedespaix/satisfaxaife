@@ -86,3 +86,43 @@ def draw_horizontal_gradient(
             (rect.x + x, rect.y),
             (rect.x + x, rect.y + rect.height),
         )
+
+
+def draw_diagonal_gradient(
+    surface: pygame.Surface,
+    rect: pygame.Rect,
+    colors: Sequence[Color],
+) -> None:
+    """Draw a 45° gradient from the top-left to the bottom-right corner.
+
+    Parameters
+    ----------
+    surface:
+        Target drawing surface.
+    rect:
+        Area where the gradient is rendered.
+    colors:
+        Sequence of colors defining the gradient stops. A single color fills
+        ``rect`` uniformly.
+    """
+
+    if not colors:
+        return
+    if len(colors) == 1:
+        pygame.draw.rect(surface, colors[0], rect)
+        return
+
+    segments = len(colors) - 1
+    max_dist = rect.width + rect.height
+    for y in range(rect.height):
+        for x in range(rect.width):
+            t = (x + y) / max_dist
+            pos = t * segments
+            index = min(int(pos), segments - 1)
+            ratio = pos - index
+            start = colors[index]
+            end = colors[index + 1]
+            r = int(start[0] + (end[0] - start[0]) * ratio)
+            g = int(start[1] + (end[1] - start[1]) * ratio)
+            b = int(start[2] + (end[2] - start[2]) * ratio)
+            surface.set_at((rect.x + x, rect.y + y), (r, g, b))
