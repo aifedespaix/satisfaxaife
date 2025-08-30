@@ -109,4 +109,5 @@ def test_hp_label_and_vs_positions() -> None:
     assert label_b_rect.left >= right_rect.left + Hud.LABEL_PADDING
 
     assert vs_rect.centerx == surface.get_width() // 2
-    assert vs_rect.centery == left_rect.centery
+    assert vs_rect.bottom == left_rect.top - Hud.VS_MARGIN
+    assert vs_rect.width == int(surface.get_width() * Hud.VS_WIDTH_RATIO)

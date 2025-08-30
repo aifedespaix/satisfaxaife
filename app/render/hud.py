@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pygame
 
+from app.render.sprites import load_sprite
 from app.render.theme import Theme, draw_horizontal_gradient
 
 
@@ -13,6 +14,8 @@ class Hud:
     HP_INTERPOLATION_RATE: float = 0.2
     LOW_HP_THRESHOLD: float = 0.3
     LABEL_PADDING: int = 10
+    VS_WIDTH_RATIO: float = 0.08
+    VS_MARGIN: int = 10
 
     def __init__(self, theme: Theme) -> None:
         pygame.font.init()
@@ -22,6 +25,7 @@ class Hud:
         self.watermark_font = pygame.font.Font(None, 36)
         self.current_hp_a = 1.0
         self.current_hp_b = 1.0
+        self.vs_image: pygame.Surface = load_sprite("vs.png")
 
     def update_hp(self, hp_a: float, hp_b: float) -> None:
         """Interpolate the displayed health toward the target values.
@@ -45,25 +49,29 @@ class Hud:
         rect = title.get_rect(center=(surface.get_width() // 2, 60))
         surface.blit(title, rect)
 
-    def draw_vs(self, surface: pygame.Surface, y: int) -> pygame.Rect:
-        """Draw a centered ``VS`` marker between the two bars.
+    def draw_vs(self, surface: pygame.Surface, bar_top: int) -> pygame.Rect:
+        """Draw a centered ``VS`` image above the health bars.
 
         Parameters
         ----------
         surface:
             Surface to draw on.
-        y:
-            Vertical position of the text center.
+        bar_top:
+            Vertical position of the top of the health bars.
 
         Returns
         -------
         pygame.Rect
-            The rectangle where the marker was rendered.
+            Rectangle where the marker was rendered.
         """
 
-        vs = self.bar_font.render("VS", True, (255, 255, 255))
-        rect = vs.get_rect(center=(surface.get_width() // 2, y))
-        surface.blit(vs, rect)
+        target_width = max(1, int(surface.get_width() * self.VS_WIDTH_RATIO))
+        width, height = self.vs_image.get_size()
+        scale = target_width / width
+        scaled = pygame.transform.smoothscale(self.vs_image, (target_width, int(height * scale)))
+        rect = scaled.get_rect()
+        rect.midbottom = (surface.get_width() // 2, bar_top - self.VS_MARGIN)
+        surface.blit(scaled, rect)
         return rect
 
     def draw_hp_bars(
@@ -132,7 +140,7 @@ class Hud:
             label_b_rect.right = min_right
         surface.blit(label_b, label_b_rect)
 
-        vs_rect = self.draw_vs(surface, left_rect.centery)
+        vs_rect = self.draw_vs(surface, left_rect.top)
 
         return label_a_rect, label_b_rect, vs_rect
 
