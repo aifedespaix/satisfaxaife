@@ -97,13 +97,14 @@ def test_run_display_mode_no_file(monkeypatch: MonkeyPatch) -> None:
         original_init(self, width, height, display=display)
 
     monkeypatch.setattr(Renderer, "__init__", spy_init)
+    captured_recorder: dict[str, NullRecorder] = {}
 
-    class GuardedNullRecorder(NullRecorder):
-        @property
-        def path(self) -> Path:  # type: ignore[override]
-            raise AssertionError("NullRecorder.path accessed")
+    class InspectableNullRecorder(NullRecorder):
+        def __init__(self) -> None:
+            super().__init__()
+            captured_recorder["instance"] = self
 
-    monkeypatch.setattr(cli_module, "NullRecorder", GuardedNullRecorder)
+    monkeypatch.setattr(cli_module, "NullRecorder", InspectableNullRecorder)
 
     runner = CliRunner()
     with runner.isolated_filesystem():
@@ -125,6 +126,7 @@ def test_run_display_mode_no_file(monkeypatch: MonkeyPatch) -> None:
         assert captured["width"] == settings.width
         assert captured["height"] == settings.height
         assert captured["display"] is True
+        assert captured_recorder["instance"].path is None
         # En mode display, aucun fichier ne doit être créé
         assert not Path("generated").exists()
 
