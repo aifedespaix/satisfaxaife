@@ -10,6 +10,7 @@ class Hud:
 
     BAR_WIDTH_RATIO: float = 0.45
     BAR_HEIGHT_RATIO: float = 0.03
+    HP_INTERPOLATION_RATE: float = 0.2
 
     def __init__(self, theme: Theme) -> None:
         pygame.font.init()
@@ -17,6 +18,24 @@ class Hud:
         self.title_font = pygame.font.Font(None, 72)
         self.bar_font = pygame.font.Font(None, 48)
         self.watermark_font = pygame.font.Font(None, 36)
+        self.current_hp_a = 1.0
+        self.current_hp_b = 1.0
+
+    def update_hp(self, hp_a: float, hp_b: float) -> None:
+        """Interpolate the displayed health toward the target values.
+
+        Parameters
+        ----------
+        hp_a: float
+            Target health ratio for team A in ``[0, 1]``.
+        hp_b: float
+            Target health ratio for team B in ``[0, 1]``.
+        """
+
+        hp_a = max(0.0, min(1.0, hp_a))
+        hp_b = max(0.0, min(1.0, hp_b))
+        self.current_hp_a += (hp_a - self.current_hp_a) * self.HP_INTERPOLATION_RATE
+        self.current_hp_b += (hp_b - self.current_hp_b) * self.HP_INTERPOLATION_RATE
 
     def draw_title(self, surface: pygame.Surface, text: str) -> None:
         """Render the main title centered at the top of the screen."""
@@ -37,10 +56,12 @@ class Hud:
         bar_height = max(1, int(surface.get_height() * self.BAR_HEIGHT_RATIO))
         margin = 40
 
+        self.update_hp(hp_a, hp_b)
+
         # Left bar (team A)
         left_rect = pygame.Rect(margin, 120, bar_width, bar_height)
         pygame.draw.rect(surface, self.theme.hp_empty, left_rect)
-        width_a = int(bar_width * hp_a)
+        width_a = int(bar_width * self.current_hp_a)
         if width_a > 0:
             filled_rect = pygame.Rect(left_rect.x, left_rect.y, width_a, bar_height)
             draw_horizontal_gradient(surface, filled_rect, *self.theme.team_a.hp_gradient)
@@ -52,7 +73,7 @@ class Hud:
             surface.get_width() - margin - bar_width, 120, bar_width, bar_height
         )
         pygame.draw.rect(surface, self.theme.hp_empty, right_rect)
-        width_b = int(bar_width * hp_b)
+        width_b = int(bar_width * self.current_hp_b)
         if width_b > 0:
             filled_rect = pygame.Rect(
                 right_rect.x + bar_width - width_b, right_rect.y, width_b, bar_height
