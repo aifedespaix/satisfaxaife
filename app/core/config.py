@@ -27,8 +27,8 @@ class Canvas(BaseModel):  # type: ignore[misc]
 class HudConfig(BaseModel):  # type: ignore[misc]
     """Texts displayed in the HUD."""
 
-    title: str = "Battle Balls"
-    watermark: str = "@battleballs"
+    title: str = "NostradaBalls"
+    watermark: str = "@nostradaballs"
 
 
 class EndScreenConfig(BaseModel):  # type: ignore[misc]
