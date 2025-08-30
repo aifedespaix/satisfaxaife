@@ -14,8 +14,8 @@ class Hud:
     HP_INTERPOLATION_RATE: float = 0.2
     LOW_HP_THRESHOLD: float = 0.3
     LABEL_PADDING: int = 10
-    VS_WIDTH_RATIO: float = 0.08
-    VS_MARGIN: int = 10
+    VS_WIDTH_RATIO: float = 0.2
+    VS_MARGIN: int = -100
 
     def __init__(self, theme: Theme) -> None:
         pygame.font.init()
