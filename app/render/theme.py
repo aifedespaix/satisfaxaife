@@ -58,7 +58,9 @@ def draw_horizontal_gradient(
     phase:
         Normalized offset applied to the gradient. ``0`` renders the
         gradient in its original position while values in ``[0, 1)`` shift
-        it horizontally and wrap around.
+        it horizontally and wrap around. Animating ``phase`` with a
+        ping-pong pattern (``0 → 1 → 0``) produces a smooth back-and-forth
+        motion.
     """
 
     if not colors:
