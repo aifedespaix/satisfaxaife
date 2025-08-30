@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import cast
 
 import pytest
 
@@ -9,7 +8,7 @@ from app.core.config import settings
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.game.match import MatchTimeout, run_match
 from app.render.renderer import Renderer
-from app.video.recorder import NullRecorder, Recorder
+from app.video.recorder import NullRecorder
 from app.weapons import weapon_registry
 from app.weapons.base import Weapon, WeaponEffect, WorldView
 from app.weapons.katana import Katana
@@ -96,7 +95,7 @@ def test_weapon_update_called_each_frame() -> None:
     SpyWeapon.calls = []
     if "spy" not in weapon_registry.names():
         weapon_registry.register("spy", SpyWeapon)
-    recorder = cast(Recorder, NullRecorder())
+    recorder = NullRecorder()
     renderer = Renderer(settings.width, settings.height)
     with pytest.raises(MatchTimeout):
         run_match("spy", "spy", recorder, renderer, max_seconds=1)
