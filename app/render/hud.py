@@ -8,6 +8,9 @@ from app.render.theme import Theme, draw_horizontal_gradient
 class Hud:
     """Draw heads-up display elements."""
 
+    BAR_WIDTH_RATIO: float = 0.3
+    BAR_HEIGHT_RATIO: float = 0.03
+
     def __init__(self, theme: Theme) -> None:
         pygame.font.init()
         self.theme = theme
@@ -24,10 +27,14 @@ class Hud:
     def draw_hp_bars(
         self, surface: pygame.Surface, hp_a: float, hp_b: float, labels: tuple[str, str]
     ) -> None:
-        """Draw two symmetrical health bars with labels."""
+        """Draw two symmetrical health bars with labels.
 
-        bar_width = 300
-        bar_height = 25
+        The bar dimensions scale with the given surface so that the HUD adapts
+        to different resolutions.
+        """
+
+        bar_width = max(1, int(surface.get_width() * self.BAR_WIDTH_RATIO))
+        bar_height = max(1, int(surface.get_height() * self.BAR_HEIGHT_RATIO))
         margin = 40
 
         # Left bar (team A)

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import pygame
+import pytest
+
 from app.core.config import settings
 from app.render.hud import Hud
 from app.render.renderer import Renderer
@@ -23,8 +26,43 @@ def test_hp_bar_background_color() -> None:
     renderer.clear()
     hud.draw_hp_bars(renderer.surface, 0.5, 0.25, ("A", "B"))
     empty = settings.theme.hp_empty
-    y = 120 + 25 // 2
-    left_empty_x = 40 + int(300 * 0.5) + 1
+    bar_width = int(renderer.surface.get_width() * Hud.BAR_WIDTH_RATIO)
+    bar_height = int(renderer.surface.get_height() * Hud.BAR_HEIGHT_RATIO)
+    y = 120 + bar_height // 2
+    left_empty_x = 40 + int(bar_width * 0.5) + 1
     assert renderer.surface.get_at((left_empty_x, y))[:3] == empty
-    right_rect_start = renderer.surface.get_width() - 40 - 300
+    right_rect_start = renderer.surface.get_width() - 40 - bar_width
     assert renderer.surface.get_at((right_rect_start + 1, y))[:3] == empty
+
+
+def test_hp_bars_scale_with_surface(monkeypatch: pytest.MonkeyPatch) -> None:
+    hud = Hud(settings.theme)
+
+    small_surface = pygame.Surface((400, 300))
+    large_surface = pygame.Surface((800, 600))
+
+    captured_small: list[pygame.Rect] = []
+    captured_large: list[pygame.Rect] = []
+
+    def capture_small(
+        surface: pygame.Surface, color: pygame.Color | tuple[int, int, int], rect: pygame.Rect
+    ) -> pygame.Rect:
+        captured_small.append(rect.copy())
+        return rect
+
+    def capture_large(
+        surface: pygame.Surface, color: pygame.Color | tuple[int, int, int], rect: pygame.Rect
+    ) -> pygame.Rect:
+        captured_large.append(rect.copy())
+        return rect
+
+    monkeypatch.setattr(pygame.draw, "rect", capture_small)
+    hud.draw_hp_bars(small_surface, 1.0, 1.0, ("A", "B"))
+
+    monkeypatch.setattr(pygame.draw, "rect", capture_large)
+    hud.draw_hp_bars(large_surface, 1.0, 1.0, ("A", "B"))
+
+    assert captured_small[0].width == int(small_surface.get_width() * Hud.BAR_WIDTH_RATIO)
+    assert captured_large[0].width == int(large_surface.get_width() * Hud.BAR_WIDTH_RATIO)
+    assert captured_small[0].height == int(small_surface.get_height() * Hud.BAR_HEIGHT_RATIO)
+    assert captured_large[0].height == int(large_surface.get_height() * Hud.BAR_HEIGHT_RATIO)
