@@ -27,7 +27,7 @@ class Canvas(BaseModel):  # type: ignore[misc]
 class HudConfig(BaseModel):  # type: ignore[misc]
     """Texts displayed in the HUD."""
 
-    title: str = "NostradaBalls"
+    title: str = ""
     watermark: str = "@nostradaballs"
 
 
