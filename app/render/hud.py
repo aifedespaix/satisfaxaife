@@ -17,9 +17,22 @@ class Hud:
     VS_WIDTH_RATIO: float = 0.2
     VS_MARGIN: int = -100
 
-    def __init__(self, theme: Theme) -> None:
+    def __init__(self, theme: Theme, gradient_speed: float = 0.01) -> None:
+        """Initialize the HUD renderer.
+
+        Parameters
+        ----------
+        theme:
+            Color palette used for rendering.
+        gradient_speed:
+            Increment applied to the internal gradient phase at each call to
+            :meth:`draw_hp_bars`. ``0`` disables animation.
+        """
+
         pygame.font.init()
         self.theme = theme
+        self.gradient_speed = gradient_speed
+        self.gradient_phase = 0.0
         self.title_font = pygame.font.Font(None, 72)
         self.bar_font = pygame.font.Font(None, 48)
         self.watermark_font = pygame.font.Font(None, 36)
@@ -92,6 +105,7 @@ class Hud:
         bar_height = max(1, int(surface.get_height() * self.BAR_HEIGHT_RATIO))
         margin = 40
 
+        self.gradient_phase = (self.gradient_phase + self.gradient_speed) % 1.0
         self.update_hp(hp_a, hp_b)
 
         # Left bar (team A)
@@ -105,7 +119,9 @@ class Hud:
                 if self.current_hp_a < self.LOW_HP_THRESHOLD
                 else self.theme.team_a.hp_gradient
             )
-            draw_horizontal_gradient(surface, filled_rect, colors_a)
+            draw_horizontal_gradient(
+                surface, filled_rect, colors_a, phase=self.gradient_phase
+            )
         label_a = self.bar_font.render(labels[0], True, (255, 255, 255))
         label_a_rect = label_a.get_rect()
         label_a_rect.centery = left_rect.centery
@@ -130,7 +146,9 @@ class Hud:
                 if self.current_hp_b < self.LOW_HP_THRESHOLD
                 else tuple(reversed(self.theme.team_b.hp_gradient))
             )
-            draw_horizontal_gradient(surface, filled_rect, colors_b)
+            draw_horizontal_gradient(
+                surface, filled_rect, colors_b, phase=self.gradient_phase
+            )
         label_b = self.bar_font.render(labels[1], True, (255, 255, 255))
         label_b_rect = label_b.get_rect()
         label_b_rect.centery = right_rect.centery
