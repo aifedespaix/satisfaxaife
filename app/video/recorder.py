@@ -72,11 +72,18 @@ class Recorder:
         audio_path.unlink(missing_ok=True)
 
 
-class NullRecorder:
+class NullRecorder(Recorder):
     """Recorder that discards frames and writes nothing."""
+
+    def __init__(self) -> None:
+        # ``path`` is required by :class:`Recorder` but is never used here.
+        # It defaults to the current directory to keep the attribute typed.
+        self.path = Path()
 
     def add_frame(self, _frame: np.ndarray) -> None:  # noqa: D401 - same interface
         """Ignore a pre-rendered frame."""
 
-    def close(self, _audio: np.ndarray | None = None) -> None:  # noqa: D401 - same interface
+    def close(
+        self, _audio: np.ndarray | None = None, rate: int = 48_000
+    ) -> None:  # noqa: D401 - same interface
         """No-op close method."""

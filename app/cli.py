@@ -4,7 +4,7 @@ import random
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated, cast
+from typing import Annotated
 
 import typer
 
@@ -38,7 +38,8 @@ def run(
 
     driver = None if display else "dummy"
 
-    recorder: Recorder | NullRecorder | None = None
+    recorder: Recorder
+    renderer: Renderer
     temp_path: Path | None = None
     winner: str | None = None
 
@@ -57,11 +58,16 @@ def run(
             renderer = Renderer(settings.width, settings.height)
 
         try:
-            winner = run_match(weapon_a, weapon_b, cast(Recorder, recorder), renderer)
+            winner = run_match(
+                weapon_a,
+                weapon_b,
+                recorder,
+                renderer,
+                display=display,
+            )
         except MatchTimeout as exc:
-            path = getattr(recorder, "path", None)
-            if path is not None and path.exists():
-                path.unlink()
+            if not display and recorder.path.exists():
+                recorder.path.unlink()
             typer.echo(f"Error: {exc}", err=True)
             raise typer.Exit(code=1) from None
 
