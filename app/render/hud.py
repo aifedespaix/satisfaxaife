@@ -96,7 +96,10 @@ class Hud:
         """Draw two symmetrical health bars with labels.
 
         The bar dimensions scale with the given surface so that the HUD adapts
-        to different resolutions.
+        to different resolutions. A horizontal gradient fills the bars and
+        oscillates using a ping-pong cycle. The gradient offset increases until
+        it reaches ``1.0`` and then reverses back toward ``0.0`` to create a
+        back-and-forth animation.
 
         Returns
         -------
@@ -108,7 +111,8 @@ class Hud:
         bar_height = max(1, int(surface.get_height() * self.BAR_HEIGHT_RATIO))
         margin = 40
 
-        self.gradient_phase = (self.gradient_phase + self.gradient_speed) % 1.0
+        self.gradient_phase = (self.gradient_phase + self.gradient_speed) % 2.0
+        phase = self.gradient_phase if self.gradient_phase <= 1.0 else 2.0 - self.gradient_phase
         self.update_hp(hp_a, hp_b)
 
         # Left bar (team A)
@@ -122,9 +126,7 @@ class Hud:
                 if self.current_hp_a < self.LOW_HP_THRESHOLD
                 else self.theme.team_a.hp_gradient
             )
-            draw_horizontal_gradient(
-                surface, filled_rect, colors_a, phase=self.gradient_phase
-            )
+            draw_horizontal_gradient(surface, filled_rect, colors_a, phase=phase)
         label_a = self.bar_font.render(labels[0], True, (255, 255, 255))
         label_a_rect = label_a.get_rect()
         label_a_rect.centery = left_rect.centery
@@ -149,9 +151,7 @@ class Hud:
                 if self.current_hp_b < self.LOW_HP_THRESHOLD
                 else tuple(reversed(self.theme.team_b.hp_gradient))
             )
-            draw_horizontal_gradient(
-                surface, filled_rect, colors_b, phase=self.gradient_phase
-            )
+            draw_horizontal_gradient(surface, filled_rect, colors_b, phase=phase)
         label_b = self.bar_font.render(labels[1], True, (255, 255, 255))
         label_b_rect = label_b.get_rect()
         label_b_rect.centery = right_rect.centery
