@@ -64,7 +64,11 @@ class SimplePolicy:
     def decide(
         self, me: EntityId, view: WorldView, projectile_speed: float | None = None
     ) -> tuple[Vec2, Vec2, bool]:
-        """Return acceleration, facing vector and fire decision."""
+        """Return acceleration, facing vector and fire decision.
+
+        When health drops below ``15%`` the policy retreats from the enemy but
+        still evaluates firing as usual.
+        """
         enemy = view.get_enemy(me)
         assert enemy is not None
         my_pos = view.get_position(me)
@@ -79,14 +83,15 @@ class SimplePolicy:
         face: Vec2 = _lead_target(my_pos, enemy_pos, enemy_vel, projectile_speed or 0.0)
         cos_thresh = math.cos(math.radians(18))
 
-        if my_health < 0.15:
-            accel = (-direction[0] * 400.0, -direction[1] * 400.0)
-            return accel, face, False
+        fleeing = my_health < 0.15
 
         if self.style == "aggressive":
             accel, fire = self._aggressive(me, view, my_pos, direction, dist, face, cos_thresh)
         else:
             accel, fire = self._kiter(direction, dist, face, cos_thresh, projectile_speed)
+
+        if fleeing:
+            accel = (-direction[0] * 400.0, -direction[1] * 400.0)
 
         if abs(dy) <= 1e-6:
             offset_face = (direction[0], self.vertical_offset)
