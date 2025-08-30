@@ -16,7 +16,7 @@ from app.audio.engine import AudioEngine
 from app.cli import app
 from app.core.config import settings
 from app.render.renderer import Renderer
-from app.video.recorder import NullRecorder, Recorder
+from app.video.recorder import NullRecorder, Recorder, RecorderProtocol
 
 
 def test_run_creates_video(tmp_path: Path) -> None:
@@ -53,7 +53,7 @@ def test_run_timeout(monkeypatch: MonkeyPatch) -> None:
     def run_match_short(
         weapon_a: str,
         weapon_b: str,
-        recorder: Recorder,
+        recorder: RecorderProtocol,
         renderer: Renderer | None = None,
     ) -> None:
         # max_seconds=0 provoque systématiquement un MatchTimeout

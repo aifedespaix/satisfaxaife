@@ -3,13 +3,31 @@ from __future__ import annotations
 import subprocess
 import wave
 from pathlib import Path
+from typing import Protocol
 
 import imageio
 import imageio_ffmpeg
 import numpy as np
 
 
-class Recorder:
+class RecorderProtocol(Protocol):
+    """Minimal interface required from a video recorder.
+
+    Any concrete implementation must provide a writable ``path`` attribute and
+    implement :meth:`add_frame` and :meth:`close`. The ``path`` attribute may be
+    ``None`` when the recorder does not persist any output (e.g. ``NullRecorder``).
+    """
+
+    path: Path | None
+
+    def add_frame(self, frame: np.ndarray) -> None:
+        """Append a pre-rendered frame to the output video."""
+
+    def close(self, audio: np.ndarray | None = None, rate: int = 48_000) -> None:
+        """Finalize the recording, optionally muxing an audio track."""
+
+
+class Recorder(RecorderProtocol):
     """Write frames to a video file and optionally mux audio."""
 
     def __init__(self, width: int, height: int, fps: int, path: Path) -> None:
