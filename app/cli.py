@@ -13,7 +13,7 @@ from app.audio.env import temporary_sdl_audio_driver
 from app.core.config import settings
 from app.game.match import MatchTimeout, run_match
 from app.render.renderer import Renderer
-from app.video.recorder import NullRecorder, Recorder
+from app.video.recorder import NullRecorder, Recorder, RecorderProtocol
 from app.weapons import weapon_registry
 
 app = typer.Typer(help="Génération de vidéos satisfaction (TikTok).")
@@ -38,7 +38,7 @@ def run(
 
     driver = None if display else "dummy"
 
-    recorder: Recorder
+    recorder: RecorderProtocol
     renderer: Renderer
     temp_path: Path | None = None
     winner: str | None = None
@@ -66,12 +66,12 @@ def run(
                 display=display,
             )
         except MatchTimeout as exc:
-            if not display and recorder.path.exists():
+            if not display and recorder.path is not None and recorder.path.exists():
                 recorder.path.unlink()
             typer.echo(f"Error: {exc}", err=True)
             raise typer.Exit(code=1) from None
 
-    if not display and isinstance(recorder, Recorder) and temp_path is not None:
+    if not display and recorder.path is not None and temp_path is not None:
         winner_name = _sanitize(winner) if winner is not None else "draw"
         final_path = temp_path.with_name(f"{temp_path.stem}-{winner_name}_win{temp_path.suffix}")
         temp_path.rename(final_path)

@@ -13,7 +13,7 @@ from app.core.config import settings
 from app.core.types import Color, Damage, EntityId, ProjectileInfo, Vec2
 from app.render.hud import Hud
 from app.render.renderer import Renderer
-from app.video.recorder import Recorder
+from app.video.recorder import RecorderProtocol
 from app.video.slowmo import append_slowmo_ending
 from app.weapons import weapon_registry
 from app.weapons.base import Weapon, WeaponEffect, WorldView
@@ -145,7 +145,7 @@ class _MatchView(WorldView):
 def run_match(  # noqa: C901
     weapon_a: str,
     weapon_b: str,
-    recorder: Recorder,
+    recorder: RecorderProtocol,
     renderer: Renderer | None = None,
     max_seconds: int = 120,
     display: bool = False,
@@ -158,7 +158,7 @@ def run_match(  # noqa: C901
         Weapon used by team A.
     weapon_b : str
         Weapon used by team B.
-    recorder : Recorder
+    recorder : RecorderProtocol
         Recorder instance responsible for writing video frames.
     renderer : Renderer | None, optional
         Optional renderer instance. If ``None``, an off-screen renderer is created.
@@ -360,7 +360,7 @@ def run_match(  # noqa: C901
         audio = engine.end_capture() if not display else None
         engine.stop_all()
         recorder.close(audio)
-        if not display and death_ts is not None:
+        if not display and death_ts is not None and recorder.path is not None:
             append_slowmo_ending(
                 recorder.path,
                 death_ts,
