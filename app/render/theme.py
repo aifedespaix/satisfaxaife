@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import pygame
@@ -12,7 +13,7 @@ class TeamColors:
     """Color definitions for a team."""
 
     primary: Color
-    hp_gradient: tuple[Color, Color]
+    hp_gradient: tuple[Color, ...]
 
 
 @dataclass(frozen=True)
@@ -27,23 +28,47 @@ class Theme:
         Colors for team B.
     hp_empty:
         Color displayed for lost health.
+    hp_warning:
+        Color used when a player is in the danger zone.
     """
 
     team_a: TeamColors
     team_b: TeamColors
     hp_empty: Color
+    hp_warning: Color
 
 
 def draw_horizontal_gradient(
     surface: pygame.Surface,
     rect: pygame.Rect,
-    start: Color,
-    end: Color,
+    colors: Sequence[Color],
 ) -> None:
-    """Draw a left-to-right linear gradient on the given surface."""
+    """Draw a left-to-right linear gradient on the given surface.
 
+    Parameters
+    ----------
+    surface:
+        Target drawing surface.
+    rect:
+        Area where the gradient is rendered.
+    colors:
+        Sequence of colors defining the gradient stops. A single color
+        fills ``rect`` uniformly.
+    """
+
+    if not colors:
+        return
+    if len(colors) == 1:
+        pygame.draw.rect(surface, colors[0], rect)
+        return
+
+    segments = len(colors) - 1
     for x in range(rect.width):
-        ratio = x / rect.width
+        pos = x / rect.width * segments
+        index = min(int(pos), segments - 1)
+        ratio = pos - index
+        start = colors[index]
+        end = colors[index + 1]
         r = int(start[0] + (end[0] - start[0]) * ratio)
         g = int(start[1] + (end[1] - start[1]) * ratio)
         b = int(start[2] + (end[2] - start[2]) * ratio)
