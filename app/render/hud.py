@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pygame
 
-from app.render.sprites import load_sprite
+from app.render.sprites import ASSET_DIR, load_sprite
 from app.render.theme import Theme, draw_horizontal_gradient
 
 
@@ -21,7 +21,8 @@ class Hud:
         pygame.font.init()
         self.theme = theme
         self.title_font = pygame.font.Font(None, 72)
-        self.bar_font = pygame.font.Font(None, 48)
+        weapon_font_path = (ASSET_DIR / "fonts" / "FightKickDemoRegular.ttf").as_posix()
+        self.bar_font = pygame.font.Font(weapon_font_path, 48)
         self.watermark_font = pygame.font.Font(None, 36)
         self.current_hp_a = 1.0
         self.current_hp_b = 1.0
@@ -45,6 +46,8 @@ class Hud:
 
     def draw_title(self, surface: pygame.Surface, text: str) -> None:
         """Render the main title centered at the top of the screen."""
+        if not text:
+            return
         title = self.title_font.render(text, True, (255, 255, 255))
         rect = title.get_rect(center=(surface.get_width() // 2, 60))
         surface.blit(title, rect)
