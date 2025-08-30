@@ -42,6 +42,7 @@ def draw_horizontal_gradient(
     surface: pygame.Surface,
     rect: pygame.Rect,
     colors: Sequence[Color],
+    phase: float = 0.0,
 ) -> None:
     """Draw a left-to-right linear gradient on the given surface.
 
@@ -54,6 +55,10 @@ def draw_horizontal_gradient(
     colors:
         Sequence of colors defining the gradient stops. A single color
         fills ``rect`` uniformly.
+    phase:
+        Normalized offset applied to the gradient. ``0`` renders the
+        gradient in its original position while values in ``[0, 1)`` shift
+        it horizontally and wrap around.
     """
 
     if not colors:
@@ -64,7 +69,8 @@ def draw_horizontal_gradient(
 
     segments = len(colors) - 1
     for x in range(rect.width):
-        pos = x / rect.width * segments
+        t = (x / rect.width + phase) % 1.0
+        pos = t * segments
         index = min(int(pos), segments - 1)
         ratio = pos - index
         start = colors[index]
