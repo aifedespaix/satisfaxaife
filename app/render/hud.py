@@ -11,6 +11,8 @@ class Hud:
     BAR_WIDTH_RATIO: float = 0.45
     BAR_HEIGHT_RATIO: float = 0.03
     HP_INTERPOLATION_RATE: float = 0.2
+    LOW_HP_THRESHOLD: float = 0.3
+    LABEL_PADDING: int = 10
 
     def __init__(self, theme: Theme) -> None:
         pygame.font.init()
@@ -43,13 +45,39 @@ class Hud:
         rect = title.get_rect(center=(surface.get_width() // 2, 60))
         surface.blit(title, rect)
 
+    def draw_vs(self, surface: pygame.Surface, y: int) -> pygame.Rect:
+        """Draw a centered ``VS`` marker between the two bars.
+
+        Parameters
+        ----------
+        surface:
+            Surface to draw on.
+        y:
+            Vertical position of the text center.
+
+        Returns
+        -------
+        pygame.Rect
+            The rectangle where the marker was rendered.
+        """
+
+        vs = self.bar_font.render("VS", True, (255, 255, 255))
+        rect = vs.get_rect(center=(surface.get_width() // 2, y))
+        surface.blit(vs, rect)
+        return rect
+
     def draw_hp_bars(
         self, surface: pygame.Surface, hp_a: float, hp_b: float, labels: tuple[str, str]
-    ) -> None:
+    ) -> tuple[pygame.Rect, pygame.Rect, pygame.Rect]:
         """Draw two symmetrical health bars with labels.
 
         The bar dimensions scale with the given surface so that the HUD adapts
         to different resolutions.
+
+        Returns
+        -------
+        tuple[pygame.Rect, pygame.Rect, pygame.Rect]
+            Rectangles of the two label texts and the ``VS`` marker.
         """
 
         bar_width = max(1, int(surface.get_width() * self.BAR_WIDTH_RATIO))
@@ -64,9 +92,20 @@ class Hud:
         width_a = int(bar_width * self.current_hp_a)
         if width_a > 0:
             filled_rect = pygame.Rect(left_rect.x, left_rect.y, width_a, bar_height)
-            draw_horizontal_gradient(surface, filled_rect, *self.theme.team_a.hp_gradient)
+            colors_a = (
+                (self.theme.hp_warning,)
+                if self.current_hp_a < self.LOW_HP_THRESHOLD
+                else self.theme.team_a.hp_gradient
+            )
+            draw_horizontal_gradient(surface, filled_rect, colors_a)
         label_a = self.bar_font.render(labels[0], True, (255, 255, 255))
-        surface.blit(label_a, (left_rect.x, left_rect.y - 30))
+        label_a_rect = label_a.get_rect()
+        label_a_rect.centery = left_rect.centery
+        label_a_rect.left = left_rect.left + self.LABEL_PADDING
+        max_left = left_rect.right - self.LABEL_PADDING - label_a_rect.width
+        if label_a_rect.left > max_left:
+            label_a_rect.left = max_left
+        surface.blit(label_a, label_a_rect)
 
         # Right bar (team B)
         right_rect = pygame.Rect(
@@ -78,13 +117,24 @@ class Hud:
             filled_rect = pygame.Rect(
                 right_rect.x + bar_width - width_b, right_rect.y, width_b, bar_height
             )
-            grad_start, grad_end = self.theme.team_b.hp_gradient
-            draw_horizontal_gradient(surface, filled_rect, grad_end, grad_start)
+            colors_b = (
+                (self.theme.hp_warning,)
+                if self.current_hp_b < self.LOW_HP_THRESHOLD
+                else tuple(reversed(self.theme.team_b.hp_gradient))
+            )
+            draw_horizontal_gradient(surface, filled_rect, colors_b)
         label_b = self.bar_font.render(labels[1], True, (255, 255, 255))
-        surface.blit(
-            label_b,
-            (right_rect.x + bar_width - label_b.get_width(), right_rect.y - 30),
-        )
+        label_b_rect = label_b.get_rect()
+        label_b_rect.centery = right_rect.centery
+        label_b_rect.right = right_rect.right - self.LABEL_PADDING
+        min_right = right_rect.left + self.LABEL_PADDING + label_b_rect.width
+        if label_b_rect.right < min_right:
+            label_b_rect.right = min_right
+        surface.blit(label_b, label_b_rect)
+
+        vs_rect = self.draw_vs(surface, left_rect.centery)
+
+        return label_a_rect, label_b_rect, vs_rect
 
     def draw_watermark(self, surface: pygame.Surface, text: str) -> None:
         """Draw a small watermark at the bottom-left corner."""

@@ -37,6 +37,21 @@ def test_hp_bar_background_color() -> None:
     assert renderer.surface.get_at((right_rect_start + 1, y))[:3] == empty
 
 
+def test_hp_bar_low_hp_color() -> None:
+    renderer = Renderer(800, 300)
+    hud = Hud(settings.theme)
+    renderer.clear()
+    for _ in range(25):
+        hud.draw_hp_bars(renderer.surface, 0.2, 0.8, ("A", "B"))
+    bar_width = int(renderer.surface.get_width() * Hud.BAR_WIDTH_RATIO)
+    bar_height = int(renderer.surface.get_height() * Hud.BAR_HEIGHT_RATIO)
+    x = 40 + bar_width // 10
+    y = 120 + bar_height // 2
+    assert renderer.surface.get_at((x, y))[:3] == settings.theme.hp_warning
+    right_x = renderer.surface.get_width() - 40 - bar_width + bar_width // 2
+    assert renderer.surface.get_at((right_x, y))[:3] != settings.theme.hp_warning
+
+
 def test_hp_bars_scale_with_surface(monkeypatch: pytest.MonkeyPatch) -> None:
     hud = Hud(settings.theme)
 
@@ -76,3 +91,22 @@ def test_hp_interpolation_converges() -> None:
         hud.update_hp(0.0, 0.5)
     assert hud.current_hp_a == pytest.approx(0.0, abs=1e-2)
     assert hud.current_hp_b == pytest.approx(0.5, abs=1e-2)
+
+
+def test_hp_label_and_vs_positions() -> None:
+    hud = Hud(settings.theme)
+    surface = pygame.Surface((800, 600))
+    label_a_rect, label_b_rect, vs_rect = hud.draw_hp_bars(surface, 1.0, 1.0, ("Alpha", "Beta"))
+
+    bar_width = int(surface.get_width() * Hud.BAR_WIDTH_RATIO)
+    bar_height = int(surface.get_height() * Hud.BAR_HEIGHT_RATIO)
+    left_rect = pygame.Rect(40, 120, bar_width, bar_height)
+    right_rect = pygame.Rect(surface.get_width() - 40 - bar_width, 120, bar_width, bar_height)
+
+    assert label_a_rect.left == left_rect.left + Hud.LABEL_PADDING
+    assert label_a_rect.right <= left_rect.right - Hud.LABEL_PADDING
+    assert label_b_rect.right == right_rect.right - Hud.LABEL_PADDING
+    assert label_b_rect.left >= right_rect.left + Hud.LABEL_PADDING
+
+    assert vs_rect.centerx == surface.get_width() // 2
+    assert vs_rect.centery == left_rect.centery

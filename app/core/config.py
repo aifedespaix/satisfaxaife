@@ -47,9 +47,16 @@ class Settings(BaseModel):  # type: ignore[misc]
 
     canvas: Canvas = Canvas()
     theme: Theme = Theme(
-        team_a=TeamColors(primary=(0, 102, 204), hp_gradient=((102, 178, 255), (0, 51, 102))),
-        team_b=TeamColors(primary=(255, 102, 0), hp_gradient=((255, 178, 102), (102, 51, 0))),
+        team_a=TeamColors(
+            primary=(0, 128, 255),
+            hp_gradient=((0, 128, 255), (0, 64, 128), (0, 0, 64)),
+        ),
+        team_b=TeamColors(
+            primary=(255, 128, 0),
+            hp_gradient=((255, 128, 0), (128, 64, 0), (64, 32, 0)),
+        ),
         hp_empty=(51, 51, 51),
+        hp_warning=(255, 0, 0),
     )
     hud: HudConfig = HudConfig()
     end_screen: EndScreenConfig = EndScreenConfig()
