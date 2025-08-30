@@ -16,7 +16,7 @@ from app.audio.engine import AudioEngine
 from app.cli import app
 from app.core.config import settings
 from app.render.renderer import Renderer
-from app.video.recorder import NullRecorder, Recorder, RecorderProtocol
+from app.video.recorder import NullRecorder, RecorderProtocol
 
 
 def test_run_creates_video(tmp_path: Path) -> None:

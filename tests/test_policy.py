@@ -118,6 +118,14 @@ def test_retreats_on_low_health(style: Literal["aggressive", "kiter"]) -> None:
     accel, face, fire = policy.decide(EntityId(1), view, 600.0)
     assert accel[0] < 0  # retreats from enemy
     assert face == (1.0, 0.0)  # still faces enemy
+    assert fire is True
+
+
+@pytest.mark.parametrize("style", ["aggressive", "kiter"])
+def test_low_health_fire_requires_range(style: Literal["aggressive", "kiter"]) -> None:
+    view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (600.0, 0.0), health_me=0.1)
+    policy = SimplePolicy(style)
+    _, _, fire = policy.decide(EntityId(1), view, 600.0)
     assert fire is False
 
 
