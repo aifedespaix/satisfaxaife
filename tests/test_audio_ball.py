@@ -35,3 +35,17 @@ def test_ball_explosion_event() -> None:
     audio.on_explode(timestamp=0.5)
     assert any(path.endswith("explose.ogg") for path in engine.played)
     assert engine.timestamps[0] == 0.5
+
+
+def test_ball_hit_event(monkeypatch: Any) -> None:
+    engine = StubAudioEngine()
+    audio = BallAudio(engine=cast(AudioEngine, engine))
+
+    def fake_choice(options: list[str]) -> str:
+        assert len(options) == 3
+        return options[1]
+
+    monkeypatch.setattr("app.audio.balls.random.choice", fake_choice)
+    audio.on_hit(timestamp=1.25)
+    assert engine.played[0].endswith("hit-b.ogg")
+    assert engine.timestamps[0] == 1.25
