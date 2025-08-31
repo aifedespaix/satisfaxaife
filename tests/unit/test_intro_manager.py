@@ -7,6 +7,7 @@ import pytest
 pygame = pytest.importorskip("pygame")
 
 from app.intro import IntroConfig, IntroManager, IntroState  # noqa: E402
+from app.render.intro_renderer import IntroRenderer  # noqa: E402
 
 
 class StubEngine:
@@ -90,6 +91,14 @@ def test_intro_manager_fight_sound() -> None:
     assert path.endswith("fight.ogg")
     expected = config.logo_in + config.weapons_in + config.hold
     assert timestamp == pytest.approx(expected)
+
+
+def test_start_resets_renderer() -> None:
+    renderer = IntroRenderer(200, 100)
+    renderer._final_positions = ((1.0, 1.0), (2.0, 2.0), (3.0, 3.0))
+    manager = IntroManager(intro_renderer=renderer)
+    manager.start()
+    assert renderer._final_positions is None
 
 
 def test_intro_manager_start_ignored_when_running_or_done() -> None:

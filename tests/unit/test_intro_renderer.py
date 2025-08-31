@@ -287,3 +287,29 @@ def test_weapon_animation_reaches_ball(monkeypatch: pytest.MonkeyPatch) -> None:
     for center in expected:
         assert center in blits
     pygame.quit()
+
+
+def test_cached_positions_and_reset(monkeypatch: pytest.MonkeyPatch) -> None:
+    pygame.init()
+    renderer = IntroRenderer(200, 100)
+    surface = pygame.Surface((200, 100), flags=pygame.SRCALPHA)
+    calls: list[float] = []
+
+    original_compute = renderer.compute_positions
+
+    def tracking(progress: float):
+        calls.append(progress)
+        return original_compute(progress)
+
+    monkeypatch.setattr(renderer, "compute_positions", tracking)
+
+    renderer.draw(surface, ("A", "B"), 1.0, IntroState.WEAPONS_IN)
+    renderer.draw(surface, ("A", "B"), 0.0, IntroState.HOLD)
+    renderer.draw(surface, ("A", "B"), 0.0, IntroState.FADE_OUT)
+
+    assert calls == [1.0]
+
+    renderer.reset()
+    renderer.draw(surface, ("A", "B"), 0.0, IntroState.HOLD)
+    assert calls == [1.0, 1.0]
+    pygame.quit()

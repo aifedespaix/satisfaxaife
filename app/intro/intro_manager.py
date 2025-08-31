@@ -73,9 +73,11 @@ class IntroManager:
     def start(self) -> None:
         """Start the intro sequence if idle.
 
-        Calling :meth:`start` while the introduction is already running or has
-        completed has no effect. This guards against unintended resets when the
-        caller triggers ``start`` multiple times.
+        The associated :class:`~app.render.intro_renderer.IntroRenderer` is
+        reset to clear any cached positions. Calling :meth:`start` while the
+        introduction is already running or has completed has no effect. This
+        guards against unintended resets when the caller triggers ``start``
+        multiple times.
         """
 
         if self._state is not IntroState.IDLE:
@@ -83,6 +85,7 @@ class IntroManager:
         self._state = IntroState.LOGO_IN
         self._elapsed = 0.0
         self._targets = None
+        self._renderer.reset()
 
     def update(self, dt: float, events: Sequence[pygame.event.Event] | None = None) -> None:
         """Advance the intro state machine.

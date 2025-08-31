@@ -14,7 +14,12 @@ if TYPE_CHECKING:  # pragma: no cover - hints only
 
 
 class IntroRenderer:
-    """Render the pre-match introduction with slide, glow and fade effects."""
+    """Render the pre-match introduction with slide, glow and fade effects.
+
+    Final positions after the slide-in are cached so they can be reused during
+    the ``HOLD`` and ``FADE_OUT`` phases. Use :meth:`reset` when starting a new
+    introduction sequence to clear this cache.
+    """
 
     WEAPON_WIDTH_RATIO: float = 0.4
     IMAGE_TEXT_GAP: float = 10.0
@@ -34,6 +39,17 @@ class IntroRenderer:
         self.config = config or _IntroConfig()
         self.font: pygame.font.Font | None = font or (assets.font if assets else None)
         self.assets = assets
+        self._final_positions: tuple[Vec2, Vec2, Vec2] | None
+        self.reset()
+
+    def reset(self) -> None:
+        """Clear any cached final positions.
+
+        This should be called when starting a new intro sequence to ensure
+        that the slide-in animation begins from the correct initial
+        positions.
+        """
+        self._final_positions = None
 
     def compute_positions(self, progress: float) -> tuple[Vec2, Vec2, Vec2]:
         """Return positions for the two labels and the central marker.
@@ -209,9 +225,14 @@ class IntroRenderer:
             positions while shrinking to simulate equipping.
         """
         from app.intro.intro_manager import IntroState as _IntroState
-
-        if state is _IntroState.FADE_OUT and targets is not None:
-            left_pos, right_pos, center_pos = self.compute_positions(1.0)
+        if state is _IntroState.WEAPONS_IN:
+            left_pos, right_pos, center_pos = self.compute_positions(progress)
+            if progress >= 1.0 and self._final_positions is None:
+                self._final_positions = (left_pos, right_pos, center_pos)
+        elif state in (_IntroState.HOLD, _IntroState.FADE_OUT):
+            if self._final_positions is None:
+                self._final_positions = self.compute_positions(1.0)
+            left_pos, right_pos, center_pos = self._final_positions
         else:
             left_pos, right_pos, center_pos = self.compute_positions(progress)
         alpha = self.compute_alpha(progress, state)
