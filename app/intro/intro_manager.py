@@ -124,6 +124,12 @@ class IntroManager:
         ball_positions: tuple[Vec2, Vec2] | None = None,
     ) -> None:  # pragma: no cover - visual
         """Render the intro on ``surface`` using the configured renderer."""
+        if self._state is IntroState.DONE:
+            # Preserve the final frame of the intro sequence by skipping any
+            # further rendering once all animations have completed. This
+            # mirrors ``animation-fill-mode: forwards`` in CSS where the last
+            # frame remains visible instead of resetting to the initial state.
+            return
 
         progress = self._progress()
         if self._state is IntroState.FADE_OUT and self._targets is None:
