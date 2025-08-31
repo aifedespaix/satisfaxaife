@@ -96,7 +96,9 @@ def test_hp_interpolation_converges() -> None:
 def test_hp_label_and_vs_positions() -> None:
     hud = Hud(settings.theme)
     surface = pygame.Surface((800, 600))
-    label_a_rect, label_b_rect, vs_rect = hud.draw_hp_bars(surface, 1.0, 1.0, ("Alpha", "Beta"))
+    label_a_rect, label_b_rect, logo_rect, vs_rect = hud.draw_hp_bars(
+        surface, 1.0, 1.0, ("Alpha", "Beta")
+    )
 
     bar_width = int(surface.get_width() * Hud.BAR_WIDTH_RATIO)
     bar_height = int(surface.get_height() * Hud.BAR_HEIGHT_RATIO)
@@ -111,6 +113,8 @@ def test_hp_label_and_vs_positions() -> None:
     assert vs_rect.centerx == surface.get_width() // 2
     assert vs_rect.bottom == left_rect.top - Hud.VS_MARGIN
     assert vs_rect.width == int(surface.get_width() * Hud.VS_WIDTH_RATIO)
+    assert logo_rect.centerx == surface.get_width() // 2
+    assert logo_rect.bottom == left_rect.top - Hud.LOGO_MARGIN
 
 
 def test_hp_gradient_static() -> None:

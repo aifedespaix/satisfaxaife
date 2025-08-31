@@ -91,7 +91,12 @@ class IntroRenderer:
         targets: tuple[pygame.Rect, pygame.Rect, pygame.Rect],
         progress: float,
     ) -> None:
-        """Mutate ``elements`` to move and scale toward ``targets``."""
+        """Mutate elements to move and scale toward their target rectangles.
+
+        The last three entries of ``elements`` are expected to be the logo, the
+        left label and the right label in that order. ``start_positions`` and
+        ``targets`` must follow the same ordering.
+        """
 
         q = clamp(1.0 - progress, 0.0, 1.0)
         start_index = len(elements) - 3
@@ -138,14 +143,16 @@ class IntroRenderer:
             logo_img = pygame.transform.rotozoom(
                 self.assets.logo, (progress - 0.5) * 10, self.config.logo_scale
             )
-            return weapon_surfaces + [(logo_img, center_pos)] + text_surfaces
+            logo_and_text = [(logo_img, center_pos)] + text_surfaces
+            return weapon_surfaces + logo_and_text
         if self.font is None:
             pygame.font.init()
             self.font = pygame.font.Font(None, 72)
+        logo = self.font.render("VS", True, (255, 255, 255))
         return [
+            (logo, center_pos),
             (self.font.render(labels[0], True, (255, 255, 255)), left_pos),
             (self.font.render(labels[1], True, (255, 255, 255)), right_pos),
-            (self.font.render("VS", True, (255, 255, 255)), center_pos),
         ]
 
     def draw(
@@ -170,8 +177,8 @@ class IntroRenderer:
             Current :class:`~app.intro.intro_manager.IntroState` controlling the
             fade behaviour.
         targets:
-            Optional rectangles defining target positions and sizes for the two
-            labels and the centre marker. When provided and ``state`` is
+            Optional rectangles defining target positions and sizes for the
+            logo and the two labels. When provided and ``state`` is
             ``FADE_OUT``, elements interpolate toward these rectangles.
         """
         from app.intro.intro_manager import IntroState as _IntroState
@@ -185,7 +192,10 @@ class IntroRenderer:
 
         if state is _IntroState.FADE_OUT and targets is not None:
             self._interpolate_to_targets(
-                elements, (left_pos, right_pos, center_pos), targets, progress
+                elements,
+                (center_pos, left_pos, right_pos),
+                targets,
+                progress,
             )
 
         for img, pos in elements:
