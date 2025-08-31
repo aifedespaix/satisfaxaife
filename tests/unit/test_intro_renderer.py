@@ -11,7 +11,9 @@ if TYPE_CHECKING:  # pragma: no cover - type hints only
     import pygame as _pygame
 
 from app.intro import IntroAssets, IntroConfig, IntroState  # noqa: E402
+from app.render.hud import Hud  # noqa: E402
 from app.render.intro_renderer import IntroRenderer  # noqa: E402
+from app.render.theme import TeamColors, Theme  # noqa: E402
 
 
 def test_compute_positions_slide_and_center() -> None:
@@ -203,4 +205,51 @@ def test_draw_with_assets(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert len(blits) == len(expected_centers)
     assert set(expected_centers).issubset(set(blits))
+    pygame.quit()
+
+
+def test_fade_out_interpolates_to_hud(monkeypatch: pytest.MonkeyPatch) -> None:
+    pygame.init()
+    renderer = IntroRenderer(200, 100)
+    surface = pygame.Surface((200, 100), flags=pygame.SRCALPHA)
+    theme = Theme(
+        team_a=TeamColors((0, 0, 0), ((255, 0, 0),)),
+        team_b=TeamColors((0, 0, 0), ((0, 0, 255),)),
+        hp_empty=(0, 0, 0),
+        hp_warning=(255, 0, 0),
+    )
+    hud = Hud(theme)
+    labels = ("A", "B")
+    targets = hud.compute_layout(surface, labels)
+    blits: list[tuple[int, int]] = []
+
+    original_blit = pygame.Surface.blit
+
+    def tracking_blit(
+        self: _pygame.Surface,
+        source: _pygame.Surface,
+        dest: _pygame.Rect | tuple[int, int],
+        *args: object,
+        **kwargs: object,
+    ) -> _pygame.Rect:
+        center = dest.center if hasattr(dest, "center") else dest
+        blits.append((int(center[0]), int(center[1])))
+        return original_blit(self, source, dest, *args, **kwargs)
+
+    monkeypatch.setattr(pygame.Surface, "blit", tracking_blit)
+
+    renderer.draw(surface, labels, 0.5, IntroState.FADE_OUT, targets)
+    start_positions = renderer.compute_positions(1.0)
+    expected_mid = [
+        (int((s[0] + t.centerx) / 2), int((s[1] + t.centery) / 2))
+        for s, t in zip(start_positions, targets, strict=False)
+    ]
+    for center in expected_mid:
+        assert center in blits
+
+    blits.clear()
+    renderer.draw(surface, labels, 0.0, IntroState.FADE_OUT, targets)
+    expected_final = [t.center for t in targets]
+    for center in expected_final:
+        assert center in blits
     pygame.quit()
