@@ -13,6 +13,11 @@ from .config import IntroConfig
 if TYPE_CHECKING:  # pragma: no cover - hints only
     import pygame
 
+    from app.audio import AudioEngine
+
+
+FIGHT_SOUND: str = "assets/fight.ogg"
+
 
 class IntroState(Enum):
     """All states of the introduction sequence."""
@@ -32,11 +37,13 @@ class IntroManager:
         self,
         config: IntroConfig | None = None,
         intro_renderer: IntroRenderer | None = None,
+        engine: AudioEngine | None = None,
     ) -> None:
         self.config = config or IntroConfig()
         self._renderer = intro_renderer or IntroRenderer(
             settings.width, settings.height, self.config
         )
+        self._engine = engine
         self._state = IntroState.IDLE
         self._elapsed = 0.0
 
@@ -104,13 +111,22 @@ class IntroManager:
         }.get(self._state, 0.0)
 
     def _advance_state(self) -> None:
-        self._elapsed = 0.0
-        self._state = {
+        next_state = {
             IntroState.LOGO_IN: IntroState.WEAPONS_IN,
             IntroState.WEAPONS_IN: IntroState.HOLD,
             IntroState.HOLD: IntroState.FADE_OUT,
             IntroState.FADE_OUT: IntroState.DONE,
         }.get(self._state, IntroState.DONE)
+        if self._state is IntroState.HOLD and next_state is IntroState.FADE_OUT:
+            timestamp = self.config.logo_in + self.config.weapons_in + self.config.hold
+            engine = self._engine
+            if engine is None:
+                from app.audio import get_default_engine
+
+                engine = get_default_engine()
+            engine.play_variation(FIGHT_SOUND, timestamp=timestamp)
+        self._elapsed = 0.0
+        self._state = next_state
 
     def _state_progress(self) -> float:
         duration = self._current_duration()
