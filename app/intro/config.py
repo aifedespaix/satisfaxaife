@@ -5,7 +5,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from app.core.types import Vec2
-from app.core.utils import ease_out_quad
+from app.core.utils import clamp, ease_out_quad
 
 Easing = Callable[[float], float]
 
@@ -17,11 +17,9 @@ def ease_out_back(t: float) -> float:
     return 1 + c3 * (t - 1) ** 3 + c1 * (t - 1) ** 2
 
 
-def pulse_ease(t: float) -> float:
-    """Return a pulsating value between 0 and 1."""
-    import math
-
-    return 0.5 - 0.5 * math.cos(t * math.tau)
+def monotone_pulse(t: float) -> float:
+    """Return a monotonic easing curve for the weapon intro."""
+    return ease_out_quad(clamp(t, 0.0, 1.0))
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,7 +54,7 @@ class IntroConfig:
     hold: float = 1.0
     fade_out: float = 1.0
     micro_bounce: Easing = ease_out_back
-    pulse: Easing = pulse_ease
+    pulse: Easing = monotone_pulse
     fade: Easing = ease_out_quad
     left_pos_pct: Vec2 = (0.25, 0.5)
     right_pos_pct: Vec2 = (0.75, 0.5)

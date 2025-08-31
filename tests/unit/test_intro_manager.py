@@ -90,3 +90,45 @@ def test_intro_manager_fight_sound() -> None:
     assert path.endswith("fight.ogg")
     expected = config.logo_in + config.weapons_in + config.hold
     assert timestamp == pytest.approx(expected)
+def test_weapons_in_monotonic_then_hold_and_fade() -> None:
+    config = IntroConfig(
+        logo_in=0.0,
+        weapons_in=1.0,
+        hold=1.0,
+        fade_out=1.0,
+        allow_skip=False,
+    )
+    manager = IntroManager(config=config)
+    manager.start()
+    manager.update(0.0)
+
+    state = manager.state
+    assert state == IntroState.WEAPONS_IN
+
+    previous = manager._progress()
+    for _ in range(5):
+        manager.update(0.2)
+        progress = manager._progress()
+        assert previous <= progress <= 1.0
+        previous = progress
+
+    state = manager.state
+    assert state == IntroState.HOLD
+    assert manager._progress() == pytest.approx(1.0)
+
+    manager.update(0.5)
+    state = manager.state
+    assert state == IntroState.HOLD
+    assert manager._progress() == pytest.approx(1.0)
+
+    manager.update(0.5)
+    state = manager.state
+    assert state == IntroState.FADE_OUT
+    fade_start = manager._progress()
+    assert fade_start == pytest.approx(1.0)
+
+    manager.update(0.5)
+    fade_mid = manager._progress()
+    assert 0.0 <= fade_mid < fade_start
+    manager.update(0.25)
+    assert manager._progress() < fade_mid

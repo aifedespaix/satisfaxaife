@@ -16,5 +16,5 @@ Ce document décrit l'architecture de l'animation d'introduction avant chaque ma
 
 ## Tween / Easing
 
-- Les transitions reposent sur des fonctions d'interpolation (`ease_out_back`, `pulse_ease`, `fade`) définies dans `IntroConfig`.
+- Les transitions reposent sur des fonctions d'interpolation (`ease_out_back`, `ease_out_quad`, `fade`) définies dans `IntroConfig`.
 - Le module utilitaire `app/core/tween.py` expose des easings génériques (`linear`, `ease_in_out_cubic`, ...`) réutilisables dans le moteur.

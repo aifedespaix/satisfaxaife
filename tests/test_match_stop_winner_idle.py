@@ -81,15 +81,13 @@ def test_winner_idle_sound_stops_on_victory() -> None:
 
     recorder = DummyRecorder()
     renderer = Renderer(settings.width, settings.height)
-    controller = create_controller(
-        "killer_test", "passive_test", recorder, renderer, max_seconds=1
-    )
+    controller = create_controller("killer_test", "passive_test", recorder, renderer, max_seconds=1)
     controller.run()
 
     assert audio_a.stopped_at is not None
     assert controller.death_ts is not None
     assert audio_a.stopped_at == pytest.approx(controller.death_ts)
-    intro_duration = controller.intro_manager._duration
+    intro_duration = controller.intro_manager._duration  # type: ignore[attr-defined]
     assert audio_a.stopped_at >= intro_duration
     assert audio_b.stopped_at is not None
 
