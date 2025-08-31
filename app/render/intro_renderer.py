@@ -123,9 +123,7 @@ class IntroRenderer:
             ):
                 target_width = self.width * self.WEAPON_WIDTH_RATIO
                 scale = target_width / source.get_width()
-                img = pygame.transform.rotozoom(
-                    source, (progress - 0.5) * 10, scale
-                )
+                img = pygame.transform.rotozoom(source, (progress - 0.5) * 10, scale)
                 text_height = text_surf.get_height()
                 img_y = pos[1] - text_height / 2 - self.IMAGE_TEXT_GAP - img.get_height() / 2
                 weapon_surfaces.append((img, (pos[0], img_y)))
@@ -156,7 +154,12 @@ class IntroRenderer:
                 surface.blit(glow, glow.get_rect(center=(pos[0] + dx, pos[1] + dy)))
             surface.blit(img, img.get_rect(center=pos))
 
-        fade_alpha = int((1.0 - progress) * 255)
+        from app.intro.intro_manager import IntroState as _IntroState
+
+        fade_alpha = 0
+        if state is _IntroState.LOGO_IN:
+            fade_alpha = int((1.0 - progress) * 255)
+
         if fade_alpha > 0:
             overlay = pygame.Surface((self.width, self.height))
             overlay.fill((0, 0, 0))
