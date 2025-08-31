@@ -21,6 +21,8 @@ class _BallState:
     trail: list[tuple[Vec2, float]] = field(default_factory=list)
     blink_timer: int = field(default_factory=lambda: random.randint(60, 180))
     blink_progress: int = 0
+    hit_flash_timer: float = 0.0
+    hit_flash_duration: float = 0.0
 
 
 @dataclass(slots=True)
@@ -216,6 +218,15 @@ class Renderer:
             pygame.draw.circle(
                 self.surface, (255, 255, 255, 80), self._offset(highlight_pos), int(radius * 0.3)
             )
+        if state.hit_flash_timer > 0:
+            strength = (
+                state.hit_flash_timer / state.hit_flash_duration
+                if state.hit_flash_duration > 0
+                else 0.0
+            )
+            overlay = (255, 0, 0, int(255 * strength))
+            pygame.draw.circle(self.surface, overlay, self._offset(pos), radius)
+            state.hit_flash_timer = max(0.0, state.hit_flash_timer - settings.dt)
 
     def draw_projectile(self, pos: Vec2, radius: int, color: Color) -> None:
         pygame.draw.circle(self.surface, color, self._offset(pos), radius)
@@ -262,6 +273,22 @@ class Renderer:
     def trigger_blink(self, team_color: Color, strength: int) -> None:
         state = self._get_state(team_color)
         state.blink_progress = max(state.blink_progress, strength)
+
+    def trigger_hit_flash(self, team_color: Color, duration: float = 0.15) -> None:
+        """Flash the ball in red for ``duration`` seconds.
+
+        Parameters
+        ----------
+        team_color:
+            Team color identifying the target ball.
+        duration:
+            Duration of the flash in seconds. Defaults to ``0.15`` seconds.
+        """
+        if duration <= 0:
+            raise ValueError("duration must be positive")
+        state = self._get_state(team_color)
+        state.hit_flash_timer = duration
+        state.hit_flash_duration = duration
 
     def draw_impacts(self) -> None:
         for impact in self._impacts:
