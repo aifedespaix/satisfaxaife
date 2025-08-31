@@ -192,6 +192,7 @@ class GameController:
         try:
             if not self.display:
                 self.engine.start_capture()
+            intro_elapsed = 0.0
             while not self.intro_manager.is_finished():
                 self.intro_manager.update(settings.dt)
                 self.renderer.clear()
@@ -201,10 +202,12 @@ class GameController:
                     frame_surface = self.renderer.surface.copy()
                     frame = pygame.surfarray.array3d(frame_surface)
                     self.recorder.add_frame(np.swapaxes(frame, 0, 1))
+                intro_elapsed += settings.dt
             self.phase = Phase.RUNNING
             while (
                 len([p for p in self.players if p.alive]) >= 2 and self.elapsed < self.max_seconds
             ):
+                current_time = intro_elapsed + self.elapsed
                 for p in self.players:
                     if not p.alive:
                         continue
@@ -240,7 +243,7 @@ class GameController:
                                 continue
                             reflector = getattr(other, "deflect_projectile", None)
                             if reflector is not None:
-                                reflector(self.view, eff, self.elapsed)
+                                reflector(self.view, eff, current_time)
                                 deflected = True
                                 break
                         if deflected:
@@ -253,7 +256,7 @@ class GameController:
                             float(p.ball.body.position.y),
                         )
                         if eff.collides(self.view, pos, p.ball.shape.radius):
-                            keep = eff.on_hit(self.view, p.eid, self.elapsed)
+                            keep = eff.on_hit(self.view, p.eid, current_time)
                             if not keep:
                                 eff.destroy()
                                 self.effects.remove(eff)
@@ -296,7 +299,7 @@ class GameController:
                 alive = [p for p in self.players if p.alive]
                 if len(alive) == 1:
                     self.winner = alive[0].eid
-                    self.death_ts = self.elapsed + settings.dt
+                    self.death_ts = current_time + settings.dt
                     break
 
                 self.elapsed += settings.dt
