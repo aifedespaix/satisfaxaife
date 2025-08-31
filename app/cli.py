@@ -11,7 +11,8 @@ import typer
 from app.audio import reset_default_engine
 from app.audio.env import temporary_sdl_audio_driver
 from app.core.config import settings
-from app.game.match import MatchTimeout, run_match
+from app.game.controller import MatchTimeout
+from app.game.match import create_controller
 from app.render.renderer import Renderer
 from app.video.recorder import NullRecorder, Recorder, RecorderProtocol
 from app.weapons import weapon_registry
@@ -57,14 +58,15 @@ def run(
             recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
             renderer = Renderer(settings.width, settings.height)
 
+        controller = create_controller(
+            weapon_a,
+            weapon_b,
+            recorder,
+            renderer,
+            display=display,
+        )
         try:
-            winner = run_match(
-                weapon_a,
-                weapon_b,
-                recorder,
-                renderer,
-                display=display,
-            )
+            winner = controller.run()
         except MatchTimeout as exc:
             if not display and recorder.path is not None and recorder.path.exists():
                 recorder.path.unlink()
@@ -108,8 +110,14 @@ def batch(
             recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
             renderer = Renderer(settings.width, settings.height)
 
+            controller = create_controller(
+                weapon_a,
+                weapon_b,
+                recorder,
+                renderer,
+            )
             try:
-                winner = run_match(weapon_a, weapon_b, recorder, renderer)
+                winner = controller.run()
             except MatchTimeout as exc:
                 if temp_path.exists():
                     temp_path.unlink()
