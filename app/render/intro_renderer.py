@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pygame
+
 from app.core.types import Vec2
 from app.core.utils import clamp
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    import pygame
-
     from app.intro.assets import IntroAssets
     from app.intro.config import IntroConfig
     from app.intro.intro_manager import IntroState
@@ -84,12 +84,77 @@ class IntroRenderer:
             return int(p * 255)
         return 255
 
+    def _interpolate_to_targets(
+        self,
+        elements: list[tuple[pygame.Surface, Vec2]],
+        start_positions: tuple[Vec2, Vec2, Vec2],
+        targets: tuple[pygame.Rect, pygame.Rect, pygame.Rect],
+        progress: float,
+    ) -> None:
+        """Mutate ``elements`` to move and scale toward ``targets``."""
+
+        q = clamp(1.0 - progress, 0.0, 1.0)
+        start_index = len(elements) - 3
+        for i, idx in enumerate(range(start_index, len(elements))):
+            img, _ = elements[idx]
+            start = start_positions[i]
+            target = targets[i]
+            new_pos = (
+                start[0] + (target.centerx - start[0]) * q,
+                start[1] + (target.centery - start[1]) * q,
+            )
+            sw, sh = img.get_size()
+            new_w = max(1, int(sw + (target.width - sw) * q))
+            new_h = max(1, int(sh + (target.height - sh) * q))
+            img = pygame.transform.smoothscale(img, (new_w, new_h))
+            elements[idx] = (img, new_pos)
+
+    def _prepare_elements(
+        self,
+        labels: tuple[str, str],
+        progress: float,
+        left_pos: Vec2,
+        right_pos: Vec2,
+        center_pos: Vec2,
+    ) -> list[tuple[pygame.Surface, Vec2]]:
+        """Return surfaces and positions for rendering."""
+        if self.assets is not None:
+            if self.font is None:
+                self.font = self.assets.font
+            text_surfaces = [
+                (self.font.render(labels[0], True, (255, 255, 255)), left_pos),
+                (self.font.render(labels[1], True, (255, 255, 255)), right_pos),
+            ]
+            weapon_surfaces: list[tuple[pygame.Surface, Vec2]] = []
+            for source, (text_surf, pos) in zip(
+                (self.assets.weapon_a, self.assets.weapon_b), text_surfaces, strict=False
+            ):
+                target_width = self.width * self.WEAPON_WIDTH_RATIO
+                scale = target_width / source.get_width()
+                img = pygame.transform.rotozoom(source, (progress - 0.5) * 10, scale)
+                text_height = text_surf.get_height()
+                img_y = pos[1] - text_height / 2 - self.IMAGE_TEXT_GAP - img.get_height() / 2
+                weapon_surfaces.append((img, (pos[0], img_y)))
+            logo_img = pygame.transform.rotozoom(
+                self.assets.logo, (progress - 0.5) * 10, self.config.logo_scale
+            )
+            return weapon_surfaces + [(logo_img, center_pos)] + text_surfaces
+        if self.font is None:
+            pygame.font.init()
+            self.font = pygame.font.Font(None, 72)
+        return [
+            (self.font.render(labels[0], True, (255, 255, 255)), left_pos),
+            (self.font.render(labels[1], True, (255, 255, 255)), right_pos),
+            (self.font.render("VS", True, (255, 255, 255)), center_pos),
+        ]
+
     def draw(
         self,
         surface: pygame.Surface,
         labels: tuple[str, str],
         progress: float,
         state: IntroState,
+        targets: tuple[pygame.Rect, pygame.Rect, pygame.Rect] | None = None,
     ) -> None:  # pragma: no cover - visual
         """Render the intro text and apply visual effects.
 
@@ -104,42 +169,24 @@ class IntroRenderer:
         state:
             Current :class:`~app.intro.intro_manager.IntroState` controlling the
             fade behaviour.
+        targets:
+            Optional rectangles defining target positions and sizes for the two
+            labels and the centre marker. When provided and ``state`` is
+            ``FADE_OUT``, elements interpolate toward these rectangles.
         """
-        import pygame
+        from app.intro.intro_manager import IntroState as _IntroState
 
-        left_pos, right_pos, center_pos = self.compute_positions(progress)
-        alpha = self.compute_alpha(progress, state)
-
-        if self.assets is not None:
-            if self.font is None:
-                self.font = self.assets.font
-            text_surfaces = [
-                (self.font.render(labels[0], True, (255, 255, 255)), left_pos),
-                (self.font.render(labels[1], True, (255, 255, 255)), right_pos),
-            ]
-            weapon_surfaces = []
-            for source, (text_surf, pos) in zip(
-                (self.assets.weapon_a, self.assets.weapon_b), text_surfaces, strict=False
-            ):
-                target_width = self.width * self.WEAPON_WIDTH_RATIO
-                scale = target_width / source.get_width()
-                img = pygame.transform.rotozoom(source, (progress - 0.5) * 10, scale)
-                text_height = text_surf.get_height()
-                img_y = pos[1] - text_height / 2 - self.IMAGE_TEXT_GAP - img.get_height() / 2
-                weapon_surfaces.append((img, (pos[0], img_y)))
-            logo_img = pygame.transform.rotozoom(
-                self.assets.logo, (progress - 0.5) * 10, self.config.logo_scale
-            )
-            elements = weapon_surfaces + [(logo_img, center_pos)] + text_surfaces
+        if state is _IntroState.FADE_OUT and targets is not None:
+            left_pos, right_pos, center_pos = self.compute_positions(1.0)
         else:
-            if self.font is None:
-                pygame.font.init()
-                self.font = pygame.font.Font(None, 72)
-            elements = [
-                (self.font.render(labels[0], True, (255, 255, 255)), left_pos),
-                (self.font.render(labels[1], True, (255, 255, 255)), right_pos),
-                (self.font.render("VS", True, (255, 255, 255)), center_pos),
-            ]
+            left_pos, right_pos, center_pos = self.compute_positions(progress)
+        alpha = self.compute_alpha(progress, state)
+        elements = self._prepare_elements(labels, progress, left_pos, right_pos, center_pos)
+
+        if state is _IntroState.FADE_OUT and targets is not None:
+            self._interpolate_to_targets(
+                elements, (left_pos, right_pos, center_pos), targets, progress
+            )
 
         for img, pos in elements:
             if self.assets is None:
@@ -153,8 +200,6 @@ class IntroRenderer:
                 glow.set_alpha(min(alpha, 128))
                 surface.blit(glow, glow.get_rect(center=(pos[0] + dx, pos[1] + dy)))
             surface.blit(img, img.get_rect(center=pos))
-
-        from app.intro.intro_manager import IntroState as _IntroState
 
         fade_alpha = 0
         if state is _IntroState.LOGO_IN:

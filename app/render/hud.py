@@ -36,6 +36,58 @@ class Hud:
         self.current_hp_b = 1.0
         self.vs_image: pygame.Surface = load_sprite("vs.png")
 
+    def compute_layout(
+        self, surface: pygame.Surface, labels: tuple[str, str]
+    ) -> tuple[pygame.Rect, pygame.Rect, pygame.Rect]:
+        """Return target rectangles for the labels and ``VS`` marker.
+
+        Parameters
+        ----------
+        surface:
+            Surface used to determine available size.
+        labels:
+            Names displayed on the left and right health bars.
+
+        Returns
+        -------
+        tuple[pygame.Rect, pygame.Rect, pygame.Rect]
+            Rectangles of the two labels and the ``VS`` marker positioned as
+            they would appear when drawn.
+        """
+
+        bar_width = max(1, int(surface.get_width() * self.BAR_WIDTH_RATIO))
+        bar_height = max(1, int(surface.get_height() * self.BAR_HEIGHT_RATIO))
+        margin = 40
+
+        left_rect = pygame.Rect(margin, 120, bar_width, bar_height)
+        right_rect = pygame.Rect(
+            surface.get_width() - margin - bar_width, 120, bar_width, bar_height
+        )
+
+        label_a = self.bar_font.render(labels[0], True, (255, 255, 255))
+        label_a_rect = label_a.get_rect()
+        label_a_rect.centery = left_rect.centery
+        label_a_rect.left = left_rect.left + self.LABEL_PADDING
+        max_left = left_rect.right - self.LABEL_PADDING - label_a_rect.width
+        if label_a_rect.left > max_left:
+            label_a_rect.left = max_left
+
+        label_b = self.bar_font.render(labels[1], True, (255, 255, 255))
+        label_b_rect = label_b.get_rect()
+        label_b_rect.centery = right_rect.centery
+        label_b_rect.right = right_rect.right - self.LABEL_PADDING
+        min_right = right_rect.left + self.LABEL_PADDING + label_b_rect.width
+        if label_b_rect.right < min_right:
+            label_b_rect.right = min_right
+
+        target_width = max(1, int(surface.get_width() * self.VS_WIDTH_RATIO))
+        width, height = self.vs_image.get_size()
+        scale = target_width / width
+        vs_rect = pygame.Rect(0, 0, target_width, int(height * scale))
+        vs_rect.midbottom = (surface.get_width() // 2, left_rect.top - self.VS_MARGIN)
+
+        return label_a_rect, label_b_rect, vs_rect
+
     def update_hp(self, hp_a: float, hp_b: float) -> None:
         """Interpolate the displayed health toward the target values.
 
@@ -106,6 +158,8 @@ class Hud:
 
         self.update_hp(hp_a, hp_b)
 
+        layout_a, layout_b, vs_rect = self.compute_layout(surface, labels)
+
         # Left bar (team A)
         left_rect = pygame.Rect(margin, 120, bar_width, bar_height)
         pygame.draw.rect(surface, self.theme.hp_empty, left_rect)
@@ -119,13 +173,7 @@ class Hud:
             )
             draw_diagonal_gradient(surface, filled_rect, colors_a)
         label_a = self.bar_font.render(labels[0], True, (255, 255, 255))
-        label_a_rect = label_a.get_rect()
-        label_a_rect.centery = left_rect.centery
-        label_a_rect.left = left_rect.left + self.LABEL_PADDING
-        max_left = left_rect.right - self.LABEL_PADDING - label_a_rect.width
-        if label_a_rect.left > max_left:
-            label_a_rect.left = max_left
-        surface.blit(label_a, label_a_rect)
+        surface.blit(label_a, layout_a)
 
         # Right bar (team B)
         right_rect = pygame.Rect(
@@ -144,17 +192,12 @@ class Hud:
             )
             draw_diagonal_gradient(surface, filled_rect, colors_b)
         label_b = self.bar_font.render(labels[1], True, (255, 255, 255))
-        label_b_rect = label_b.get_rect()
-        label_b_rect.centery = right_rect.centery
-        label_b_rect.right = right_rect.right - self.LABEL_PADDING
-        min_right = right_rect.left + self.LABEL_PADDING + label_b_rect.width
-        if label_b_rect.right < min_right:
-            label_b_rect.right = min_right
-        surface.blit(label_b, label_b_rect)
+        surface.blit(label_b, layout_b)
 
-        vs_rect = self.draw_vs(surface, left_rect.top)
+        scaled_vs = pygame.transform.smoothscale(self.vs_image, vs_rect.size)
+        surface.blit(scaled_vs, vs_rect)
 
-        return label_a_rect, label_b_rect, vs_rect
+        return layout_a, layout_b, vs_rect
 
     def draw_watermark(self, surface: pygame.Surface, text: str) -> None:
         """Draw a small watermark at the bottom-left corner."""

@@ -6,8 +6,11 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import pygame
+
 from app.core.config import settings
 from app.core.utils import clamp
+from app.render.hud import Hud
 from app.render.intro_renderer import IntroRenderer
 
 from .assets import IntroAssets
@@ -58,6 +61,7 @@ class IntroManager:
         self._engine = engine
         self._state = IntroState.IDLE
         self._elapsed = 0.0
+        self._targets: tuple[pygame.Rect, pygame.Rect, pygame.Rect] | None = None
 
     @property
     def state(self) -> IntroState:
@@ -101,12 +105,14 @@ class IntroManager:
             self._advance_state()
 
     def draw(
-        self, surface: pygame.Surface, labels: tuple[str, str]
+        self, surface: pygame.Surface, labels: tuple[str, str], hud: Hud
     ) -> None:  # pragma: no cover - visual
         """Render the intro on ``surface`` using the configured renderer."""
 
         progress = self._progress()
-        self._renderer.draw(surface, labels, progress, self._state)
+        if self._state is IntroState.FADE_OUT and self._targets is None:
+            self._targets = hud.compute_layout(surface, labels)
+        self._renderer.draw(surface, labels, progress, self._state, self._targets)
 
     def is_finished(self) -> bool:
         """Return ``True`` if the intro has completed."""

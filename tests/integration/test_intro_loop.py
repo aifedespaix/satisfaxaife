@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.game.controller import GameController
 from app.game.match import create_controller
 from app.intro import IntroConfig, IntroManager, IntroState
+from app.render.hud import Hud
 from app.render.renderer import Renderer
 from tests.integration.helpers import SpyRecorder
 
@@ -45,7 +46,7 @@ class StubIntroManager(IntroManager):
             self._skipped = True
 
     def draw(
-        self, surface: pygame.Surface, labels: tuple[str, str]
+        self, surface: pygame.Surface, labels: tuple[str, str], hud: Hud
     ) -> None:  # pragma: no cover - simple counter
         self.draws += 1
 

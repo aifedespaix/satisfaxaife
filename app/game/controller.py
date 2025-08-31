@@ -200,7 +200,7 @@ class GameController:
             while not self.intro_manager.is_finished():
                 self.intro_manager.update(settings.dt)
                 self.renderer.clear()
-                self.intro_manager.draw(self.renderer.surface, labels)
+                self.intro_manager.draw(self.renderer.surface, labels, self.hud)
                 self.hud.draw_title(self.renderer.surface, settings.hud.title)
                 self.hud.draw_watermark(self.renderer.surface, settings.hud.watermark)
                 self.renderer.present()
