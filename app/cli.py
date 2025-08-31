@@ -35,8 +35,7 @@ def run(
         tuple[str, str] | None,
         typer.Option(
             "--intro-weapons",
-            nargs=2,
-            metavar="left=PATH right=PATH",
+            metavar=("left=PATH", "right=PATH"),
             help="Override intro weapon images",
         ),
     ] = None,
