@@ -90,6 +90,41 @@ def test_intro_manager_fight_sound() -> None:
     assert path.endswith("fight.ogg")
     expected = config.logo_in + config.weapons_in + config.hold
     assert timestamp == pytest.approx(expected)
+
+
+def test_intro_manager_start_ignored_when_running_or_done() -> None:
+    """Calling ``start`` twice should not restart the intro."""
+
+    config = IntroConfig(logo_in=0.1, weapons_in=0.1, hold=0.1, fade_out=0.1, allow_skip=False)
+    manager = IntroManager(config=config, engine=cast(Any, StubEngine()))
+
+    manager.start()
+    state = manager.state
+    assert state is IntroState.LOGO_IN
+
+    # Second call while intro is already running has no effect
+    manager.start()
+    state = manager.state
+    assert state is IntroState.LOGO_IN
+
+    # Advance into the next state and ensure ``start`` is still ignored
+    manager.update(0.1)
+    state = manager.state
+    assert state is IntroState.WEAPONS_IN
+    manager.start()
+    state = manager.state
+    assert state is IntroState.WEAPONS_IN
+
+    # Finish the intro and verify ``start`` does not restart it
+    for _ in range(3):
+        manager.update(0.1)
+    state = manager.state
+    assert state is IntroState.DONE
+    manager.start()
+    state = manager.state
+    assert state is IntroState.DONE
+
+
 def test_weapons_in_monotonic_then_hold_and_fade() -> None:
     config = IntroConfig(
         logo_in=0.0,
