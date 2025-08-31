@@ -16,6 +16,9 @@ if TYPE_CHECKING:  # pragma: no cover - hints only
 class IntroRenderer:
     """Render the pre-match introduction with slide, glow and fade effects."""
 
+    WEAPON_WIDTH_RATIO: float = 0.4
+    IMAGE_TEXT_GAP: float = 10.0
+
     def __init__(
         self,
         width: int,
@@ -108,15 +111,28 @@ class IntroRenderer:
         alpha = self.compute_alpha(progress, state)
 
         if self.assets is not None:
-            surfaces = [
-                (self.assets.weapon_a, left_pos, self.config.weapon_scale),
-                (self.assets.weapon_b, right_pos, self.config.weapon_scale),
-                (self.assets.logo, center_pos, self.config.logo_scale),
+            if self.font is None:
+                self.font = self.assets.font
+            text_surfaces = [
+                (self.font.render(labels[0], True, (255, 255, 255)), left_pos),
+                (self.font.render(labels[1], True, (255, 255, 255)), right_pos),
             ]
-            elements = []
-            for source, pos, scale in surfaces:
-                img = pygame.transform.rotozoom(source, (progress - 0.5) * 10, scale)
-                elements.append((img, pos))
+            weapon_surfaces = []
+            for source, (text_surf, pos) in zip(
+                (self.assets.weapon_a, self.assets.weapon_b), text_surfaces, strict=False
+            ):
+                target_width = self.width * self.WEAPON_WIDTH_RATIO
+                scale = target_width / source.get_width()
+                img = pygame.transform.rotozoom(
+                    source, (progress - 0.5) * 10, scale
+                )
+                text_height = text_surf.get_height()
+                img_y = pos[1] - text_height / 2 - self.IMAGE_TEXT_GAP - img.get_height() / 2
+                weapon_surfaces.append((img, (pos[0], img_y)))
+            logo_img = pygame.transform.rotozoom(
+                self.assets.logo, (progress - 0.5) * 10, self.config.logo_scale
+            )
+            elements = weapon_surfaces + [(logo_img, center_pos)] + text_surfaces
         else:
             if self.font is None:
                 pygame.font.init()

@@ -43,9 +43,14 @@ class IntroManager:
         engine: AudioEngine | None = None,
     ) -> None:
         self.config = config or IntroConfig()
-        if self.config.logo_path is None:
+        if self.config.logo_path is None or self.config.font_path is None:
             assets_dir = Path(__file__).resolve().parents[2] / "assets"
-            self.config = replace(self.config, logo_path=assets_dir / "vs.png")
+            updates: dict[str, object] = {}
+            if self.config.logo_path is None:
+                updates["logo_path"] = assets_dir / "vs.png"
+            if self.config.font_path is None:
+                updates["font_path"] = assets_dir / "fonts" / "FightKickDemoRegular.ttf"
+            self.config = replace(self.config, **updates)
         self.assets = IntroAssets.load(self.config)
         self._renderer = intro_renderer or IntroRenderer(
             settings.width, settings.height, self.config, assets=self.assets

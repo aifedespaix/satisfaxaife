@@ -56,9 +56,9 @@ class IntroConfig:
     micro_bounce: Easing = ease_out_back
     pulse: Easing = monotone_pulse
     fade: Easing = ease_out_quad
-    left_pos_pct: Vec2 = (0.25, 0.5)
-    right_pos_pct: Vec2 = (0.75, 0.5)
-    center_pos_pct: Vec2 = (0.5, 0.5)
+    left_pos_pct: Vec2 = (0.25, 0.6)
+    right_pos_pct: Vec2 = (0.75, 0.6)
+    center_pos_pct: Vec2 = (0.5, 0.45)
     slide_offset_pct: float = 0.5
     logo_scale: float = 1.0
     weapon_scale: float = 1.0
