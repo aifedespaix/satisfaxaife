@@ -16,7 +16,7 @@ from app.audio.engine import AudioEngine
 from app.cli import app
 from app.core.config import settings
 from app.render.renderer import Renderer
-from app.video.recorder import NullRecorder, RecorderProtocol
+from app.video.recorder import NullRecorder
 
 
 def test_run_creates_video(tmp_path: Path) -> None:
@@ -47,19 +47,14 @@ def test_run_creates_video(tmp_path: Path) -> None:
 def test_run_timeout(monkeypatch: MonkeyPatch) -> None:
     runner = CliRunner()
 
-    # On force un timeout en remplaçant app.cli.run_match par un wrapper
-    from app.game import match as match_module
+    # On force un timeout en remplaçant GameController.run
+    from app.game.controller import GameController
+    from app.game.match import MatchTimeout
 
-    def run_match_short(
-        weapon_a: str,
-        weapon_b: str,
-        recorder: RecorderProtocol,
-        renderer: Renderer | None = None,
-    ) -> None:
-        # max_seconds=0 provoque systématiquement un MatchTimeout
-        match_module.run_match(weapon_a, weapon_b, recorder, renderer, max_seconds=0)
+    def run_short(self: GameController) -> str | None:  # noqa: ARG001
+        raise MatchTimeout("Match exceeded 0 seconds")
 
-    monkeypatch.setattr("app.cli.run_match", run_match_short)
+    monkeypatch.setattr(GameController, "run", run_short)
 
     result = runner.invoke(
         app,
