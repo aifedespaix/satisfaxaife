@@ -12,8 +12,8 @@ def test_intro_manager_start_state() -> None:
 
 
 def test_intro_manager_transitions() -> None:
-    config = IntroConfig(logo_in=0.1, weapons_in=0.1, hold=0.1, fade_out=0.1)
-    manager = IntroManager(config=config, allow_skip=False)
+    config = IntroConfig(logo_in=0.1, weapons_in=0.1, hold=0.1, fade_out=0.1, allow_skip=False)
+    manager = IntroManager(config=config)
     manager.start()
     for expected in (
         IntroState.WEAPONS_IN,
@@ -27,8 +27,15 @@ def test_intro_manager_transitions() -> None:
 
 
 def test_intro_manager_skip() -> None:
-    config = IntroConfig(logo_in=10.0, weapons_in=10.0, hold=10.0, fade_out=10.0)
-    manager = IntroManager(config=config, allow_skip=True, skip_key=pygame.K_s)
+    config = IntroConfig(
+        logo_in=10.0,
+        weapons_in=10.0,
+        hold=10.0,
+        fade_out=10.0,
+        allow_skip=True,
+        skip_key=pygame.K_s,
+    )
+    manager = IntroManager(config=config)
     manager.start()
 
     event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_s})

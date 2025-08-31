@@ -8,7 +8,7 @@ from app.core.utils import clamp
 if TYPE_CHECKING:  # pragma: no cover - hints only
     import pygame
 
-    from app.intro.intro_manager import IntroConfig
+    from app.intro.config import IntroConfig
 
 
 class IntroRenderer:
@@ -21,7 +21,7 @@ class IntroRenderer:
         config: IntroConfig | None = None,
         font: pygame.font.Font | None = None,
     ) -> None:
-        from app.intro.intro_manager import IntroConfig as _IntroConfig
+        from app.intro.config import IntroConfig as _IntroConfig
 
         self.width = width
         self.height = height
