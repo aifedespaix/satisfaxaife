@@ -71,10 +71,18 @@ class IntroManager:
         return self._state
 
     def start(self) -> None:
-        """Start the intro sequence."""
+        """Start the intro sequence if idle.
 
+        Calling :meth:`start` while the introduction is already running or has
+        completed has no effect. This guards against unintended resets when the
+        caller triggers ``start`` multiple times.
+        """
+
+        if self._state is not IntroState.IDLE:
+            return
         self._state = IntroState.LOGO_IN
         self._elapsed = 0.0
+        self._targets = None
 
     def update(self, dt: float, events: Sequence[pygame.event.Event] | None = None) -> None:
         """Advance the intro state machine.
@@ -118,9 +126,7 @@ class IntroManager:
         if self._state is IntroState.FADE_OUT and self._targets is None:
             label_a, label_b, logo_rect, _ = hud.compute_layout(surface, labels)
             self._targets = (logo_rect, label_a, label_b)
-        self._renderer.draw(
-            surface, labels, progress, self._state, self._targets, ball_positions
-        )
+        self._renderer.draw(surface, labels, progress, self._state, self._targets, ball_positions)
 
     def is_finished(self) -> bool:
         """Return ``True`` if the intro has completed."""
