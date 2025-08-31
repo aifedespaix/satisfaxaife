@@ -39,14 +39,19 @@ def test_compute_positions_custom_config() -> None:
     assert center == (50.0, 100.0)
 
 
-def test_compute_alpha_in_states_monotonic() -> None:
+def test_compute_alpha_logo_in_fades_in() -> None:
     renderer = IntroRenderer(200, 100)
     progresses = [0.0, 0.3, 0.6, 1.0]
-    for state in (IntroState.LOGO_IN, IntroState.WEAPONS_IN):
-        alphas = [renderer.compute_alpha(p, state) for p in progresses]
-        assert alphas[0] == 0
-        assert alphas[-1] == 255
-        assert all(a0 <= a1 for a0, a1 in zip(alphas, alphas[1:], strict=False))
+    alphas = [renderer.compute_alpha(p, IntroState.LOGO_IN) for p in progresses]
+    assert alphas[0] == 0
+    assert alphas[-1] == 255
+    assert all(a0 <= a1 for a0, a1 in zip(alphas, alphas[1:], strict=False))
+
+
+def test_compute_alpha_weapons_in_stays_opaque() -> None:
+    renderer = IntroRenderer(200, 100)
+    for p in (0.0, 0.25, 0.5, 0.75, 1.0):
+        assert renderer.compute_alpha(p, IntroState.WEAPONS_IN) == 255
 
 
 def test_compute_alpha_fade_out() -> None:

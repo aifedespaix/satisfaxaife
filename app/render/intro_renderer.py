@@ -65,16 +65,18 @@ class IntroRenderer:
     def compute_alpha(self, progress: float, state: IntroState) -> int:
         """Return opacity for ``progress`` given the intro ``state``.
 
-        ``LOGO_IN`` and ``WEAPONS_IN`` fade from transparent to fully opaque.
-        ``FADE_OUT`` transitions from opaque to transparent. Other states
-        remain fully opaque. The easing function from :class:`IntroConfig` is
-        applied for the fade-in transitions.
+        ``LOGO_IN`` fades from transparent to fully opaque using the easing
+        function from :class:`IntroConfig`. ``WEAPONS_IN`` remains fully opaque
+        regardless of progress. ``FADE_OUT`` transitions from opaque to
+        transparent. Other states remain fully opaque.
         """
         from app.intro.intro_manager import IntroState as _IntroState
 
         p = clamp(progress, 0.0, 1.0)
-        if state in (_IntroState.LOGO_IN, _IntroState.WEAPONS_IN):
+        if state is _IntroState.LOGO_IN:
             return int(self.config.fade(p) * 255)
+        if state is _IntroState.WEAPONS_IN:
+            return 255
         if state is _IntroState.FADE_OUT:
             return int(p * 255)
         return 255
