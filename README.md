@@ -153,6 +153,14 @@ uv run python -m app.cli batch \
 - **Configuration externe** : `app/config.json` regroupe canvas, palette (bleu/orange), HUD (titre, watermark) et paramètres d'**end screen** (textes, slow-mo, fade...).
 - **FPS / résolution** : ajuster `canvas` dans `app/config.json`.
 
+## 🎬 Intro animation
+
+Avant chaque match, une courte séquence présente les armes en jeu.
+
+- **Configuration** : `IntroConfig` permet d'ajuster les durées, les fonctions d'interpolation et la touche de saut. Utilisez `allow_skip=False` pour imposer l'animation.
+- **Assets** : le logo et les images d'armes sont chargés depuis `assets/`. L'option CLI `--intro-weapons` permet de remplacer les visuels par défaut.
+- **Skip** : appuyez sur `Échap` pour passer l'animation.
+
 ### Développer une nouvelle arme
 
 1. **Skin** : placer l'image dans `assets/` puis la charger via `load_sprite`.
