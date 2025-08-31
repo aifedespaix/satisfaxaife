@@ -96,3 +96,4 @@ Générer automatiquement des **vidéos satisfaction** (format TikTok 1080×1920
 ## Définition du “Done”
 
 - Lint OK, format OK, mypy OK, tests OK, couverture OK, doc mise à jour, ADR si changement d’archi.
+- L'intro testée sur plusieurs résolutions (ex. 720p et 1080p).
