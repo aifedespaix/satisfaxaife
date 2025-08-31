@@ -185,6 +185,7 @@ class GameController:
         self.elapsed = 0.0
         self.winner: EntityId | None = None
         self.winner_weapon: str | None = None
+        # Absolute timestamp (including intro) when the fatal hit occurred.
         self.death_ts: float | None = None
 
     def run(self) -> str | None:  # noqa: C901
