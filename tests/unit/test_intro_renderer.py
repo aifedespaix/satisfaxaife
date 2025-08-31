@@ -255,3 +255,35 @@ def test_fade_out_interpolates_to_hud(monkeypatch: pytest.MonkeyPatch) -> None:
     for center in expected_final:
         assert center in blits
     pygame.quit()
+
+
+def test_weapon_animation_reaches_ball(monkeypatch: pytest.MonkeyPatch) -> None:
+    pygame.init()
+    config = IntroConfig()
+    assets = IntroAssets.load(config)
+    renderer = IntroRenderer(200, 100, config=config, assets=assets)
+    surface = pygame.Surface((200, 100), flags=pygame.SRCALPHA)
+    blits: list[tuple[int, int]] = []
+
+    original_blit = pygame.Surface.blit
+
+    def tracking_blit(
+        self: _pygame.Surface,
+        source: _pygame.Surface,
+        dest: _pygame.Rect | tuple[int, int],
+        *args: object,
+        **kwargs: object,
+    ) -> _pygame.Rect:
+        center = dest.center if hasattr(dest, "center") else dest
+        blits.append((int(center[0]), int(center[1])))
+        return original_blit(self, source, dest, *args, **kwargs)
+
+    monkeypatch.setattr(pygame.Surface, "blit", tracking_blit)
+
+    ball_positions = ((10.0, 20.0), (190.0, 80.0))
+    renderer.draw(surface, ("A", "B"), 0.0, IntroState.FADE_OUT, None, ball_positions)
+
+    expected = [(int(x), int(y)) for x, y in ball_positions]
+    for center in expected:
+        assert center in blits
+    pygame.quit()

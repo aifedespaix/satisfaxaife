@@ -114,6 +114,28 @@ class IntroRenderer:
             img = pygame.transform.smoothscale(img, (new_w, new_h))
             elements[idx] = (img, new_pos)
 
+    def _equip_weapons(
+        self,
+        elements: list[tuple[pygame.Surface, Vec2]],
+        ball_positions: tuple[Vec2, Vec2],
+        progress: float,
+    ) -> None:
+        """Move weapon sprites toward ``ball_positions`` and shrink them."""
+
+        q = clamp(1.0 - progress, 0.0, 1.0)
+        for i in range(2):
+            img, start = elements[i]
+            target = ball_positions[i]
+            new_pos = (
+                start[0] + (target[0] - start[0]) * q,
+                start[1] + (target[1] - start[1]) * q,
+            )
+            sw, sh = img.get_size()
+            new_w = max(1, int(sw * (1.0 - q)))
+            new_h = max(1, int(sh * (1.0 - q)))
+            img = pygame.transform.smoothscale(img, (new_w, new_h))
+            elements[i] = (img, new_pos)
+
     def _prepare_elements(
         self,
         labels: tuple[str, str],
@@ -162,6 +184,7 @@ class IntroRenderer:
         progress: float,
         state: IntroState,
         targets: tuple[pygame.Rect, pygame.Rect, pygame.Rect] | None = None,
+        ball_positions: tuple[Vec2, Vec2] | None = None,
     ) -> None:  # pragma: no cover - visual
         """Render the intro text and apply visual effects.
 
@@ -180,6 +203,10 @@ class IntroRenderer:
             Optional rectangles defining target positions and sizes for the
             logo and the two labels. When provided and ``state`` is
             ``FADE_OUT``, elements interpolate toward these rectangles.
+        ball_positions:
+            Optional target coordinates for the weapon sprites. When provided
+            during the ``FADE_OUT`` state, weapon sprites move toward these
+            positions while shrinking to simulate equipping.
         """
         from app.intro.intro_manager import IntroState as _IntroState
 
@@ -190,13 +217,16 @@ class IntroRenderer:
         alpha = self.compute_alpha(progress, state)
         elements = self._prepare_elements(labels, progress, left_pos, right_pos, center_pos)
 
-        if state is _IntroState.FADE_OUT and targets is not None:
-            self._interpolate_to_targets(
-                elements,
-                (center_pos, left_pos, right_pos),
-                targets,
-                progress,
-            )
+        if state is _IntroState.FADE_OUT:
+            if targets is not None:
+                self._interpolate_to_targets(
+                    elements,
+                    (center_pos, left_pos, right_pos),
+                    targets,
+                    progress,
+                )
+            if ball_positions is not None:
+                self._equip_weapons(elements, ball_positions, progress)
 
         for img, pos in elements:
             if self.assets is None:
