@@ -15,7 +15,7 @@ from app.weapons.base import Weapon, WorldView
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 
-class InstantKillWeapon(Weapon):
+class InstantKillWeapon(Weapon):  # type: ignore[misc]
     """Weapon that kills the opponent on the first update."""
 
     def __init__(self) -> None:
@@ -62,7 +62,12 @@ def test_append_slowmo_receives_death_timestamp(
     captured_death: float | None = None
 
     def fake_append(
-        path: Path, death_ts: float, pre_s: float, post_s: float, slow_factor: float
+        path: Path,
+        death_ts: float,
+        pre_s: float,
+        post_s: float,
+        slow_factor: float,
+        min_start: float = 0.0,
     ) -> None:
         nonlocal captured_path, captured_death
         captured_path = path
@@ -78,7 +83,53 @@ def test_append_slowmo_receives_death_timestamp(
     assert captured_death is not None
     assert controller.death_ts is not None
     assert captured_death == pytest.approx(controller.death_ts)
-    assert captured_death >= controller.intro_manager._duration  # type: ignore[attr-defined]
+    intro_cfg = controller.intro_manager.config
+    intro_duration = intro_cfg.logo_in + intro_cfg.weapons_in + intro_cfg.hold + intro_cfg.fade_out
+    assert captured_death >= intro_duration
+
+    weapon_registry._factories.pop("instakill_test")
+    reset_default_engine()
+
+
+def test_slowmo_segment_starts_after_intro(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Slow-motion extraction should never start before the intro ends."""
+
+    reset_default_engine()
+    if "instakill_test" not in weapon_registry.names():
+        weapon_registry.register("instakill_test", InstantKillWeapon)
+
+    recorder = DummyRecorder(tmp_path / "out.mp4")
+    renderer = Renderer(settings.width, settings.height)
+
+    captured_start: float | None = None
+    captured_min: float | None = None
+
+    def fake_append(
+        path: Path,
+        death_ts: float,
+        pre_s: float,
+        post_s: float,
+        slow_factor: float,
+        min_start: float = 0.0,
+    ) -> None:
+        nonlocal captured_start, captured_min
+        captured_min = min_start
+        captured_start = max(min_start, death_ts - pre_s)
+
+    monkeypatch.setattr("app.game.controller.append_slowmo_ending", fake_append)
+
+    controller = create_controller(
+        "instakill_test", "instakill_test", recorder, renderer, max_seconds=1
+    )
+    controller.run()
+
+    intro_cfg = controller.intro_manager.config
+    intro_duration = intro_cfg.logo_in + intro_cfg.weapons_in + intro_cfg.hold + intro_cfg.fade_out
+
+    assert captured_min is not None
+    assert captured_start is not None
+    assert captured_min == pytest.approx(intro_duration)
+    assert captured_start == pytest.approx(intro_duration)
 
     weapon_registry._factories.pop("instakill_test")
     reset_default_engine()

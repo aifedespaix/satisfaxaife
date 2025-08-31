@@ -39,7 +39,7 @@ class MatchTimeout(Exception):
     """Raised when a match exceeds the maximum duration."""
 
 
-class _MatchView(WorldView):
+class _MatchView(WorldView):  # type: ignore[misc]
     def __init__(
         self,
         players: list[Player],
@@ -77,7 +77,8 @@ class _MatchView(WorldView):
     def get_health_ratio(self, eid: EntityId) -> float:
         for p in self.players:
             if p.eid == eid:
-                return p.ball.health / p.ball.stats.max_health
+                ratio = p.ball.health / p.ball.stats.max_health
+                return float(ratio)
         raise KeyError(eid)
 
     def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:
@@ -189,10 +190,10 @@ class GameController:
 
     def run(self) -> str | None:  # noqa: C901
         """Execute the match and return the winning weapon, if any."""
+        intro_elapsed = 0.0
         try:
             if not self.display:
                 self.engine.start_capture()
-            intro_elapsed = 0.0
             labels = (self.weapon_a.capitalize(), self.weapon_b.capitalize())
             self.intro_manager.start()
             while not self.intro_manager.is_finished():
@@ -388,5 +389,6 @@ class GameController:
                     settings.end_screen.pre_s,
                     settings.end_screen.post_s,
                     settings.end_screen.slow_factor,
+                    intro_elapsed,
                 )
             self.engine.shutdown()
