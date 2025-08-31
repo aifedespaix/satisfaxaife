@@ -220,7 +220,8 @@ def test_fade_out_interpolates_to_hud(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     hud = Hud(theme)
     labels = ("A", "B")
-    targets = hud.compute_layout(surface, labels)
+    label_a_rect, label_b_rect, logo_rect, _ = hud.compute_layout(surface, labels)
+    targets = (logo_rect, label_a_rect, label_b_rect)
     blits: list[tuple[int, int]] = []
 
     original_blit = pygame.Surface.blit
@@ -239,10 +240,11 @@ def test_fade_out_interpolates_to_hud(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(pygame.Surface, "blit", tracking_blit)
 
     renderer.draw(surface, labels, 0.5, IntroState.FADE_OUT, targets)
-    start_positions = renderer.compute_positions(1.0)
+    left_start, right_start, center_start = renderer.compute_positions(1.0)
+    ordered_starts = (center_start, left_start, right_start)
     expected_mid = [
         (int((s[0] + t.centerx) / 2), int((s[1] + t.centery) / 2))
-        for s, t in zip(start_positions, targets, strict=False)
+        for s, t in zip(ordered_starts, targets, strict=False)
     ]
     for center in expected_mid:
         assert center in blits

@@ -111,7 +111,8 @@ class IntroManager:
 
         progress = self._progress()
         if self._state is IntroState.FADE_OUT and self._targets is None:
-            self._targets = hud.compute_layout(surface, labels)
+            label_a, label_b, logo_rect, _ = hud.compute_layout(surface, labels)
+            self._targets = (logo_rect, label_a, label_b)
         self._renderer.draw(surface, labels, progress, self._state, self._targets)
 
     def is_finished(self) -> bool:

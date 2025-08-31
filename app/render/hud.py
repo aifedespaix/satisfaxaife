@@ -16,6 +16,7 @@ class Hud:
     LABEL_PADDING: int = 10
     VS_WIDTH_RATIO: float = 0.2
     VS_MARGIN: int = -100
+    LOGO_MARGIN: int = 20
 
     def __init__(self, theme: Theme) -> None:
         """Initialize the HUD renderer.
@@ -38,8 +39,8 @@ class Hud:
 
     def compute_layout(
         self, surface: pygame.Surface, labels: tuple[str, str]
-    ) -> tuple[pygame.Rect, pygame.Rect, pygame.Rect]:
-        """Return target rectangles for the labels and ``VS`` marker.
+    ) -> tuple[pygame.Rect, pygame.Rect, pygame.Rect, pygame.Rect]:
+        """Return target rectangles for the labels, logo and ``VS`` marker.
 
         Parameters
         ----------
@@ -50,9 +51,9 @@ class Hud:
 
         Returns
         -------
-        tuple[pygame.Rect, pygame.Rect, pygame.Rect]
-            Rectangles of the two labels and the ``VS`` marker positioned as
-            they would appear when drawn.
+        tuple[pygame.Rect, pygame.Rect, pygame.Rect, pygame.Rect]
+            Rectangles of the two labels, the final logo and the ``VS`` marker
+            positioned as they would appear when drawn.
         """
 
         bar_width = max(1, int(surface.get_width() * self.BAR_WIDTH_RATIO))
@@ -83,10 +84,15 @@ class Hud:
         target_width = max(1, int(surface.get_width() * self.VS_WIDTH_RATIO))
         width, height = self.vs_image.get_size()
         scale = target_width / width
+        logo_rect = pygame.Rect(0, 0, target_width, int(height * scale))
+        logo_rect.midbottom = (
+            surface.get_width() // 2,
+            left_rect.top - self.LOGO_MARGIN,
+        )
         vs_rect = pygame.Rect(0, 0, target_width, int(height * scale))
         vs_rect.midbottom = (surface.get_width() // 2, left_rect.top - self.VS_MARGIN)
 
-        return label_a_rect, label_b_rect, vs_rect
+        return label_a_rect, label_b_rect, logo_rect, vs_rect
 
     def update_hp(self, hp_a: float, hp_b: float) -> None:
         """Interpolate the displayed health toward the target values.
@@ -139,7 +145,7 @@ class Hud:
 
     def draw_hp_bars(
         self, surface: pygame.Surface, hp_a: float, hp_b: float, labels: tuple[str, str]
-    ) -> tuple[pygame.Rect, pygame.Rect, pygame.Rect]:
+    ) -> tuple[pygame.Rect, pygame.Rect, pygame.Rect, pygame.Rect]:
         """Draw two symmetrical health bars with labels.
 
         The bar dimensions scale with the given surface so that the HUD adapts
@@ -148,8 +154,8 @@ class Hud:
 
         Returns
         -------
-        tuple[pygame.Rect, pygame.Rect, pygame.Rect]
-            Rectangles of the two label texts and the ``VS`` marker.
+        tuple[pygame.Rect, pygame.Rect, pygame.Rect, pygame.Rect]
+            Rectangles of the two label texts, the logo and the ``VS`` marker.
         """
 
         bar_width = max(1, int(surface.get_width() * self.BAR_WIDTH_RATIO))
@@ -158,7 +164,7 @@ class Hud:
 
         self.update_hp(hp_a, hp_b)
 
-        layout_a, layout_b, vs_rect = self.compute_layout(surface, labels)
+        layout_a, layout_b, logo_rect, vs_rect = self.compute_layout(surface, labels)
 
         # Left bar (team A)
         left_rect = pygame.Rect(margin, 120, bar_width, bar_height)
@@ -197,7 +203,7 @@ class Hud:
         scaled_vs = pygame.transform.smoothscale(self.vs_image, vs_rect.size)
         surface.blit(scaled_vs, vs_rect)
 
-        return layout_a, layout_b, vs_rect
+        return layout_a, layout_b, logo_rect, vs_rect
 
     def draw_watermark(self, surface: pygame.Surface, text: str) -> None:
         """Draw a small watermark at the bottom-left corner."""
