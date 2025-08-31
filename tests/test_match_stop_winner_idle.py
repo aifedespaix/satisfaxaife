@@ -1,10 +1,12 @@
 import os
 from typing import Any
 
+import pytest
+
 from app.audio import WeaponAudio, get_default_engine, reset_default_engine
 from app.core.config import settings
 from app.core.types import Damage, EntityId
-from app.game.match import run_match
+from app.game.match import create_controller
 from app.render.renderer import Renderer
 from app.video.recorder import Recorder
 from app.weapons import weapon_registry
@@ -79,9 +81,16 @@ def test_winner_idle_sound_stops_on_victory() -> None:
 
     recorder = DummyRecorder()
     renderer = Renderer(settings.width, settings.height)
-    run_match("killer_test", "passive_test", recorder, renderer, max_seconds=1)
+    controller = create_controller(
+        "killer_test", "passive_test", recorder, renderer, max_seconds=1
+    )
+    controller.run()
 
     assert audio_a.stopped_at is not None
+    assert controller.death_ts is not None
+    assert audio_a.stopped_at == pytest.approx(controller.death_ts)
+    intro_duration = controller.intro_manager._duration
+    assert audio_a.stopped_at >= intro_duration
     assert audio_b.stopped_at is not None
 
     weapon_registry._factories.pop("killer_test")
