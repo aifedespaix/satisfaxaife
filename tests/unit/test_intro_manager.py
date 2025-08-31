@@ -176,3 +176,26 @@ def test_weapons_in_monotonic_then_hold_and_fade() -> None:
     assert 0.0 <= fade_mid < fade_start
     manager.update(0.25)
     assert manager._progress() < fade_mid
+
+
+def test_draw_ignored_when_done(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Once the intro is complete, ``draw`` should not reset element states."""
+
+    config = IntroConfig(logo_in=0.0, weapons_in=0.0, hold=0.0, fade_out=0.0, allow_skip=False)
+    renderer = IntroRenderer(200, 100)
+    manager = IntroManager(config=config, intro_renderer=renderer)
+    manager.start()
+    for _ in range(4):
+        manager.update(0.0)
+    assert manager.state is IntroState.DONE
+
+    called = False
+
+    def fake_draw(*args: Any, **kwargs: Any) -> None:
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(renderer, "draw", fake_draw)
+    surface = pygame.Surface((10, 10))
+    manager.draw(surface, ("A", "B"), cast(Any, object()))
+    assert not called
