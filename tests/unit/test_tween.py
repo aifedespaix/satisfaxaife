@@ -36,3 +36,12 @@ def test_continuity(func: Callable[[float], float]) -> None:
     center = func(0.5)
     assert func(0.5 - eps) == pytest.approx(center, abs=1e-4)
     assert func(0.5 + eps) == pytest.approx(center, abs=1e-4)
+
+
+@pytest.mark.parametrize(
+    "func",
+    [linear, ease_in_out_cubic, ease_out_back, ease_out_elastic],
+)
+def test_clamping_out_of_range(func: Callable[[float], float]) -> None:
+    assert func(-1.0) == pytest.approx(0.0)
+    assert func(2.0) == pytest.approx(1.0)

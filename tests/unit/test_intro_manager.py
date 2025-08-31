@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-import pygame
+import pytest
 
-from app.intro import IntroConfig, IntroManager, IntroState
+pygame = pytest.importorskip("pygame")
+
+from app.intro import IntroConfig, IntroManager, IntroState  # noqa: E402
 
 
 def test_intro_manager_start_state() -> None:
@@ -43,3 +45,21 @@ def test_intro_manager_skip() -> None:
 
     assert manager.state == IntroState.DONE
     assert manager.is_finished()
+
+
+def test_intro_manager_skip_disallowed() -> None:
+    config = IntroConfig(
+        logo_in=10.0,
+        weapons_in=10.0,
+        hold=10.0,
+        fade_out=10.0,
+        allow_skip=False,
+        skip_key=pygame.K_s,
+    )
+    manager = IntroManager(config=config)
+    manager.start()
+
+    event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_s})
+    manager.update(0.0, [event])
+
+    assert manager.state == IntroState.LOGO_IN
