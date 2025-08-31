@@ -5,8 +5,8 @@ from pathlib import Path
 
 from app.core.config import settings
 from app.core.types import Damage, EntityId, Vec2
-from app.game.intro import IntroManager
 from app.game.match import run_match
+from app.intro import IntroConfig
 from app.render.renderer import Renderer
 from app.video.recorder import Recorder
 from app.weapons import weapon_registry
@@ -72,7 +72,10 @@ def test_postprocessed_slowmo(tmp_path: Path) -> None:
     video_dur = _stream_duration(out, "v")
     audio_dur = _stream_duration(out, "a")
     assert abs(video_dur - audio_dur) < 0.1
-    intro_duration = IntroManager()._duration
+    intro_config = IntroConfig(hold=1.0, fade_out=0.25)
+    intro_duration = (
+        intro_config.logo_in + intro_config.weapons_in + intro_config.hold + intro_config.fade_out
+    )
     expected = (
         intro_duration
         + EVENT_TIME

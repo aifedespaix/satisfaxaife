@@ -5,8 +5,8 @@ import numpy as np
 from app.audio import AudioEngine, reset_default_engine
 from app.core.config import settings
 from app.core.types import Damage, EntityId, Vec2
-from app.game.intro import IntroManager
 from app.game.match import run_match
+from app.intro import IntroConfig
 from app.render.renderer import Renderer
 from app.video.recorder import Recorder
 from app.weapons import weapon_registry
@@ -60,7 +60,10 @@ def test_headless_match_records_kill_audio() -> None:
     run_match("instakill", "instakill", recorder, renderer, max_seconds=1)
     assert recorder.audio is not None
 
-    intro_duration = IntroManager()._duration
+    intro_config = IntroConfig(hold=1.0, fade_out=0.25)
+    intro_duration = (
+        intro_config.logo_in + intro_config.weapons_in + intro_config.hold + intro_config.fade_out
+    )
     kill_sample = int((intro_duration + EVENT_TIME) * AudioEngine.SAMPLE_RATE)
     window = recorder.audio[kill_sample : kill_sample + 200]
     assert np.any(window != 0)
