@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from dataclasses import replace
 from enum import Enum, auto
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from app.core.config import settings
 from app.core.utils import clamp
@@ -45,7 +45,7 @@ class IntroManager:
         self.config = config or IntroConfig()
         if self.config.logo_path is None or self.config.font_path is None:
             assets_dir = Path(__file__).resolve().parents[2] / "assets"
-            updates: dict[str, object] = {}
+            updates: dict[str, Any] = {}
             if self.config.logo_path is None:
                 updates["logo_path"] = assets_dir / "vs.png"
             if self.config.font_path is None:

@@ -96,6 +96,7 @@ class _MatchView(WorldView):
                     if weapon_audio is not None:
                         weapon_audio.stop_idle(timestamp)
                 self.renderer.trigger_blink(p.color, int(damage.amount))
+                self.renderer.trigger_hit_flash(p.color)
                 return
 
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:
