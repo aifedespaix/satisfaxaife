@@ -1,15 +1,23 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
-import pygame
+import pytest
+
+pytest.importorskip("pydantic")
 
 from app.core.config import settings
 from app.game.controller import GameController
 from app.game.match import create_controller
-from app.intro import IntroConfig, IntroManager
+from app.intro import IntroConfig, IntroManager, IntroState
 from app.render.renderer import Renderer
 from tests.integration.helpers import SpyRecorder
+
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    import pygame
+else:  # pragma: no cover - skip if missing at runtime
+    pygame = pytest.importorskip("pygame")
 
 
 class StubIntroManager(IntroManager):
@@ -64,3 +72,33 @@ def test_intro_can_be_skipped() -> None:
     controller.run()
     assert intro.updates == 1 and intro.draws == 1
     assert controller.elapsed == 0.0
+
+
+def test_intro_durations() -> None:
+    """Intro holds for 1s then fades out over 0.25s."""
+    config = IntroConfig(
+        logo_in=0.0,
+        weapons_in=0.0,
+        hold=1.0,
+        fade_out=0.25,
+        allow_skip=False,
+    )
+    intro = IntroManager(config=config)
+    intro.start()
+    intro.update(0.0)
+    intro.update(0.0)
+    assert intro.state is IntroState.HOLD
+
+    held: float = 0.0
+    while intro.state is IntroState.HOLD:
+        intro.update(0.1)
+        held += 0.1
+    assert intro.state is IntroState.FADE_OUT
+    assert held == pytest.approx(1.0)
+
+    faded: float = 0.0
+    while intro.state is IntroState.FADE_OUT:
+        intro.update(0.05)
+        faded += 0.05
+    assert intro.is_finished()
+    assert faded == pytest.approx(0.25)

@@ -5,7 +5,10 @@ import shutil
 import subprocess
 from pathlib import Path
 
-import imageio_ffmpeg
+import pytest
+
+pytest.importorskip("typer")
+pytest.importorskip("pydantic")
 from pytest import MonkeyPatch
 from typer.testing import CliRunner
 
@@ -19,6 +22,8 @@ from app.intro.config import IntroConfig
 from app.render.intro_renderer import IntroRenderer
 from app.render.renderer import Renderer
 from app.video.recorder import NullRecorder
+
+imageio_ffmpeg = pytest.importorskip("imageio_ffmpeg")
 
 
 def test_run_creates_video(tmp_path: Path) -> None:
@@ -204,3 +209,5 @@ def test_intro_weapons_option(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     assert config is not None
     assert config.weapon_a_path == left
     assert config.weapon_b_path == right
+    assert config.hold == 1.0
+    assert config.fade_out == 0.25
