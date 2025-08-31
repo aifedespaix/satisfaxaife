@@ -8,6 +8,7 @@ from app.core.utils import clamp
 if TYPE_CHECKING:  # pragma: no cover - hints only
     import pygame
 
+    from app.intro.assets import IntroAssets
     from app.intro.config import IntroConfig
     from app.intro.intro_manager import IntroState
 
@@ -21,13 +22,15 @@ class IntroRenderer:
         height: int,
         config: IntroConfig | None = None,
         font: pygame.font.Font | None = None,
+        assets: IntroAssets | None = None,
     ) -> None:
         from app.intro.config import IntroConfig as _IntroConfig
 
         self.width = width
         self.height = height
         self.config = config or _IntroConfig()
-        self.font: pygame.font.Font | None = font
+        self.font: pygame.font.Font | None = font or (assets.font if assets else None)
+        self.assets = assets
 
     def compute_positions(self, progress: float) -> tuple[Vec2, Vec2, Vec2]:
         """Return positions for the two labels and the central marker.
@@ -99,21 +102,32 @@ class IntroRenderer:
         """
         import pygame
 
-        if self.font is None:
-            pygame.font.init()
-            self.font = pygame.font.Font(None, 72)
-
         left_pos, right_pos, center_pos = self.compute_positions(progress)
         alpha = self.compute_alpha(progress, state)
 
-        elements = [
-            (self.font.render(labels[0], True, (255, 255, 255)), left_pos),
-            (self.font.render(labels[1], True, (255, 255, 255)), right_pos),
-            (self.font.render("VS", True, (255, 255, 255)), center_pos),
-        ]
+        if self.assets is not None:
+            surfaces = [
+                (self.assets.weapon_a, left_pos, self.config.weapon_scale),
+                (self.assets.weapon_b, right_pos, self.config.weapon_scale),
+                (self.assets.logo, center_pos, self.config.logo_scale),
+            ]
+            elements = []
+            for source, pos, scale in surfaces:
+                img = pygame.transform.rotozoom(source, (progress - 0.5) * 10, scale)
+                elements.append((img, pos))
+        else:
+            if self.font is None:
+                pygame.font.init()
+                self.font = pygame.font.Font(None, 72)
+            elements = [
+                (self.font.render(labels[0], True, (255, 255, 255)), left_pos),
+                (self.font.render(labels[1], True, (255, 255, 255)), right_pos),
+                (self.font.render("VS", True, (255, 255, 255)), center_pos),
+            ]
 
         for img, pos in elements:
-            img = pygame.transform.rotozoom(img, (progress - 0.5) * 10, 1.0)
+            if self.assets is None:
+                img = pygame.transform.rotozoom(img, (progress - 0.5) * 10, 1.0)
             img.set_alpha(alpha)
             shadow = img.copy()
             shadow.fill((0, 0, 0, 180), special_flags=pygame.BLEND_RGBA_MULT)

@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
 from enum import Enum, auto
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from app.core.config import settings
 from app.core.utils import clamp
 from app.render.intro_renderer import IntroRenderer
 
+from .assets import IntroAssets
 from .config import IntroConfig
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
@@ -40,8 +43,12 @@ class IntroManager:
         engine: AudioEngine | None = None,
     ) -> None:
         self.config = config or IntroConfig()
+        if self.config.logo_path is None:
+            assets_dir = Path(__file__).resolve().parents[2] / "assets"
+            self.config = replace(self.config, logo_path=assets_dir / "vs.png")
+        self.assets = IntroAssets.load(self.config)
         self._renderer = intro_renderer or IntroRenderer(
-            settings.width, settings.height, self.config
+            settings.width, settings.height, self.config, assets=self.assets
         )
         self._engine = engine
         self._state = IntroState.IDLE
