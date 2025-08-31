@@ -87,7 +87,7 @@ class IntroManager:
         """Render the intro on ``surface`` using the configured renderer."""
 
         progress = self._progress()
-        self._renderer.draw(surface, labels, progress)
+        self._renderer.draw(surface, labels, progress, self._state)
 
     def is_finished(self) -> bool:
         """Return ``True`` if the intro has completed."""

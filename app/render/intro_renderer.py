@@ -9,6 +9,7 @@ if TYPE_CHECKING:  # pragma: no cover - hints only
     import pygame
 
     from app.intro.config import IntroConfig
+    from app.intro.intro_manager import IntroState
 
 
 class IntroRenderer:
@@ -58,20 +59,29 @@ class IntroRenderer:
         )
         return left, right, center
 
-    def compute_alpha(self, progress: float) -> int:
-        """Return opacity for the current animation ``progress``.
+    def compute_alpha(self, progress: float, state: IntroState) -> int:
+        """Return opacity for ``progress`` given the intro ``state``.
 
-        The alpha rises from transparent to opaque during the first half of the
-        animation and fades out symmetrically during the second half using the
-        easing function from :class:`IntroConfig`.
+        ``LOGO_IN`` and ``WEAPONS_IN`` fade from transparent to fully opaque.
+        ``FADE_OUT`` transitions from opaque to transparent. Other states
+        remain fully opaque. The easing function from :class:`IntroConfig` is
+        applied for the fade-in transitions.
         """
+        from app.intro.intro_manager import IntroState as _IntroState
+
         p = clamp(progress, 0.0, 1.0)
-        if p <= 0.5:
-            return int(self.config.fade(p / 0.5) * 255)
-        return int(self.config.fade(1.0 - (p - 0.5) / 0.5) * 255)
+        if state in (_IntroState.LOGO_IN, _IntroState.WEAPONS_IN):
+            return int(self.config.fade(p) * 255)
+        if state is _IntroState.FADE_OUT:
+            return int(p * 255)
+        return 255
 
     def draw(
-        self, surface: pygame.Surface, labels: tuple[str, str], progress: float
+        self,
+        surface: pygame.Surface,
+        labels: tuple[str, str],
+        progress: float,
+        state: IntroState,
     ) -> None:  # pragma: no cover - visual
         """Render the intro text and apply visual effects.
 
@@ -83,6 +93,9 @@ class IntroRenderer:
             Names to display on the left and right.
         progress:
             Animation progress in ``[0, 1]``.
+        state:
+            Current :class:`~app.intro.intro_manager.IntroState` controlling the
+            fade behaviour.
         """
         import pygame
 
@@ -91,7 +104,7 @@ class IntroRenderer:
             self.font = pygame.font.Font(None, 72)
 
         left_pos, right_pos, center_pos = self.compute_positions(progress)
-        alpha = self.compute_alpha(progress)
+        alpha = self.compute_alpha(progress, state)
 
         elements = [
             (self.font.render(labels[0], True, (255, 255, 255)), left_pos),

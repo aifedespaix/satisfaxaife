@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.core.config import settings
+from app.intro import IntroState
 from app.render.hud import Hud
 from app.render.intro_renderer import IntroRenderer
 from app.render.renderer import Renderer
@@ -42,6 +43,6 @@ class IntroManager:
         """Render the current frame of the intro sequence."""
 
         progress = 1.0 if self._duration == 0 else min(self._elapsed / self._duration, 1.0)
-        self._renderer.draw(renderer.surface, self._labels, progress)
+        self._renderer.draw(renderer.surface, self._labels, progress, IntroState.LOGO_IN)
         hud.draw_title(renderer.surface, settings.hud.title)
         hud.draw_watermark(renderer.surface, settings.hud.watermark)
