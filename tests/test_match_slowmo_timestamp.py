@@ -78,7 +78,7 @@ def test_append_slowmo_receives_death_timestamp(
     assert captured_death is not None
     assert controller.death_ts is not None
     assert captured_death == pytest.approx(controller.death_ts)
-    assert captured_death >= controller.intro_manager._duration
+    assert captured_death >= controller.intro_manager._duration  # type: ignore[attr-defined]
 
     weapon_registry._factories.pop("instakill_test")
     reset_default_engine()
