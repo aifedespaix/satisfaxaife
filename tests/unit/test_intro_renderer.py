@@ -112,6 +112,35 @@ def test_draw_glow_passes(monkeypatch: pytest.MonkeyPatch) -> None:
     assert set(expected_centers).issubset(set(blits))
 
 
+def test_draw_overlay_only_logo_in(monkeypatch: pytest.MonkeyPatch) -> None:
+    pygame.init()
+    renderer = IntroRenderer(200, 100)
+    surface = pygame.Surface((200, 100), flags=pygame.SRCALPHA)
+    calls: list[object] = []
+
+    original_blit = pygame.Surface.blit
+
+    def tracking_blit(
+        self: _pygame.Surface,
+        source: _pygame.Surface,
+        dest: _pygame.Rect | tuple[int, int],
+        *args: object,
+        **kwargs: object,
+    ) -> _pygame.Rect:
+        calls.append(dest)
+        return original_blit(self, source, dest, *args, **kwargs)
+
+    monkeypatch.setattr(pygame.Surface, "blit", tracking_blit)
+
+    renderer.draw(surface, ("A", "B"), 0.5, IntroState.LOGO_IN)
+    assert (0, 0) in calls
+
+    calls.clear()
+    renderer.draw(surface, ("A", "B"), 0.5, IntroState.WEAPONS_IN)
+    assert (0, 0) not in calls
+    pygame.quit()
+
+
 def test_draw_with_assets(monkeypatch: pytest.MonkeyPatch) -> None:
     pygame.init()
     config = IntroConfig(
@@ -143,6 +172,7 @@ def test_draw_with_assets(monkeypatch: pytest.MonkeyPatch) -> None:
     renderer.draw(surface, ("A", "B"), 1.0, IntroState.HOLD)
 
     left_text, right_text, center = renderer.compute_positions(1.0)
+    assert renderer.font is not None
     label_a = renderer.font.render("A", True, (255, 255, 255))
     label_b = renderer.font.render("B", True, (255, 255, 255))
     scale = renderer.width * renderer.WEAPON_WIDTH_RATIO / assets.weapon_a.get_width()

@@ -39,7 +39,7 @@ class MatchTimeout(Exception):
     """Raised when a match exceeds the maximum duration."""
 
 
-class _MatchView(WorldView):  # type: ignore[misc]
+class _MatchView(WorldView):
     def __init__(
         self,
         players: list[Player],

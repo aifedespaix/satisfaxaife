@@ -15,7 +15,7 @@ from app.weapons.base import Weapon, WorldView
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 
-class InstantKillWeapon(Weapon):  # type: ignore[misc]
+class InstantKillWeapon(Weapon):
     """Weapon that kills the opponent on the first update."""
 
     def __init__(self) -> None:
