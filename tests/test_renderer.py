@@ -33,6 +33,22 @@ def test_draw_eyes_team_color() -> None:
     assert (frame == np.array(team_color)).all(axis=-1).any()
 
 
+def test_draw_eyes_disabled() -> None:
+    original = settings.show_eyes
+    try:
+        settings.show_eyes = False
+        renderer = Renderer(100, 100)
+        renderer.clear()
+        renderer.present()
+        baseline = renderer.capture_frame()
+        renderer.draw_eyes((50.0, 50.0), (1.0, 0.0), 10, (255, 0, 0))
+        renderer.present()
+        frame = renderer.capture_frame()
+        assert np.array_equal(frame, baseline)
+    finally:
+        settings.show_eyes = original
+
+
 def test_add_impact_custom_duration() -> None:
     renderer = Renderer(100, 100)
     duration = 0.5

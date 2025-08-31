@@ -13,5 +13,6 @@
         "pre_s": 1.0,
         "post_s": 1.0,
         "slow_factor": 0.5
-    }
+    },
+    "show_eyes": true
 }
