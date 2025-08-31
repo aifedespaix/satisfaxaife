@@ -1,5 +1,7 @@
-"""Intro package providing the :class:`IntroManager`."""
+"""Intro package providing the introduction manager and helpers."""
 
-from .intro_manager import IntroConfig, IntroManager, IntroState
+from .assets import IntroAssets
+from .config import IntroConfig
+from .intro_manager import IntroManager, IntroState
 
-__all__ = ["IntroConfig", "IntroManager", "IntroState"]
+__all__ = ["IntroAssets", "IntroConfig", "IntroManager", "IntroState"]

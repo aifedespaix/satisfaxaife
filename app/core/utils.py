@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import math
 
-from app.core.config import settings
 from app.core.types import Vec2
 
 
@@ -52,5 +51,7 @@ def ping_pong(value: float, length: float = 1.0) -> float:
 
 def to_screen(position: Vec2) -> tuple[int, int]:
     """Convert world coordinates to screen coordinates."""
+    from app.core.config import settings
+
     x, y = position
     return int(x), int(settings.height - y)
