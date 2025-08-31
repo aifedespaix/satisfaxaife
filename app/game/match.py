@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from app.ai.policy import SimplePolicy
 from app.audio import BallAudio, get_default_engine
 from app.core.config import settings
@@ -9,7 +11,7 @@ from app.game.controller import (
     Player,
     _MatchView,  # noqa: F401 - re-exported for tests
 )
-from app.intro import IntroConfig, IntroManager
+from app.intro import IntroConfig, IntroManager, set_intro_weapons
 from app.render.hud import Hud
 from app.render.renderer import Renderer
 from app.video.recorder import RecorderProtocol
@@ -67,6 +69,10 @@ def create_controller(
     ]
 
     intro_config = intro_config or IntroConfig(hold=1.0, fade_out=0.25)
+    weapons_dir = Path(__file__).resolve().parents[2] / "assets" / "weapons"
+    weapon_a_path = weapons_dir / weapon_a / "weapon.png"
+    weapon_b_path = weapons_dir / weapon_b / "weapon.png"
+    intro_config = set_intro_weapons(weapon_a_path, weapon_b_path, config=intro_config)
     intro = IntroManager(config=intro_config)
     return GameController(
         weapon_a,
