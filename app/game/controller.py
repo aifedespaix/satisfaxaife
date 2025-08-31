@@ -196,11 +196,23 @@ class GameController:
             if not self.display:
                 self.engine.start_capture()
             labels = (self.weapon_a.capitalize(), self.weapon_b.capitalize())
+            ball_positions: tuple[Vec2, Vec2] = (
+                (
+                    float(self.players[0].ball.body.position.x),
+                    float(self.players[0].ball.body.position.y),
+                ),
+                (
+                    float(self.players[1].ball.body.position.x),
+                    float(self.players[1].ball.body.position.y),
+                ),
+            )
             self.intro_manager.start()
             while not self.intro_manager.is_finished():
                 self.intro_manager.update(settings.dt)
                 self.renderer.clear()
-                self.intro_manager.draw(self.renderer.surface, labels, self.hud)
+                self.intro_manager.draw(
+                    self.renderer.surface, labels, self.hud, ball_positions
+                )
                 self.hud.draw_title(self.renderer.surface, settings.hud.title)
                 self.hud.draw_watermark(self.renderer.surface, settings.hud.watermark)
                 self.renderer.present()

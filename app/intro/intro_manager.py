@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 import pygame
 
 from app.core.config import settings
+from app.core.types import Vec2
 from app.core.utils import clamp
 from app.render.hud import Hud
 from app.render.intro_renderer import IntroRenderer
@@ -105,7 +106,11 @@ class IntroManager:
             self._advance_state()
 
     def draw(
-        self, surface: pygame.Surface, labels: tuple[str, str], hud: Hud
+        self,
+        surface: pygame.Surface,
+        labels: tuple[str, str],
+        hud: Hud,
+        ball_positions: tuple[Vec2, Vec2] | None = None,
     ) -> None:  # pragma: no cover - visual
         """Render the intro on ``surface`` using the configured renderer."""
 
@@ -113,7 +118,9 @@ class IntroManager:
         if self._state is IntroState.FADE_OUT and self._targets is None:
             label_a, label_b, logo_rect, _ = hud.compute_layout(surface, labels)
             self._targets = (logo_rect, label_a, label_b)
-        self._renderer.draw(surface, labels, progress, self._state, self._targets)
+        self._renderer.draw(
+            surface, labels, progress, self._state, self._targets, ball_positions
+        )
 
     def is_finished(self) -> bool:
         """Return ``True`` if the intro has completed."""
