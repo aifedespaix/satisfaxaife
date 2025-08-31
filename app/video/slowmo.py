@@ -14,6 +14,7 @@ def append_slowmo_ending(
     pre_s: float,
     post_s: float,
     slow_factor: float,
+    min_start: float = 0.0,
 ) -> None:
     """Append a slow-motion segment around ``death_ts`` to ``path``.
 
@@ -21,6 +22,8 @@ def append_slowmo_ending(
     ``death_ts`` and ``post_s`` seconds after is extracted, slowed down by
     ``slow_factor`` (``0 < slow_factor <= 1``) and appended to the end of the
     video. Video and audio are processed so that their durations stay aligned.
+    Extraction never begins before ``min_start`` so that intro footage is
+    preserved.
 
     Parameters
     ----------
@@ -35,13 +38,19 @@ def append_slowmo_ending(
         Number of seconds to include after ``death_ts``.
     slow_factor:
         Playback speed for the slow-motion segment. ``0.5`` means half speed.
+    min_start:
+        Minimum timestamp, in seconds, from which extraction can start. Must be
+        non-negative and typically corresponds to the intro duration.
     """
     if slow_factor <= 0:
         msg = "slow_factor must be positive"
         raise ValueError(msg)
+    if min_start < 0:
+        msg = "min_start must be non-negative"
+        raise ValueError(msg)
 
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
-    start = max(0.0, death_ts - pre_s)
+    start = max(min_start, death_ts - pre_s)
     end = death_ts + post_s
 
     slow_segment = path.with_suffix(".slow.mp4")
@@ -49,9 +58,7 @@ def append_slowmo_ending(
     path.rename(original)
 
     vf = f"trim=start={start}:end={end},setpts=PTS/{slow_factor}"
-    af = (
-        f"atrim=start={start}:end={end},asetpts=PTS/{slow_factor},atempo={slow_factor}"
-    )
+    af = f"atrim=start={start}:end={end},asetpts=PTS/{slow_factor},atempo={slow_factor}"
     cmd_segment = [
         ffmpeg,
         "-y",
