@@ -38,9 +38,13 @@ class IntroAssets:
 
         font = _load_font(config.font_path)
 
-        def _load_image(path: Path | None, label: str) -> pygame.Surface:
-            if path and Path(path).exists():
-                return pygame.image.load(str(path)).convert_alpha()
+        def _load_image(path: Path | None, fallback_label: str) -> pygame.Surface:
+            label = fallback_label
+            if path:
+                path_obj = Path(path)
+                if path_obj.exists():
+                    return pygame.image.load(str(path_obj)).convert_alpha()
+                label = path_obj.stem
             logging.warning("Missing image at %s; using fallback", path)
             surface = pygame.Surface(FALLBACK_SIZE)
             surface.fill(FALLBACK_COLOR)
@@ -50,8 +54,8 @@ class IntroAssets:
             return surface
 
         logo = _load_image(config.logo_path, "logo")
-        weapon_a = _load_image(config.weapon_a_path, "A")
-        weapon_b = _load_image(config.weapon_b_path, "B")
+        weapon_a = _load_image(config.weapon_a_path, "L")
+        weapon_b = _load_image(config.weapon_b_path, "R")
         return cls(font=font, logo=logo, weapon_a=weapon_a, weapon_b=weapon_b)
 
 

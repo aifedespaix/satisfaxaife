@@ -15,6 +15,8 @@ from app.audio import reset_default_engine
 from app.audio.engine import AudioEngine
 from app.cli import app
 from app.core.config import settings
+from app.intro.config import IntroConfig
+from app.render.intro_renderer import IntroRenderer
 from app.render.renderer import Renderer
 from app.video.recorder import NullRecorder
 
@@ -161,3 +163,44 @@ def test_run_uses_dummy_audio_driver(monkeypatch: MonkeyPatch) -> None:
     assert weapons._DEFAULT_ENGINE is None
     if generated.exists():
         shutil.rmtree(generated)
+
+
+def test_intro_weapons_option(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    captured: dict[str, IntroConfig | None] = {}
+
+    original_init = IntroRenderer.__init__
+
+    def spy_init(
+        self: IntroRenderer, width: int, height: int, config: IntroConfig | None = None
+    ) -> None:
+        captured["config"] = config
+        original_init(self, width, height, config=config)
+
+    monkeypatch.setattr(IntroRenderer, "__init__", spy_init)
+    monkeypatch.setattr(cli_module, "Recorder", NullRecorder)
+
+    runner = CliRunner()
+    left = tmp_path / "a.png"
+    right = tmp_path / "b.png"
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            app,
+            [
+                "run",
+                "--seed",
+                "1",
+                "--weapon-a",
+                "katana",
+                "--weapon-b",
+                "shuriken",
+                "--intro-weapons",
+                f"left={left}",
+                f"right={right}",
+            ],
+        )
+
+    assert result.exit_code == 0
+    config = captured["config"]
+    assert config is not None
+    assert config.weapon_a_path == left
+    assert config.weapon_b_path == right

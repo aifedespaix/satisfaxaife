@@ -13,6 +13,7 @@ from app.audio.env import temporary_sdl_audio_driver
 from app.core.config import settings
 from app.game.controller import MatchTimeout
 from app.game.match import create_controller
+from app.intro.config import IntroConfig, set_intro_weapons
 from app.render.renderer import Renderer
 from app.video.recorder import NullRecorder, Recorder, RecorderProtocol
 from app.weapons import weapon_registry
@@ -30,6 +31,15 @@ def run(
     seed: int = 0,
     weapon_a: str = "katana",
     weapon_b: str = "shuriken",
+    intro_weapons: Annotated[
+        tuple[str, str] | None,
+        typer.Option(
+            "--intro-weapons",
+            nargs=2,
+            metavar="left=PATH right=PATH",
+            help="Override intro weapon images",
+        ),
+    ] = None,
     display: bool = typer.Option(
         False, "--display/--no-display", help="Display simulation instead of recording"
     ),
@@ -43,6 +53,16 @@ def run(
     renderer: Renderer
     temp_path: Path | None = None
     winner: str | None = None
+    intro_config: IntroConfig | None = None
+
+    if intro_weapons is not None:
+        paths: dict[str, Path] = {}
+        for item in intro_weapons:
+            key, _, value = item.partition("=")
+            if key not in {"left", "right"} or not value:
+                raise typer.BadParameter("intro-weapons must be 'left=PATH right=PATH'")
+            paths[key] = Path(value)
+        intro_config = set_intro_weapons(paths.get("left"), paths.get("right"))
 
     with temporary_sdl_audio_driver(driver):
         if display:
@@ -64,6 +84,7 @@ def run(
             recorder,
             renderer,
             display=display,
+            intro_config=intro_config,
         )
         try:
             winner = controller.run()

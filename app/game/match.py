@@ -10,7 +10,9 @@ from app.game.controller import (
     _MatchView,  # noqa: F401 - re-exported for tests
 )
 from app.game.intro import IntroManager
+from app.intro.config import IntroConfig
 from app.render.hud import Hud
+from app.render.intro_renderer import IntroRenderer
 from app.render.renderer import Renderer
 from app.video.recorder import RecorderProtocol
 from app.weapons import weapon_registry
@@ -35,6 +37,7 @@ def create_controller(
     *,
     max_seconds: int = 120,
     display: bool = False,
+    intro_config: IntroConfig | None = None,
 ) -> GameController:
     """Construct a :class:`GameController` with default components."""
     engine = get_default_engine()
@@ -65,7 +68,11 @@ def create_controller(
         ),
     ]
 
-    intro = IntroManager(labels=(weapon_a.capitalize(), weapon_b.capitalize()))
+    intro_renderer = IntroRenderer(settings.width, settings.height, intro_config)
+    intro = IntroManager(
+        labels=(weapon_a.capitalize(), weapon_b.capitalize()),
+        intro_renderer=intro_renderer,
+    )
     return GameController(
         weapon_a,
         weapon_b,

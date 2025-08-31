@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from app.core.types import Vec2
@@ -70,3 +70,30 @@ class IntroConfig:
     weapon_b_path: Path | None = None
     allow_skip: bool = True
     skip_key: int = 27
+
+
+def set_intro_weapons(
+    left: Path | None, right: Path | None, *, config: IntroConfig | None = None
+) -> IntroConfig:
+    """Return a copy of ``config`` with weapon image paths updated.
+
+    Parameters
+    ----------
+    left, right:
+        Paths to the images representing the left and right weapons.
+    config:
+        Optional base configuration to update. When ``None`` a default
+        :class:`IntroConfig` is created.
+
+    Returns
+    -------
+    IntroConfig
+        A new configuration with ``weapon_a_path`` and ``weapon_b_path`` set
+        to the provided values.
+    """
+
+    base = config or IntroConfig()
+    return replace(base, weapon_a_path=left, weapon_b_path=right)
+
+
+__all__ = ["IntroConfig", "set_intro_weapons"]
