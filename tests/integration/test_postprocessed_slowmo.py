@@ -5,6 +5,7 @@ from pathlib import Path
 
 from app.core.config import settings
 from app.core.types import Damage, EntityId, Vec2
+from app.game.intro import IntroManager
 from app.game.match import run_match
 from app.render.renderer import Renderer
 from app.video.recorder import Recorder
@@ -71,4 +72,11 @@ def test_postprocessed_slowmo(tmp_path: Path) -> None:
     video_dur = _stream_duration(out, "v")
     audio_dur = _stream_duration(out, "a")
     assert abs(video_dur - audio_dur) < 0.1
-    assert 7.9 < video_dur < 8.1
+    intro_duration = IntroManager()._duration
+    expected = (
+        intro_duration
+        + EVENT_TIME
+        + settings.end_screen.explosion_duration
+        + (settings.end_screen.pre_s + settings.end_screen.post_s) / settings.end_screen.slow_factor
+    )
+    assert expected - 0.1 < video_dur < expected + 0.1
