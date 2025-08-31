@@ -7,6 +7,7 @@ from enum import Enum, auto
 from typing import TYPE_CHECKING
 
 from app.core.config import settings
+from app.core.types import Vec2
 from app.core.utils import clamp, ease_out_quad
 from app.render.intro_renderer import IntroRenderer
 
@@ -31,7 +32,27 @@ def pulse_ease(t: float) -> float:
 
 @dataclass(frozen=True)
 class IntroConfig:
-    """Configuration of intro timings and easing functions."""
+    """Configuration for intro timings, positions and effects.
+
+    The default values mimic the previous hard coded behaviour where elements
+    slide in from half the screen width and end up at the quarter positions.
+
+    Parameters
+    ----------
+    logo_in, weapons_in, hold, fade_out:
+        Durations in seconds for each phase of the intro animation.
+    micro_bounce, pulse, fade:
+        Easing functions used for the various phases.
+    left_pos_pct, right_pos_pct, center_pos_pct:
+        Final positions for the left label, right label and centre marker as
+        percentages of the screen size.
+    slide_offset_pct:
+        Horizontal offset in percent of the screen width from which the labels
+        start sliding.
+    logo_scale, weapon_scale:
+        Multiplicative factors applied to the logo and weapon images when
+        rendering. They allow simple customisation of element sizes.
+    """
 
     logo_in: float = 1.0
     weapons_in: float = 1.0
@@ -40,6 +61,12 @@ class IntroConfig:
     micro_bounce: Easing = ease_out_back
     pulse: Easing = pulse_ease
     fade: Easing = ease_out_quad
+    left_pos_pct: Vec2 = (0.25, 0.5)
+    right_pos_pct: Vec2 = (0.75, 0.5)
+    center_pos_pct: Vec2 = (0.5, 0.5)
+    slide_offset_pct: float = 0.5
+    logo_scale: float = 1.0
+    weapon_scale: float = 1.0
 
 
 class IntroState(Enum):
@@ -58,16 +85,18 @@ class IntroManager:
 
     def __init__(
         self,
-        intro_renderer: IntroRenderer | None = None,
         config: IntroConfig | None = None,
+        intro_renderer: IntroRenderer | None = None,
         *,
         allow_skip: bool = True,
         skip_key: int | None = None,
     ) -> None:
         import pygame
 
-        self._renderer = intro_renderer or IntroRenderer(settings.width, settings.height)
         self.config = config or IntroConfig()
+        self._renderer = intro_renderer or IntroRenderer(
+            settings.width, settings.height, self.config
+        )
         self.allow_skip = allow_skip
         self.skip_key = skip_key if skip_key is not None else pygame.K_ESCAPE
         self._state = IntroState.IDLE

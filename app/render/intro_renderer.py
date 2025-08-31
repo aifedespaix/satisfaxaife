@@ -3,52 +3,77 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from app.core.types import Vec2
+from app.core.utils import clamp
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
     import pygame
 
+    from app.intro.intro_manager import IntroConfig
+
 
 class IntroRenderer:
-    """Render the pre-match introduction with slide and fade effects."""
+    """Render the pre-match introduction with slide, glow and fade effects."""
 
-    def __init__(self, width: int, height: int, font: pygame.font.Font | None = None) -> None:
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        config: IntroConfig | None = None,
+        font: pygame.font.Font | None = None,
+    ) -> None:
+        from app.intro.intro_manager import IntroConfig as _IntroConfig
+
         self.width = width
         self.height = height
+        self.config = config or _IntroConfig()
         self.font: pygame.font.Font | None = font
 
     def compute_positions(self, progress: float) -> tuple[Vec2, Vec2, Vec2]:
-        """Compute positions for the two labels and the central marker.
+        """Return positions for the two labels and the central marker.
 
         Parameters
         ----------
         progress:
-            Animation progress in ``[0, 1]``.
+            Animation progress in ``[0, 1]`` used to interpolate the slide-in
+            effect.
 
         Returns
         -------
         tuple[Vec2, Vec2, Vec2]
-            Coordinates for the left label, right label and center marker.
+            Pixel coordinates for the left label, right label and centre marker.
         """
-        p = max(0.0, min(1.0, progress))
-        offset = (1.0 - p) * self.width * 0.5
-        left = (self.width * 0.25 - offset, self.height * 0.5)
-        right = (self.width * 0.75 + offset, self.height * 0.5)
-        center = (self.width * 0.5, self.height * 0.5)
+        p = clamp(progress, 0.0, 1.0)
+        offset = (1.0 - p) * self.width * self.config.slide_offset_pct
+        left = (
+            self.width * self.config.left_pos_pct[0] - offset,
+            self.height * self.config.left_pos_pct[1],
+        )
+        right = (
+            self.width * self.config.right_pos_pct[0] + offset,
+            self.height * self.config.right_pos_pct[1],
+        )
+        center = (
+            self.width * self.config.center_pos_pct[0],
+            self.height * self.config.center_pos_pct[1],
+        )
         return left, right, center
 
     def compute_alpha(self, progress: float) -> int:
-        """Return the opacity value for ``progress``.
+        """Return opacity for the current animation ``progress``.
 
-        The alpha ramps from transparent to opaque over the first half of the
-        animation and back to transparent during the second half.
+        The alpha rises from transparent to opaque during the first half of the
+        animation and fades out symmetrically during the second half using the
+        easing function from :class:`IntroConfig`.
         """
-        p = max(0.0, min(1.0, progress))
+        p = clamp(progress, 0.0, 1.0)
         if p <= 0.5:
-            return int(p / 0.5 * 255)
-        return int((1.0 - (p - 0.5) / 0.5) * 255)
+            return int(self.config.fade(p / 0.5) * 255)
+        return int(self.config.fade(1.0 - (p - 0.5) / 0.5) * 255)
 
-    def draw(self, surface: pygame.Surface, labels: tuple[str, str], progress: float) -> None:
-        """Render the intro text to ``surface``.
+    def draw(
+        self, surface: pygame.Surface, labels: tuple[str, str], progress: float
+    ) -> None:  # pragma: no cover - visual
+        """Render the intro text and apply visual effects.
 
         Parameters
         ----------
@@ -68,14 +93,27 @@ class IntroRenderer:
         left_pos, right_pos, center_pos = self.compute_positions(progress)
         alpha = self.compute_alpha(progress)
 
-        left_text = self.font.render(labels[0], True, (255, 255, 255))
-        right_text = self.font.render(labels[1], True, (255, 255, 255))
-        vs_text = self.font.render("VS", True, (255, 255, 255))
+        elements = [
+            (self.font.render(labels[0], True, (255, 255, 255)), left_pos),
+            (self.font.render(labels[1], True, (255, 255, 255)), right_pos),
+            (self.font.render("VS", True, (255, 255, 255)), center_pos),
+        ]
 
-        left_text.set_alpha(alpha)
-        right_text.set_alpha(alpha)
-        vs_text.set_alpha(alpha)
+        for img, pos in elements:
+            img = pygame.transform.rotozoom(img, (progress - 0.5) * 10, 1.0)
+            img.set_alpha(alpha)
+            shadow = img.copy()
+            shadow.fill((0, 0, 0, 180), special_flags=pygame.BLEND_RGBA_MULT)
+            surface.blit(shadow, shadow.get_rect(center=(pos[0] + 4, pos[1] + 4)))
+            for dx, dy in ((-2, 0), (2, 0), (0, -2), (0, 2)):
+                glow = img.copy()
+                glow.set_alpha(min(alpha, 128))
+                surface.blit(glow, glow.get_rect(center=(pos[0] + dx, pos[1] + dy)))
+            surface.blit(img, img.get_rect(center=pos))
 
-        surface.blit(left_text, left_text.get_rect(center=left_pos))
-        surface.blit(right_text, right_text.get_rect(center=right_pos))
-        surface.blit(vs_text, vs_text.get_rect(center=center_pos))
+        fade_alpha = int((1.0 - progress) * 255)
+        if fade_alpha > 0:
+            overlay = pygame.Surface((self.width, self.height))
+            overlay.fill((0, 0, 0))
+            overlay.set_alpha(fade_alpha)
+            surface.blit(overlay, (0, 0))
