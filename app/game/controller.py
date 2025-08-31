@@ -12,6 +12,7 @@ from app.ai.policy import SimplePolicy
 from app.audio import AudioEngine, BallAudio
 from app.core.config import settings
 from app.core.types import Color, Damage, EntityId, ProjectileInfo, Vec2
+from app.intro import IntroManager
 from app.render.hud import Hud
 from app.render.renderer import Renderer
 from app.video.recorder import RecorderProtocol
@@ -20,8 +21,6 @@ from app.weapons.base import Weapon, WeaponEffect, WorldView
 from app.world.entities import Ball
 from app.world.physics import PhysicsWorld
 from app.world.projectiles import Projectile
-
-from .intro import IntroManager
 
 
 @dataclass(slots=True)
@@ -194,10 +193,14 @@ class GameController:
             if not self.display:
                 self.engine.start_capture()
             intro_elapsed = 0.0
+            labels = (self.weapon_a.capitalize(), self.weapon_b.capitalize())
+            self.intro_manager.start()
             while not self.intro_manager.is_finished():
                 self.intro_manager.update(settings.dt)
                 self.renderer.clear()
-                self.intro_manager.draw(self.renderer, self.hud)
+                self.intro_manager.draw(self.renderer.surface, labels)
+                self.hud.draw_title(self.renderer.surface, settings.hud.title)
+                self.hud.draw_watermark(self.renderer.surface, settings.hud.watermark)
                 self.renderer.present()
                 if not self.display:
                     frame_surface = self.renderer.surface.copy()

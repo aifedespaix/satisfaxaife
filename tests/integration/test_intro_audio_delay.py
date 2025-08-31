@@ -7,8 +7,8 @@ from app.audio import AudioEngine, reset_default_engine
 from app.audio.env import temporary_sdl_audio_driver
 from app.core.config import settings
 from app.core.types import Damage, EntityId, Vec2
-from app.game.intro import IntroManager
 from app.game.match import create_controller
+from app.intro import IntroConfig, IntroManager
 from app.render.renderer import Renderer
 from app.weapons import weapon_registry
 from app.weapons.base import Weapon, WorldView
@@ -23,7 +23,9 @@ class InstantKillWeapon(Weapon):
         super().__init__(name="instakill", cooldown=0.0, damage=Damage(200))
         self._done = False
 
-    def _fire(self, owner: EntityId, view: WorldView, direction: Vec2) -> None:  # pragma: no cover - stub
+    def _fire(
+        self, owner: EntityId, view: WorldView, direction: Vec2
+    ) -> None:  # pragma: no cover - stub
         return None
 
     def update(self, owner: EntityId, view: WorldView, dt: float) -> None:
@@ -57,10 +59,17 @@ def test_audio_starts_after_intro() -> None:
     with temporary_sdl_audio_driver("dummy"):
         recorder = SpyRecorder()
         renderer = Renderer(settings.width, settings.height)
-        controller = create_controller(
-            "instakill", "instakill", recorder, renderer, max_seconds=1
+        controller = create_controller("instakill", "instakill", recorder, renderer, max_seconds=1)
+        controller.intro_manager = IntroManager(
+            config=IntroConfig(
+                logo_in=intro_duration,
+                weapons_in=0.0,
+                hold=0.0,
+                fade_out=0.0,
+                allow_skip=False,
+            )
         )
-        controller.intro_manager = IntroManager(duration=intro_duration)
+        controller.intro_manager.start()
         engine = controller.engine
         engine.start_capture()
 

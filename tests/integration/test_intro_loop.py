@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
+import pygame
+
 from app.core.config import settings
 from app.game.controller import GameController
-from app.game.intro import IntroManager
 from app.game.match import create_controller
-from app.render.hud import Hud
+from app.intro import IntroConfig, IntroManager
 from app.render.renderer import Renderer
 from tests.integration.helpers import SpyRecorder
 
@@ -13,21 +16,29 @@ class StubIntroManager(IntroManager):
     """Intro manager stub used to control flow during tests."""
 
     def __init__(self, frames: int, skip_at: int | None = None) -> None:
-        super().__init__(labels=("", ""))
+        super().__init__(config=IntroConfig(logo_in=0.0, weapons_in=0.0, hold=0.0, fade_out=0.0))
         self.frames = frames
         self.skip_at = skip_at
         self.updates = 0
         self.draws = 0
+        self._skipped = False
+
+    def start(self) -> None:  # pragma: no cover - override
+        return
 
     def is_finished(self) -> bool:  # pragma: no cover - simple predicate
         return self._skipped or self.updates >= self.frames
 
-    def update(self, dt: float) -> None:  # pragma: no cover - simple counter
+    def update(
+        self, dt: float, events: Sequence[pygame.event.Event] | None = None
+    ) -> None:  # pragma: no cover - simple counter
         self.updates += 1
         if self.skip_at is not None and self.updates >= self.skip_at:
-            self.skip()
+            self._skipped = True
 
-    def draw(self, renderer: Renderer, hud: Hud) -> None:  # pragma: no cover - simple counter
+    def draw(
+        self, surface: pygame.Surface, labels: tuple[str, str]
+    ) -> None:  # pragma: no cover - simple counter
         self.draws += 1
 
 
