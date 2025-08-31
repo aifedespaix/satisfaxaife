@@ -283,7 +283,8 @@ class GameController:
                     vx, vy = p.ball.body.velocity
                     speed = sqrt(vx * vx + vy * vy)
                     gaze = (vx / speed, vy / speed) if speed else p.face
-                    self.renderer.draw_eyes(pos, gaze, radius, p.color)
+                    if settings.show_eyes:
+                        self.renderer.draw_eyes(pos, gaze, radius, p.color)
                 self.renderer.draw_impacts()
                 self.renderer.update_hp(
                     self.players[0].ball.health / self.players[0].ball.stats.max_health,
@@ -353,7 +354,8 @@ class GameController:
                         )
                     win_radius = int(win_p.ball.shape.radius)
                     self.renderer.draw_ball(win_pos, win_radius, settings.ball_color, win_p.color)
-                    self.renderer.draw_eyes(win_pos, win_p.face, win_radius, win_p.color)
+                    if settings.show_eyes:
+                        self.renderer.draw_eyes(win_pos, win_p.face, win_radius, win_p.color)
                     self.renderer.draw_impacts()
                     self.renderer.draw_hp(
                         self.renderer.surface,

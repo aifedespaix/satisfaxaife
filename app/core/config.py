@@ -63,6 +63,7 @@ class Settings(BaseModel):  # type: ignore[misc]
     wall_thickness: int = 10
     background_color: Color = (30, 30, 30)
     ball_color: Color = (220, 220, 220)
+    show_eyes: bool = True  # Render eyes on balls when ``True``.
 
     @property
     def width(self) -> int:

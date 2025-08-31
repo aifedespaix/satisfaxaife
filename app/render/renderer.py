@@ -174,7 +174,9 @@ class Renderer:
             speed = random.uniform(80, 160)
             vel = (math.cos(ang) * speed, math.sin(ang) * speed)
             particles.append(_Particle(pos=pos, vel=vel))
-        self._impacts.append(_Impact(pos=pos, timer=duration, duration=duration, particles=particles))
+        self._impacts.append(
+            _Impact(pos=pos, timer=duration, duration=duration, particles=particles)
+        )
 
     def update_hp(self, hp_a: float, hp_b: float) -> None:
         target = [hp_a, hp_b]
@@ -232,6 +234,8 @@ class Renderer:
         pygame.draw.circle(self.surface, color, self._offset(pos), radius)
 
     def draw_eyes(self, pos: Vec2, gaze: Vec2, radius: int, team_color: Color) -> None:
+        if not settings.show_eyes:
+            return
         state = self._get_state(team_color)
         if state.blink_progress > 0:
             state.blink_progress -= 1
