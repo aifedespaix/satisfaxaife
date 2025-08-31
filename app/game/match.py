@@ -17,6 +17,15 @@ from app.weapons import weapon_registry
 from app.world.entities import Ball
 from app.world.physics import PhysicsWorld
 
+__all__ = [
+    "create_controller",
+    "run_match",
+    "GameController",
+    "MatchTimeout",
+    "Player",
+    "_MatchView",
+]
+
 
 def create_controller(
     weapon_a: str,
@@ -56,7 +65,7 @@ def create_controller(
         ),
     ]
 
-    intro = IntroManager()
+    intro = IntroManager(labels=(weapon_a.capitalize(), weapon_b.capitalize()))
     return GameController(
         weapon_a,
         weapon_b,

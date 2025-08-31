@@ -192,11 +192,18 @@ class GameController:
         try:
             if not self.display:
                 self.engine.start_capture()
-            self.intro_manager.play(self.renderer, self.hud)
+            while not self.intro_manager.is_finished():
+                self.intro_manager.update(settings.dt)
+                self.renderer.clear()
+                self.intro_manager.draw(self.renderer, self.hud)
+                self.renderer.present()
+                if not self.display:
+                    frame_surface = self.renderer.surface.copy()
+                    frame = pygame.surfarray.array3d(frame_surface)
+                    self.recorder.add_frame(np.swapaxes(frame, 0, 1))
             self.phase = Phase.RUNNING
             while (
-                len([p for p in self.players if p.alive]) >= 2
-                and self.elapsed < self.max_seconds
+                len([p for p in self.players if p.alive]) >= 2 and self.elapsed < self.max_seconds
             ):
                 for p in self.players:
                     if not p.alive:
@@ -279,9 +286,7 @@ class GameController:
                     self.hud,
                     (self.weapon_a.capitalize(), self.weapon_b.capitalize()),
                 )
-                self.hud.draw_watermark(
-                    self.renderer.surface, settings.hud.watermark
-                )
+                self.hud.draw_watermark(self.renderer.surface, settings.hud.watermark)
                 self.renderer.present()
                 if not self.display:
                     frame_surface = self.renderer.surface.copy()
@@ -305,13 +310,11 @@ class GameController:
                     p.ball.body.velocity = (0.0, 0.0)
                 hp_a = max(
                     0.0,
-                    self.players[0].ball.health
-                    / self.players[0].ball.stats.max_health,
+                    self.players[0].ball.health / self.players[0].ball.stats.max_health,
                 )
                 hp_b = max(
                     0.0,
-                    self.players[1].ball.health
-                    / self.players[1].ball.stats.max_health,
+                    self.players[1].ball.health / self.players[1].ball.stats.max_health,
                 )
                 self.renderer.set_hp(hp_a, hp_b)
                 win_p = next(p for p in self.players if p.eid == self.winner)
@@ -319,9 +322,7 @@ class GameController:
                 self.winner_weapon = (
                     self.weapon_a if self.winner == self.players[0].eid else self.weapon_b
                 )
-                shrink_frames = int(
-                    settings.end_screen.explosion_duration * settings.fps
-                )
+                shrink_frames = int(settings.end_screen.explosion_duration * settings.fps)
                 win_pos = (
                     float(win_p.ball.body.position.x),
                     float(win_p.ball.body.position.y),
@@ -336,50 +337,33 @@ class GameController:
                         self.renderer.add_impact(lose_pos, duration=2.0)
                     progress = (frame_index + 1) / max(1, shrink_frames)
                     self.renderer.clear()
-                    lose_radius = int(
-                        lose_p.ball.shape.radius * (1.0 - progress)
-                    )
+                    lose_radius = int(lose_p.ball.shape.radius * (1.0 - progress))
                     if lose_radius > 0:
                         self.renderer.draw_ball(
                             lose_pos, lose_radius, settings.ball_color, lose_p.color
                         )
                     win_radius = int(win_p.ball.shape.radius)
-                    self.renderer.draw_ball(
-                        win_pos, win_radius, settings.ball_color, win_p.color
-                    )
-                    self.renderer.draw_eyes(
-                        win_pos, win_p.face, win_radius, win_p.color
-                    )
+                    self.renderer.draw_ball(win_pos, win_radius, settings.ball_color, win_p.color)
+                    self.renderer.draw_eyes(win_pos, win_p.face, win_radius, win_p.color)
                     self.renderer.draw_impacts()
                     self.renderer.draw_hp(
                         self.renderer.surface,
                         self.hud,
                         (self.weapon_a.capitalize(), self.weapon_b.capitalize()),
                     )
-                    self.hud.draw_title(
-                        self.renderer.surface, settings.hud.title
-                    )
-                    self.hud.draw_watermark(
-                        self.renderer.surface, settings.hud.watermark
-                    )
+                    self.hud.draw_title(self.renderer.surface, settings.hud.title)
+                    self.hud.draw_watermark(self.renderer.surface, settings.hud.watermark)
                     self.renderer.present()
                     if not self.display:
                         frame_surface = self.renderer.surface.copy()
                         self.recorder.add_frame(
-                            np.swapaxes(
-                                pygame.surfarray.array3d(frame_surface), 0, 1
-                            )
+                            np.swapaxes(pygame.surfarray.array3d(frame_surface), 0, 1)
                         )
                 self.phase = Phase.FINISHED
                 return self.winner_weapon
 
-            if (
-                len([p for p in self.players if p.alive]) >= 2
-                and self.elapsed >= self.max_seconds
-            ):
-                raise MatchTimeout(
-                    f"Match exceeded {self.max_seconds} seconds"
-                )
+            if len([p for p in self.players if p.alive]) >= 2 and self.elapsed >= self.max_seconds:
+                raise MatchTimeout(f"Match exceeded {self.max_seconds} seconds")
             self.phase = Phase.FINISHED
             return self.winner_weapon
         finally:
@@ -390,11 +374,7 @@ class GameController:
             audio = self.engine.end_capture() if not self.display else None
             self.engine.stop_all()
             self.recorder.close(audio)
-            if (
-                not self.display
-                and self.death_ts is not None
-                and self.recorder.path is not None
-            ):
+            if not self.display and self.death_ts is not None and self.recorder.path is not None:
                 append_slowmo_ending(
                     self.recorder.path,
                     self.death_ts,

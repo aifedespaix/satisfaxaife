@@ -9,23 +9,39 @@ from app.render.renderer import Renderer
 class IntroManager:
     """Manage the pre-match introduction sequence."""
 
-    def __init__(self, intro_renderer: IntroRenderer | None = None) -> None:
+    def __init__(
+        self,
+        labels: tuple[str, str] = ("", ""),
+        intro_renderer: IntroRenderer | None = None,
+        *,
+        duration: float = 1.0,
+    ) -> None:
         self._renderer = intro_renderer or IntroRenderer(settings.width, settings.height)
+        self._labels = labels
+        self._duration = duration
+        self._elapsed = 0.0
+        self._skipped = False
 
-    def play(self, renderer: Renderer, hud: Hud) -> None:
-        """Render the intro. Currently this is a no-op."""
-        _ = renderer, hud
+    def is_finished(self) -> bool:
+        """Return ``True`` when the intro has completed or was skipped."""
 
-    def draw(self, renderer: Renderer, labels: tuple[str, str], progress: float) -> None:
-        """Delegate rendering to :class:`IntroRenderer`.
+        return self._skipped or self._elapsed >= self._duration
 
-        Parameters
-        ----------
-        renderer:
-            Main renderer used for the match.
-        labels:
-            Names of the opposing sides.
-        progress:
-            Animation progress in ``[0, 1]``.
-        """
-        self._renderer.draw(renderer.surface, labels, progress)
+    def skip(self) -> None:
+        """Terminate the intro prematurely."""
+
+        self._skipped = True
+
+    def update(self, dt: float) -> None:
+        """Advance the intro state by ``dt`` seconds."""
+
+        if not self.is_finished():
+            self._elapsed += dt
+
+    def draw(self, renderer: Renderer, hud: Hud) -> None:
+        """Render the current frame of the intro sequence."""
+
+        progress = 1.0 if self._duration == 0 else min(self._elapsed / self._duration, 1.0)
+        self._renderer.draw(renderer.surface, self._labels, progress)
+        hud.draw_title(renderer.surface, settings.hud.title)
+        hud.draw_watermark(renderer.surface, settings.hud.watermark)
