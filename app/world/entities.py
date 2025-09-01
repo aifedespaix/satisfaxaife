@@ -8,7 +8,7 @@ import pymunk
 from app.core.types import Damage, EntityId, Stats, Vec2
 from app.world.physics import PhysicsWorld
 
-DEFAULT_BALL_RADIUS: float = 60.0
+DEFAULT_BALL_RADIUS: float = 30.0
 """Default radius used for spawned balls in pixels."""
 
 _id_gen = itertools.count(1)
