@@ -271,7 +271,7 @@ class GameController:
         for p in self.players:
             if not p.alive:
                 continue
-            accel, face, fire = p.policy.decide(p.eid, self.view, p.weapon.speed)
+            accel, face, fire, parry = p.policy.decide(p.eid, self.view, p.weapon.speed)
             p.face = face
             p.ball.body.velocity = (
                 p.ball.body.velocity[0] + accel[0] * settings.dt,
@@ -279,7 +279,9 @@ class GameController:
             )
             p.weapon.step(settings.dt)
             p.weapon.update(p.eid, self.view, settings.dt)
-            if fire:
+            if parry:
+                p.weapon.parry(p.eid, self.view)
+            elif fire:
                 p.weapon.trigger(p.eid, self.view, face)
             p.ball.cap_speed()
 

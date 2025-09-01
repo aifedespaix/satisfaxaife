@@ -1,10 +1,10 @@
 import pygame
 
-from app.core.types import Damage, EntityId, Vec2
+from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
+from app.weapons.base import WeaponEffect, WorldView
 from app.world.entities import Ball
 from app.world.physics import PhysicsWorld
 from app.world.projectiles import Projectile
-from app.weapons.base import WorldView, WeaponEffect
 
 
 class _StubView(WorldView):
@@ -54,8 +54,10 @@ class _StubView(WorldView):
     ) -> WeaponEffect:  # pragma: no cover - unused
         raise NotImplementedError
 
-    def iter_projectiles(self, excluding: EntityId | None = None):  # pragma: no cover - unused
-        return iter(())
+    def iter_projectiles(
+        self, excluding: EntityId | None = None
+    ) -> list[ProjectileInfo]:  # pragma: no cover - unused
+        return []
 
 
 def test_high_speed_projectile_hits_ball() -> None:

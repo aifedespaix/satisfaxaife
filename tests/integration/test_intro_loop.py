@@ -46,7 +46,11 @@ class StubIntroManager(IntroManager):
             self._skipped = True
 
     def draw(
-        self, surface: pygame.Surface, labels: tuple[str, str], hud: Hud
+        self,
+        surface: pygame.Surface,
+        labels: tuple[str, str],
+        hud: Hud | None = None,
+        ball_positions: tuple[tuple[float, float], tuple[float, float]] | None = None,
     ) -> None:  # pragma: no cover - simple counter
         self.draws += 1
 

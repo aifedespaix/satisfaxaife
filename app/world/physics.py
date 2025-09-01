@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pymunk
 
@@ -9,6 +9,7 @@ from app.core.config import settings
 
 if TYPE_CHECKING:
     from app.weapons.base import WorldView
+
     from .entities import Ball
     from .projectiles import Projectile
 
