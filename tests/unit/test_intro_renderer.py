@@ -289,6 +289,46 @@ def test_weapon_animation_reaches_ball(monkeypatch: pytest.MonkeyPatch) -> None:
     pygame.quit()
 
 
+def test_weapons_in_uses_cache_and_progress(monkeypatch: pytest.MonkeyPatch) -> None:
+    pygame.init()
+    renderer = IntroRenderer(200, 100)
+    surface = pygame.Surface((200, 100), flags=pygame.SRCALPHA)
+
+    compute_calls: list[float] = []
+    original_compute = renderer.compute_positions
+
+    def tracking_compute(
+        progress: float,
+    ) -> tuple[tuple[float, float], tuple[float, float], tuple[float, float]]:
+        compute_calls.append(progress)
+        return original_compute(progress)
+
+    monkeypatch.setattr(renderer, "compute_positions", tracking_compute)
+
+    prepare_calls: list[
+        tuple[float, tuple[tuple[float, float], tuple[float, float], tuple[float, float]]]
+    ] = []
+
+    def fake_prepare(
+        labels: tuple[str, str],
+        prog: float,
+        left: tuple[float, float],
+        right: tuple[float, float],
+        center: tuple[float, float],
+    ) -> list[tuple[_pygame.Surface, tuple[float, float]]]:
+        prepare_calls.append((prog, (left, right, center)))
+        return []
+
+    monkeypatch.setattr(renderer, "_prepare_elements", fake_prepare)
+
+    renderer.draw(surface, ("A", "B"), 0.25, IntroState.WEAPONS_IN)
+
+    assert compute_calls == [1.0]
+    assert prepare_calls[0][0] == 0.25
+    assert prepare_calls[0][1] == original_compute(1.0)
+    pygame.quit()
+
+
 def test_cached_positions_and_reset(monkeypatch: pytest.MonkeyPatch) -> None:
     pygame.init()
     renderer = IntroRenderer(200, 100)
@@ -297,13 +337,15 @@ def test_cached_positions_and_reset(monkeypatch: pytest.MonkeyPatch) -> None:
 
     original_compute = renderer.compute_positions
 
-    def tracking(progress: float):
+    def tracking(
+        progress: float,
+    ) -> tuple[tuple[float, float], tuple[float, float], tuple[float, float]]:
         calls.append(progress)
         return original_compute(progress)
 
     monkeypatch.setattr(renderer, "compute_positions", tracking)
 
-    renderer.draw(surface, ("A", "B"), 1.0, IntroState.WEAPONS_IN)
+    renderer.draw(surface, ("A", "B"), 0.0, IntroState.WEAPONS_IN)
     renderer.draw(surface, ("A", "B"), 0.0, IntroState.HOLD)
     renderer.draw(surface, ("A", "B"), 0.0, IntroState.FADE_OUT)
 

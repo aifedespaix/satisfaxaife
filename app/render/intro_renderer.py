@@ -17,8 +17,8 @@ class IntroRenderer:
     """Render the pre-match introduction with slide, glow and fade effects.
 
     Final positions after the slide-in are cached so they can be reused during
-    the ``HOLD`` and ``FADE_OUT`` phases. Use :meth:`reset` when starting a new
-    introduction sequence to clear this cache.
+    the ``WEAPONS_IN``, ``HOLD`` and ``FADE_OUT`` phases. Use :meth:`reset` when
+    starting a new introduction sequence to clear this cache.
     """
 
     WEAPON_WIDTH_RATIO: float = 0.4
@@ -193,7 +193,7 @@ class IntroRenderer:
             (self.font.render(labels[1], True, (255, 255, 255)), right_pos),
         ]
 
-    def draw(
+    def draw(  # noqa: C901
         self,
         surface: pygame.Surface,
         labels: tuple[str, str],
@@ -223,12 +223,24 @@ class IntroRenderer:
             Optional target coordinates for the weapon sprites. When provided
             during the ``FADE_OUT`` state, weapon sprites move toward these
             positions while shrinking to simulate equipping.
+
+        During ``WEAPONS_IN`` the text and logo remain at the cached final
+        positions from ``LOGO_IN``. The ``progress`` value is still forwarded to
+        :meth:`_prepare_elements` so weapon sprites can rotate and scale, but
+        their positions stay fixed. On the first ``WEAPONS_IN`` frame the cache
+        is initialised by calling :meth:`compute_positions` with ``progress`` set
+        to ``1.0`` when required.
         """
         from app.intro.intro_manager import IntroState as _IntroState
-        if state is _IntroState.WEAPONS_IN:
+
+        if state is _IntroState.LOGO_IN:
             left_pos, right_pos, center_pos = self.compute_positions(progress)
-            if progress >= 1.0 and self._final_positions is None:
+            if progress >= 1.0:
                 self._final_positions = (left_pos, right_pos, center_pos)
+        elif state is _IntroState.WEAPONS_IN:
+            if self._final_positions is None:
+                self._final_positions = self.compute_positions(1.0)
+            left_pos, right_pos, center_pos = self._final_positions
         elif state in (_IntroState.HOLD, _IntroState.FADE_OUT):
             if self._final_positions is None:
                 self._final_positions = self.compute_positions(1.0)
