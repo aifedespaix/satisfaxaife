@@ -49,12 +49,9 @@ class PhysicsWorld:
         from .entities import BALL_COLLISION_TYPE
         from .projectiles import PROJECTILE_COLLISION_TYPE
 
-        if hasattr(self.space, "add_collision_handler"):
-            handler = self.space.add_collision_handler(
-                PROJECTILE_COLLISION_TYPE, BALL_COLLISION_TYPE
-            )
-        else:
-            handler = self.space.collision_handler(PROJECTILE_COLLISION_TYPE, BALL_COLLISION_TYPE)
+        handler = self.space.add_collision_handler(
+            PROJECTILE_COLLISION_TYPE, BALL_COLLISION_TYPE
+        )
         handler.begin = self._handle_projectile_hit
 
     def register_ball(self, ball: Ball) -> None:
