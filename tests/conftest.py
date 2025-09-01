@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import os
 import sys
-from pathlib import Path
 import types
+from pathlib import Path
 from typing import Protocol
 
 from app.core.types import Damage, EntityId, Vec2
@@ -50,9 +50,9 @@ class WorldView(Protocol):
 
     def add_speed_bonus(self, eid: EntityId, bonus: float) -> None: ...
 
-    def spawn_effect(self, effect: "WeaponEffect") -> None: ...
+    def spawn_effect(self, effect: WeaponEffect) -> None: ...
 
-    def spawn_projectile(self, *args: object, **kwargs: object) -> "WeaponEffect": ...
+    def spawn_projectile(self, *args: object, **kwargs: object) -> WeaponEffect: ...
 
     def iter_projectiles(self, excluding: EntityId | None = None) -> object: ...
 

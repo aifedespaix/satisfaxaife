@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import random
+from dataclasses import dataclass, field
 
 from app.ai.policy import SimplePolicy
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
