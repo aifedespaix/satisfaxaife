@@ -5,7 +5,7 @@ from typing import Literal
 
 import pytest
 
-from app.ai.policy import SimplePolicy
+from app.ai.policy import SimplePolicy, policy_for_weapon
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.weapons.base import WeaponEffect, WorldView
 from app.weapons.shuriken import Shuriken
@@ -165,3 +165,15 @@ def test_aggressive_dodges_projectiles() -> None:
     policy = SimplePolicy("aggressive")
     accel, _, _ = policy.decide(me, view, 600.0)
     assert accel[1] < 0  # dodges downward
+
+
+def test_policy_for_bazooka_is_kiter() -> None:
+    policy = policy_for_weapon("bazooka")
+    assert policy.style == "kiter"
+    assert policy.desired_dist_factor > 0.5
+
+
+def test_policy_for_knife_prioritises_dodging() -> None:
+    policy = policy_for_weapon("knife")
+    assert policy.style == "aggressive"
+    assert policy.dodge_bias > 0.5

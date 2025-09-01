@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.ai.policy import SimplePolicy
+from app.ai.policy import policy_for_weapon
 from app.audio import BallAudio, get_default_engine
 from app.core.config import settings
 from app.game.controller import (
@@ -52,7 +52,7 @@ def create_controller(
             ball_a.eid,
             ball_a,
             weapon_registry.create(weapon_a),
-            SimplePolicy("aggressive"),
+            policy_for_weapon(weapon_a),
             (1.0, 0.0),
             settings.theme.team_a.primary,
             BallAudio(engine=engine),
@@ -61,7 +61,7 @@ def create_controller(
             ball_b.eid,
             ball_b,
             weapon_registry.create(weapon_b),
-            SimplePolicy("kiter"),
+            policy_for_weapon(weapon_b),
             (-1.0, 0.0),
             settings.theme.team_b.primary,
             BallAudio(engine=engine),
