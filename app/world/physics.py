@@ -11,6 +11,24 @@ if TYPE_CHECKING:
     from .entities import Ball
     from .projectiles import Projectile
 
+import math
+import pymunk
+
+def _bb_intersect(a: pymunk.Shape, b: pymunk.Shape) -> bool:
+    return a.bb.intersects(b.bb)
+
+def _circles_overlap(a: pymunk.Shape, b: pymunk.Shape) -> bool:
+    ca = isinstance(a, pymunk.Circle)
+    cb = isinstance(b, pymunk.Circle)
+    if not (ca and cb):
+        return False
+    pa = a.body.position
+    pb = b.body.position
+    ra = float(a.radius)
+    rb = float(b.radius)
+    dx = pa.x - pb.x
+    dy = pa.y - pb.y
+    return (dx*dx + dy*dy) <= (ra + rb)*(ra + rb)
 
 class PhysicsWorld:
     """Encapsulates the pymunk space and static boundaries."""
@@ -71,30 +89,44 @@ class PhysicsWorld:
     # ── Détection manuelle des collisions ─────────────────────────────────────
 
     def _process_collisions(self) -> None:
-        """Détecte et traite les impacts projectile↔ball sans utiliser les handlers Pymunk."""
+        """Détecte et traite les impacts projectile↔ball sans handlers Pymunk,
+        en évitant le bug d'assert de ContactPointSet quand count==0."""
         if self._view is None:
             return
 
-        # On itère sur une copie pour tolérer la suppression de projectiles pendant la boucle.
         for proj_shape, projectile in list(self._projectiles.items()):
-            # Skip si déjà détruit côté gameplay
             if getattr(projectile, "destroyed", False):
                 continue
 
             for ball_shape, ball in self._balls.items():
-                # Test robuste de collision: renvoie un ContactPointSet
-                cps = proj_shape.shapes_collide(ball_shape)
-                # Impact s'il y a au moins un point de contact
-                if cps.points:
-                    keep = projectile.on_hit(self._view, ball.eid, self._timestamp)
+                # 1) Rejet grossier par BB
+                if not _bb_intersect(proj_shape, ball_shape):
+                    continue
 
-                    if not keep:
-                        # Détruit et notifie
-                        projectile.destroy()
-                        if self._on_projectile_removed is not None:
-                            self._on_projectile_removed(projectile)
-                        # On arrête d’examiner ce projectile (il n’existe plus)
-                        break
+                hit = False
+
+                # 2) Fast-path précis pour cercles (pas besoin de shapes_collide)
+                if _circles_overlap(proj_shape, ball_shape):
+                    hit = True
+                else:
+                    # 3) Cas génériques: appeler shapes_collide mais ignorer l'assertion 0-point
+                    try:
+                        cps = proj_shape.shapes_collide(ball_shape)
+                        hit = bool(getattr(cps, "points", ()))  # ≥1 point => impact
+                    except AssertionError:
+                        # Bug Pymunk 7.1.0: count==0 → assert. On traite comme "pas d'impact".
+                        hit = False
+
+                if not hit:
+                    continue
+
+                keep = projectile.on_hit(self._view, ball.eid, self._timestamp)
+                if not keep:
+                    projectile.destroy()
+                    cb = self._on_projectile_removed
+                    if cb is not None:
+                        cb(projectile)
+                    break  # projectile supprimé → passe au suivant
 
     # ── Simulation ────────────────────────────────────────────────────────────
 
