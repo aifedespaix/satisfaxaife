@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 from app.core.types import EntityId, Vec2
@@ -57,40 +57,49 @@ def _lead_target(
 def _projectile_dodge(me: EntityId, view: WorldView, position: Vec2, direction: Vec2) -> Vec2:
     """Return a unit vector helping ``me`` dodge incoming projectiles.
 
-    The function inspects all projectiles except those owned by ``me`` and
-    selects the one that would hit first within a one second horizon. If such a
-    projectile exists the returned vector is perpendicular to its velocity. If
-    none are threatening, a perpendicular vector to ``direction`` is used
-    instead.
+    Every projectile within a one second horizon is evaluated. A repulsive
+    vector pointing away from the predicted closest point of each projectile is
+    accumulated and weighted by the inverse of the time to impact. The final
+    dodge direction is the normalised sum of these vectors. If no projectile is
+    threatening the returned vector is perpendicular to ``direction``.
     """
 
-    closest_t = float("inf")
-    best_vel: Vec2 | None = None
+    dodge_x = 0.0
+    dodge_y = 0.0
     for proj in view.iter_projectiles(excluding=me):
         px, py = proj.position
         vx, vy = proj.velocity
         rx = px - position[0]
         ry = py - position[1]
-        approach = rx * vx + ry * vy
-        if approach >= 0.0:
-            continue
         speed_sq = vx * vx + vy * vy
         if speed_sq <= 1e-6:
             continue
-        t = -approach / speed_sq
-        if t >= closest_t or t > 1.0 or t <= 0.0:
+        # Time until closest approach between projectile and agent.
+        t = -(rx * vx + ry * vy) / speed_sq
+        if t <= 0.0 or t > 1.0:
             continue
-        hit_x = rx + vx * t
-        hit_y = ry + vy * t
-        if hit_x * hit_x + hit_y * hit_y > 200.0**2:
+        cx = rx + vx * t
+        cy = ry + vy * t
+        if cx * cx + cy * cy > 200.0 ** 2:
             continue
-        closest_t = t
-        best_vel = (vx, vy)
+        dist = math.hypot(cx, cy)
+        if dist <= 1e-6:
+            # When the predicted impact is at the current position fall back to a
+            # perpendicular vector to the projectile velocity.
+            perp_x, perp_y = -vy, vx
+            dist = math.hypot(perp_x, perp_y) or 1.0
+            rep_x = perp_x / dist
+            rep_y = perp_y / dist
+        else:
+            rep_x = -cx / dist
+            rep_y = -cy / dist
+        weight = 1.0 / (t + 1e-3)
+        dodge_x += rep_x * weight
+        dodge_y += rep_y * weight
 
-    if best_vel is not None:
-        perp = (-best_vel[1], best_vel[0])
-        norm = math.hypot(*perp) or 1.0
-        return (perp[0] / norm, perp[1] / norm)
+    if abs(dodge_x) > 1e-6 or abs(dodge_y) > 1e-6:
+        norm = math.hypot(dodge_x, dodge_y) or 1.0
+        return (dodge_x / norm, dodge_y / norm)
 
     perp = (-direction[1], direction[0])
     norm = math.hypot(*perp) or 1.0
@@ -104,9 +113,11 @@ class SimplePolicy:
     style: Literal["aggressive", "kiter", "evader"]
     vertical_offset: float = 0.1
     dodge_bias: float = 0.5
+    dodge_smoothing: float = 0.5
     desired_dist_factor: float = 0.5
     fire_range_factor: float = 0.8
     fire_range: float = 150.0
+    _prev_dodge: Vec2 = field(default=(1.0, 0.0), init=False, repr=False)
 
     def decide(
         self, me: EntityId, view: WorldView, projectile_speed: float | None = None
@@ -167,7 +178,8 @@ class SimplePolicy:
     ) -> tuple[Vec2, bool]:
         """Close combat behaviour prioritising projectile dodging."""
 
-        dodge = _projectile_dodge(me, view, my_pos, direction)
+        raw_dodge = _projectile_dodge(me, view, my_pos, direction)
+        dodge = self._smooth_dodge(raw_dodge)
         combined = (
             direction[0] + self.dodge_bias * dodge[0],
             direction[1] + self.dodge_bias * dodge[1],
@@ -190,7 +202,8 @@ class SimplePolicy:
     ) -> tuple[Vec2, bool]:
         """Run away from the enemy while dodging projectiles."""
 
-        dodge = _projectile_dodge(me, view, my_pos, direction)
+        raw_dodge = _projectile_dodge(me, view, my_pos, direction)
+        dodge = self._smooth_dodge(raw_dodge)
         base = (-direction[0], -direction[1])
         combined = (
             base[0] + self.dodge_bias * dodge[0],
@@ -206,6 +219,21 @@ class SimplePolicy:
 
         fire = dist >= fire_range and direction[0] * face[0] + direction[1] * face[1] >= cos_thresh
         return accel, fire
+
+    def _smooth_dodge(self, raw: Vec2) -> Vec2:
+        """Return a smoothed dodge vector.
+
+        The smoothing factor ``dodge_smoothing`` controls how quickly the dodge
+        direction reacts to changes. ``1.0`` disables smoothing while smaller
+        values yield more inertia.
+        """
+
+        alpha = self.dodge_smoothing
+        sx = alpha * raw[0] + (1.0 - alpha) * self._prev_dodge[0]
+        sy = alpha * raw[1] + (1.0 - alpha) * self._prev_dodge[1]
+        norm = math.hypot(sx, sy) or 1.0
+        self._prev_dodge = (sx / norm, sy / norm)
+        return self._prev_dodge
 
     def _kiter(
         self,

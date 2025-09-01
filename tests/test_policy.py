@@ -200,6 +200,54 @@ def test_aggressive_dodges_projectiles() -> None:
     assert accel[1] < 0  # dodges downward
 
 
+def test_dodge_considers_multiple_projectiles() -> None:
+    me = EntityId(1)
+    enemy = EntityId(2)
+
+    @dataclass
+    class ViewWithProjectiles(DummyView):
+        projs: list[ProjectileInfo] = field(default_factory=list)
+
+        def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # noqa: D401
+            return self.projs
+
+    projectiles = [
+        ProjectileInfo(owner=enemy, position=(40.0, 0.0), velocity=(-100.0, 0.0)),
+        ProjectileInfo(owner=enemy, position=(0.0, 40.0), velocity=(0.0, -100.0)),
+    ]
+    view = ViewWithProjectiles(me, enemy, (0.0, 0.0), (100.0, 0.0), projs=projectiles)
+    policy = SimplePolicy("aggressive", dodge_smoothing=1.0)
+    accel, _, _ = policy.decide(me, view, 600.0)
+    assert accel[0] > 0  # influenced by the top projectile
+    assert accel[1] < 0  # still avoids the right projectile
+
+
+def test_dodge_vector_is_smoothed() -> None:
+    me = EntityId(1)
+    enemy = EntityId(2)
+
+    @dataclass
+    class ViewWithProjectile(DummyView):
+        proj_pos: Vec2 = (0.0, 0.0)
+        proj_vel: Vec2 = (0.0, 0.0)
+
+        def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # noqa: D401
+            return [ProjectileInfo(owner=enemy, position=self.proj_pos, velocity=self.proj_vel)]
+
+    view = ViewWithProjectile(
+        me, enemy, (0.0, 0.0), (100.0, 0.0), proj_pos=(40.0, 0.0), proj_vel=(-100.0, 0.0)
+    )
+    policy = SimplePolicy("aggressive", dodge_smoothing=0.5)
+    first, _, _ = policy.decide(me, view, 600.0)
+
+    view.proj_pos = (-40.0, 0.0)
+    view.proj_vel = (100.0, 0.0)
+    second, _, _ = policy.decide(me, view, 600.0)
+
+    assert first[1] < 0  # initial dodge downward
+    assert second[1] > -0.1  # smoothing prevents immediate flip upward
+
+
 def test_evader_dodges_projectiles() -> None:
     me = EntityId(1)
     enemy = EntityId(2)
