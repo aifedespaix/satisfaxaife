@@ -1,18 +1,20 @@
-# app/world/physics.py
+"""Physics world wrapper with manual collision detection."""
 
 from __future__ import annotations
+
 from collections.abc import Callable
 from typing import TYPE_CHECKING
+
 import pymunk
 from app.core.config import settings
 
+from .spatial_index import SpatialIndex
+
 if TYPE_CHECKING:
     from app.weapons.base import WorldView
+
     from .entities import Ball
     from .projectiles import Projectile
-
-import math
-import pymunk
 
 
 def _bb_intersect(a: pymunk.Shape, b: pymunk.Shape) -> bool:
@@ -31,6 +33,21 @@ def _circles_overlap(a: pymunk.Shape, b: pymunk.Shape) -> bool:
     return bool((dx * dx + dy * dy) <= (ra + rb) * (ra + rb))
 
 
+def _shapes_hit(proj_shape: pymunk.Shape, ball_shape: pymunk.Shape) -> bool:
+    """Return ``True`` when the two shapes overlap."""
+
+    if not _bb_intersect(proj_shape, ball_shape):
+        return False
+    if _circles_overlap(proj_shape, ball_shape):
+        return True
+    try:
+        cps = proj_shape.shapes_collide(ball_shape)
+        return bool(getattr(cps, "points", ()))
+    except AssertionError:
+        # Bug Pymunk 7.1.0: count==0 → assert. Treated as "no impact".
+        return False
+
+
 class PhysicsWorld:
     """Encapsulates the pymunk space and static boundaries."""
 
@@ -39,6 +56,7 @@ class PhysicsWorld:
         self.space.gravity = (0.0, 0.0)
         self._projectiles: dict[pymunk.Shape, Projectile] = {}
         self._balls: dict[pymunk.Shape, Ball] = {}
+        self._index = SpatialIndex()
         self._on_projectile_removed: Callable[[Projectile], None] | None = None
         self._view: WorldView | None = None
         self._timestamp: float = 0.0
@@ -69,15 +87,18 @@ class PhysicsWorld:
         # Optionnel: tu peux poser un collision_type si tu le réutilises ailleurs
         # ball.shape.collision_type = 1
         self._balls[ball.shape] = ball
+        self._index.track(ball.shape)
 
     def register_projectile(self, projectile: Projectile) -> None:
         # On rend les projectiles "sensor" pour éviter tout push/ricochet physique.
         projectile.shape.sensor = True
         # projectile.shape.collision_type = 2  # optionnel si tu gardes des handlers ailleurs
         self._projectiles[projectile.shape] = projectile
+        self._index.track(projectile.shape)
 
     def unregister_projectile(self, projectile: Projectile) -> None:
         self._projectiles.pop(projectile.shape, None)
+        self._index.untrack(projectile.shape)
 
     def set_projectile_removed_callback(self, callback: Callable[[Projectile], None]) -> None:
         self._on_projectile_removed = callback
@@ -95,30 +116,15 @@ class PhysicsWorld:
         if self._view is None:
             return
 
+        self._index.rebuild()
+
         for proj_shape, projectile in list(self._projectiles.items()):
             if getattr(projectile, "destroyed", False):
                 continue
 
-            for ball_shape, ball in self._balls.items():
-                # 1) Rejet grossier par BB
-                if not _bb_intersect(proj_shape, ball_shape):
-                    continue
-
-                hit = False
-
-                # 2) Fast-path précis pour cercles (pas besoin de shapes_collide)
-                if _circles_overlap(proj_shape, ball_shape):
-                    hit = True
-                else:
-                    # 3) Cas génériques: appeler shapes_collide mais ignorer l'assertion 0-point
-                    try:
-                        cps = proj_shape.shapes_collide(ball_shape)
-                        hit = bool(getattr(cps, "points", ()))  # ≥1 point => impact
-                    except AssertionError:
-                        # Bug Pymunk 7.1.0: count==0 → assert. On traite comme "pas d'impact".
-                        hit = False
-
-                if not hit:
+            for candidate in self._index.query(proj_shape):
+                ball = self._balls.get(candidate)
+                if ball is None or not _shapes_hit(proj_shape, candidate):
                     continue
 
                 if ball.eid == projectile.owner:
