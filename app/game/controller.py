@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from enum import Enum
@@ -22,6 +23,8 @@ from app.weapons.base import Weapon, WeaponEffect, WorldView
 from app.world.entities import Ball
 from app.world.physics import PhysicsWorld
 from app.world.projectiles import Projectile
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -200,6 +203,7 @@ class GameController:
         self.world.set_projectile_removed_callback(self._on_projectile_removed)
         self.phase = Phase.INTRO
         self.elapsed = 0.0
+        self._next_log_second = 1
         self.winner: EntityId | None = None
         self.winner_weapon: str | None = None
         # Absolute timestamp (including intro) when the fatal hit occurred.
@@ -265,6 +269,9 @@ class GameController:
                 break
 
             self.elapsed += settings.dt
+            if self.elapsed >= self._next_log_second:
+                logger.info("Simulation time: %d s", self._next_log_second)
+                self._next_log_second += 1
 
         if self.winner is not None:
             self._play_winner_sequence()
