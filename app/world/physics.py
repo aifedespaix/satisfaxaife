@@ -1,15 +1,13 @@
-from __future__ import annotations
+# app/world/physics.py
 
+from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
-
 import pymunk
-
 from app.core.config import settings
 
 if TYPE_CHECKING:
     from app.weapons.base import WorldView
-
     from .entities import Ball
     from .projectiles import Projectile
 
@@ -101,20 +99,9 @@ class PhysicsWorld:
                 continue
 
             for ball_shape, ball in self._balls.items():
-<<<<<<< HEAD
                 # 1) Rejet grossier par BB
                 if not _bb_intersect(proj_shape, ball_shape):
                     continue
-=======
-                if ball.eid == projectile.owner:
-                    # Un projectile ne peut pas toucher son propriétaire actuel.
-                    continue
-                # Test robuste de collision: renvoie un ContactPointSet
-                cps = proj_shape.shapes_collide(ball_shape)
-                # Impact s'il y a au moins un point de contact
-                if cps.points:
-                    keep = projectile.on_hit(self._view, ball.eid, self._timestamp)
->>>>>>> efb5b0d0ae4c33c9d62f2d707a7bd24b731d64dd
 
                 hit = False
 
