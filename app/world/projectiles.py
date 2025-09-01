@@ -2,16 +2,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from math import atan2, pi, sqrt
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
-import pygame
 import pymunk
 
-from app.audio.weapons import WeaponAudio
 from app.core.types import Color, Damage, EntityId, Vec2
-from app.render.renderer import Renderer
 from app.weapons.base import WeaponEffect, WorldView
 from app.world.physics import PhysicsWorld
+
+if TYPE_CHECKING:
+    import pygame
+    from app.audio.weapons import WeaponAudio
+    from app.render.renderer import Renderer
 
 PROJECTILE_COLLISION_TYPE: int = 2
 """Pymunk collision type value for projectile shapes."""
@@ -117,11 +119,16 @@ class Projectile(WeaponEffect):
         pos = self.body.position
         dx = float(pos.x) - position[0]
         dy = float(pos.y) - position[1]
-        rad = cast(float, self.shape.radius) + radius
+        rad = float(self.shape.radius) + radius
         return dx * dx + dy * dy <= rad * rad
 
     def on_hit(self, view: WorldView, target: EntityId, timestamp: float) -> bool:
         """Apply damage to ``target`` at ``timestamp`` and transfer momentum."""
+        if target == self.owner:
+            # Defensive check: ignore collisions against the projectile's owner.
+            # Returning ``True`` keeps the projectile alive without side effects.
+            return True
+
         view.deal_damage(target, self.damage, timestamp)
         if self.audio is not None:
             self.audio.on_touch(timestamp)

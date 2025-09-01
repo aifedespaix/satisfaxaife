@@ -14,13 +14,13 @@ if TYPE_CHECKING:
 import math
 import pymunk
 
+
 def _bb_intersect(a: pymunk.Shape, b: pymunk.Shape) -> bool:
-    return a.bb.intersects(b.bb)
+    return bool(a.bb.intersects(b.bb))
+
 
 def _circles_overlap(a: pymunk.Shape, b: pymunk.Shape) -> bool:
-    ca = isinstance(a, pymunk.Circle)
-    cb = isinstance(b, pymunk.Circle)
-    if not (ca and cb):
+    if not isinstance(a, pymunk.Circle) or not isinstance(b, pymunk.Circle):
         return False
     pa = a.body.position
     pb = b.body.position
@@ -28,7 +28,8 @@ def _circles_overlap(a: pymunk.Shape, b: pymunk.Shape) -> bool:
     rb = float(b.radius)
     dx = pa.x - pb.x
     dy = pa.y - pb.y
-    return (dx*dx + dy*dy) <= (ra + rb)*(ra + rb)
+    return bool((dx * dx + dy * dy) <= (ra + rb) * (ra + rb))
+
 
 class PhysicsWorld:
     """Encapsulates the pymunk space and static boundaries."""
@@ -118,6 +119,11 @@ class PhysicsWorld:
                         hit = False
 
                 if not hit:
+                    continue
+
+                if ball.eid == projectile.owner:
+                    # Skip self-collisions so a deflected projectile cannot
+                    # immediately hit its new owner.
                     continue
 
                 keep = projectile.on_hit(self._view, ball.eid, self._timestamp)
