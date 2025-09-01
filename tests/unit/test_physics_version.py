@@ -5,6 +5,19 @@ pymunk = pytest.importorskip("pymunk")
 from app.world import physics  # noqa: E402
 
 
+def test_version_helper_parses_string(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Fallback parsing uses ``__version__`` when ``version_info`` is absent."""
+
+    class FakePymunk:
+        __version__ = "6.1"
+
+    monkeypatch.setattr(physics, "pymunk", FakePymunk, raising=False)
+    version, version_str = physics._get_pymunk_version()
+
+    assert version == (6, 1)
+    assert version_str == "6.1"
+
+
 def test_init_raises_runtime_error_for_old_pymunk(monkeypatch: pytest.MonkeyPatch) -> None:
     """PhysicsWorld refuses to run with unsupported pymunk versions."""
     monkeypatch.setattr(physics, "PYMUNK_VERSION", (6, 0))
