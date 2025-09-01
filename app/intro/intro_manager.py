@@ -136,7 +136,15 @@ class IntroManager:
         if self._state is IntroState.FADE_OUT and self._targets is None:
             label_a, label_b, logo_rect, _ = hud.compute_layout(surface, labels)
             self._targets = (logo_rect, label_a, label_b)
-        self._renderer.draw(surface, labels, progress, self._state, self._targets, ball_positions)
+        self._renderer.draw(
+            surface,
+            labels,
+            progress,
+            self._state,
+            self._targets,
+            ball_positions,
+            self._elapsed,
+        )
 
     def is_finished(self) -> bool:
         """Return ``True`` if the intro has completed."""

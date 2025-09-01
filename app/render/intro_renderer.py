@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import math
 import pygame
 
 from app.core.types import Vec2
@@ -119,6 +120,15 @@ class IntroRenderer:
             scale = 1.0
         return angle, scale
 
+    def _hold_offset(self, elapsed: float) -> float:
+        """Return the sinusoidal offset for ``elapsed`` seconds in ``HOLD``.
+
+        The same offset is applied to the vertical position and rotation of
+        all elements to create a gentle floating effect.
+        """
+
+        return math.sin(elapsed * self.config.hold_float_frequency) * self.config.hold_float_amplitude
+
     def _interpolate_to_targets(
         self,
         elements: list[tuple[pygame.Surface, Vec2]],
@@ -221,6 +231,7 @@ class IntroRenderer:
         state: IntroState,
         targets: tuple[pygame.Rect, pygame.Rect, pygame.Rect] | None = None,
         ball_positions: tuple[Vec2, Vec2] | None = None,
+        elapsed: float = 0.0,
     ) -> None:  # pragma: no cover - visual
         """Render the intro text and apply visual effects.
 
@@ -243,6 +254,9 @@ class IntroRenderer:
             Optional target coordinates for the weapon sprites. When provided
             during the ``FADE_OUT`` state, weapon sprites move toward these
             positions while shrinking to simulate equipping.
+        elapsed:
+            Time in seconds since the start of the current state. Only relevant
+            when ``state`` is ``HOLD`` to drive the floating effect.
 
         During ``WEAPONS_IN`` the text and logo remain at the cached final
         positions from ``LOGO_IN``. The ``progress`` value is still forwarded to
@@ -271,6 +285,11 @@ class IntroRenderer:
         alpha = self.compute_alpha(progress, state)
         elements = self._prepare_elements(labels, progress, left_pos, right_pos, center_pos)
         angle, scale_factor = self._compute_transform(progress)
+
+        if state is _IntroState.HOLD:
+            offset = self._hold_offset(elapsed)
+            angle += offset
+            elements = [(img, (pos[0], pos[1] + offset)) for img, pos in elements]
 
         if state is _IntroState.FADE_OUT:
             if targets is not None:

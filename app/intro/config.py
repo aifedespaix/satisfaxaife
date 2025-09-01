@@ -47,12 +47,17 @@ class IntroConfig:
     allow_skip, skip_key:
         Options controlling whether the intro can be skipped and which key
         triggers the skip. ``skip_key`` defaults to the Escape key.
+    hold_float_amplitude, hold_float_frequency:
+        Amplitude in pixels/degree and angular frequency in radians per second
+        for the gentle floating effect applied during the ``HOLD`` phase.
     """
 
     logo_in: float = 1.0
     weapons_in: float = 1.0
     hold: float = 1.0
     fade_out: float = 1.0
+    hold_float_amplitude: float = 5.0
+    hold_float_frequency: float = 2.0
     micro_bounce: Easing = ease_out_back
     pulse: Easing = monotone_pulse
     fade: Easing = ease_out_quad
