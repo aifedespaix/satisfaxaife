@@ -80,6 +80,7 @@ class OrbitingSprite(WeaponEffect):
     radius: float
     angle: float
     speed: float
+    knockback: float = 0.0
     trail_color: Color = (255, 255, 255)
     trail: list[Vec2] = field(default_factory=list)
     trail_len: int = 8
@@ -102,8 +103,14 @@ class OrbitingSprite(WeaponEffect):
         return bool(dx * dx + dy * dy <= (hit_rad + radius) ** 2)
 
     def on_hit(self, view: WorldView, target: EntityId, timestamp: float) -> bool:  # noqa: D401
-        """Apply damage to ``target`` at ``timestamp``."""
+        """Apply damage and knock back ``target`` at ``timestamp``."""
         view.deal_damage(target, self.damage, timestamp)
+        blade_pos = self._position(view)
+        target_pos = view.get_position(target)
+        dx = target_pos[0] - blade_pos[0]
+        dy = target_pos[1] - blade_pos[1]
+        norm = math.hypot(dx, dy) or 1.0
+        view.apply_impulse(target, dx / norm * self.knockback, dy / norm * self.knockback)
         if self.audio is not None:
             self.audio.on_touch(timestamp)
         return True

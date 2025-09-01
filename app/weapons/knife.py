@@ -40,6 +40,7 @@ class Knife(Weapon):
                 radius=60.0,
                 angle=0.0,
                 speed=self.speed,
+                knockback=120.0,
                 audio=self.audio,
             )
             view.spawn_effect(effect)
