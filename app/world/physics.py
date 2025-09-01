@@ -4,11 +4,11 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import pymunk
-from pymunk import __version__ as _pymunk_version
 
 from app.core.config import settings
 
-PYMUNK_VERSION = tuple(int(x) for x in _pymunk_version.split(".")[:2])
+PYMUNK_VERSION = tuple(pymunk.version[:2])
+PYMUNK_VERSION_STR = ".".join(map(str, pymunk.version))
 
 if TYPE_CHECKING:
     from app.weapons.base import WorldView
@@ -32,7 +32,7 @@ class PhysicsWorld:
         if PYMUNK_VERSION < (7, 0):
             msg = (
                 "PhysicsWorld requires pymunk >= 7.0, found "
-                f"{pymunk.__version__}. Please upgrade pymunk."
+                f"{PYMUNK_VERSION_STR}. Please upgrade pymunk."
             )
             raise RuntimeError(msg)
         self._register_handlers()
