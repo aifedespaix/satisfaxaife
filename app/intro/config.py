@@ -35,7 +35,8 @@ class IntroConfig:
         start sliding.
     logo_scale, weapon_scale:
         Multiplicative factors applied to the logo and weapon images when
-        rendering.
+        rendering. ``logo_scale`` defaults to ``0.5`` so the VS logo appears at
+        half of its source size.
     font_path, logo_path, weapon_a_path, weapon_b_path:
         Paths to the font and images used by the introduction. When ``None`` or
         missing, fallbacks will be generated.
@@ -60,7 +61,7 @@ class IntroConfig:
     right_pos_pct: Vec2 = (0.75, 0.6)
     center_pos_pct: Vec2 = (0.5, 0.45)
     slide_offset_pct: float = 0.5
-    logo_scale: float = 1.0
+    logo_scale: float = 0.5
     weapon_scale: float = 1.0
     font_path: Path | None = None
     logo_path: Path | None = None
