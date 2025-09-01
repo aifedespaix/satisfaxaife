@@ -34,7 +34,9 @@ class StatefulPolicy(SimplePolicy):
     The policy starts in :class:`State.ATTACK` and transitions to other states
     based on health and incoming threats. It reuses the motion primitives of
     :class:`app.ai.policy.SimplePolicy` but exposes clearer state specific
-    methods to ease future extensions.
+    methods to ease future extensions. Dodging mixes projectile avoidance with a
+    random bias derived from the policy's pseudo-random generator, making the
+    evasive path dependent on the initial seed while remaining reproducible.
     """
 
     state: State = State.ATTACK
@@ -135,8 +137,21 @@ class StatefulPolicy(SimplePolicy):
         my_pos: Vec2,
         direction: Vec2,
     ) -> tuple[Vec2, bool]:
-        dodge = _projectile_dodge(me, view, my_pos, direction)
-        accel = (dodge[0] * 400.0, dodge[1] * 400.0)
+        """Return acceleration prioritising lateral evasion.
+
+        The dodge vector is influenced by the random number generator to ensure
+        distinct yet reproducible manoeuvres for different seeds.
+        """
+
+        raw_dodge = _projectile_dodge(me, view, my_pos, direction)
+        dodge = self._smooth_dodge(raw_dodge)
+        bias = self.dodge_bias + self.rng.uniform(-0.1, 0.1)
+        combined = (
+            direction[0] + bias * dodge[0],
+            direction[1] + bias * dodge[1],
+        )
+        norm = math.hypot(*combined) or 1.0
+        accel = (combined[0] / norm * 400.0, combined[1] / norm * 400.0)
         return accel, False
 
     def _parry(self, direction: Vec2) -> tuple[Vec2, bool]:

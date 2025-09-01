@@ -74,3 +74,22 @@ def _collect_faces(seed: int) -> list[Vec2]:
 
 def test_sequences_differ_with_seed() -> None:
     assert _collect_faces(1) != _collect_faces(2)
+
+
+def _collect_dodges(seed: int) -> list[Vec2]:
+    rng = random.Random(seed)
+    policy = StatefulPolicy("aggressive", rng=rng)
+    me = EntityId(1)
+    enemy = EntityId(2)
+    projectile = ProjectileInfo(owner=enemy, position=(50.0, 0.0), velocity=(-80.0, 0.0))
+    view = DummyView(me, enemy, (0.0, 0.0), (100.0, 0.0), projectiles=[projectile])
+    accels: list[Vec2] = []
+    for _ in range(3):
+        accel, _, _, _ = policy.decide(me, view, 600.0)
+        accels.append(accel)
+    return accels
+
+
+def test_dodge_sequence_depends_on_seed() -> None:
+    assert _collect_dodges(1) != _collect_dodges(2)
+    assert _collect_dodges(3) == _collect_dodges(3)
