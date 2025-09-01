@@ -54,11 +54,56 @@ def _lead_target(
     return (dir_x / norm, dir_y / norm)
 
 
+def _projectile_dodge(
+    me: EntityId, view: WorldView, position: Vec2, direction: Vec2
+) -> Vec2:
+    """Return a unit vector helping ``me`` dodge incoming projectiles.
+
+    The function inspects all projectiles except those owned by ``me`` and
+    selects the one that would hit first within a one second horizon. If such a
+    projectile exists the returned vector is perpendicular to its velocity. If
+    none are threatening, a perpendicular vector to ``direction`` is used
+    instead.
+    """
+
+    closest_t = float("inf")
+    best_vel: Vec2 | None = None
+    for proj in view.iter_projectiles(excluding=me):
+        px, py = proj.position
+        vx, vy = proj.velocity
+        rx = px - position[0]
+        ry = py - position[1]
+        approach = rx * vx + ry * vy
+        if approach >= 0.0:
+            continue
+        speed_sq = vx * vx + vy * vy
+        if speed_sq <= 1e-6:
+            continue
+        t = -approach / speed_sq
+        if t >= closest_t or t > 1.0 or t <= 0.0:
+            continue
+        hit_x = rx + vx * t
+        hit_y = ry + vy * t
+        if hit_x * hit_x + hit_y * hit_y > 200.0**2:
+            continue
+        closest_t = t
+        best_vel = (vx, vy)
+
+    if best_vel is not None:
+        perp = (-best_vel[1], best_vel[0])
+        norm = math.hypot(*perp) or 1.0
+        return (perp[0] / norm, perp[1] / norm)
+
+    perp = (-direction[1], direction[0])
+    norm = math.hypot(*perp) or 1.0
+    return (perp[0] / norm, perp[1] / norm)
+
+
 @dataclass(slots=True)
 class SimplePolicy:
     """Very small deterministic combat policy."""
 
-    style: Literal["aggressive", "kiter"]
+    style: Literal["aggressive", "kiter", "evader"]
     vertical_offset: float = 0.1
     dodge_bias: float = 0.5
     desired_dist_factor: float = 0.5
@@ -90,6 +135,10 @@ class SimplePolicy:
 
         if self.style == "aggressive":
             accel, fire = self._aggressive(me, view, my_pos, direction, dist, face, cos_thresh)
+        elif self.style == "evader":
+            accel, fire = self._evader(
+                me, view, my_pos, direction, dist, face, cos_thresh, projectile_speed
+            )
         else:
             accel, fire = self._kiter(direction, dist, face, cos_thresh, projectile_speed)
 
@@ -115,37 +164,7 @@ class SimplePolicy:
     ) -> tuple[Vec2, bool]:
         """Close combat behaviour prioritising projectile dodging."""
 
-        dodge = (0.0, 0.0)
-        closest_t = float("inf")
-        best_vel: Vec2 | None = None
-        for proj in view.iter_projectiles(excluding=me):
-            px, py = proj.position
-            vx, vy = proj.velocity
-            rx = px - my_pos[0]
-            ry = py - my_pos[1]
-            approach = rx * vx + ry * vy
-            if approach >= 0.0:
-                continue
-            speed_sq = vx * vx + vy * vy
-            if speed_sq <= 1e-6:
-                continue
-            t = -approach / speed_sq
-            if t >= closest_t or t > 1.0 or t <= 0.0:
-                continue
-            hit_x = rx + vx * t
-            hit_y = ry + vy * t
-            if hit_x * hit_x + hit_y * hit_y > 200.0**2:
-                continue
-            closest_t = t
-            best_vel = (vx, vy)
-
-        if best_vel is not None:
-            perp = (-best_vel[1], best_vel[0])
-            norm = math.hypot(*perp) or 1.0
-            dodge = (perp[0] / norm, perp[1] / norm)
-        else:
-            dodge = (-direction[1], direction[0])
-
+        dodge = _projectile_dodge(me, view, my_pos, direction)
         combined = (
             direction[0] + self.dodge_bias * dodge[0],
             direction[1] + self.dodge_bias * dodge[1],
@@ -153,6 +172,36 @@ class SimplePolicy:
         norm = math.hypot(*combined) or 1.0
         accel = (combined[0] / norm * 400.0, combined[1] / norm * 400.0)
         fire = dist <= 150 and direction[0] * face[0] + direction[1] * face[1] >= cos_thresh
+        return accel, fire
+
+    def _evader(
+        self,
+        me: EntityId,
+        view: WorldView,
+        my_pos: Vec2,
+        direction: Vec2,
+        dist: float,
+        face: Vec2,
+        cos_thresh: float,
+        projectile_speed: float | None,
+    ) -> tuple[Vec2, bool]:
+        """Run away from the enemy while dodging projectiles."""
+
+        dodge = _projectile_dodge(me, view, my_pos, direction)
+        base = (-direction[0], -direction[1])
+        combined = (
+            base[0] + self.dodge_bias * dodge[0],
+            base[1] + self.dodge_bias * dodge[1],
+        )
+        norm = math.hypot(*combined) or 1.0
+        accel = (combined[0] / norm * 400.0, combined[1] / norm * 400.0)
+
+        if projectile_speed and projectile_speed > 0.0:
+            fire_range = projectile_speed * self.fire_range_factor
+        else:
+            fire_range = 300.0 * (self.fire_range_factor / 0.8)
+
+        fire = dist >= fire_range and direction[0] * face[0] + direction[1] * face[1] >= cos_thresh
         return accel, fire
 
     def _kiter(
@@ -185,16 +234,16 @@ class SimplePolicy:
 def policy_for_weapon(weapon_name: str) -> SimplePolicy:
     """Return a :class:`SimplePolicy` tuned for ``weapon_name``.
 
-    Bazooka users favour a kiting style, keeping more distance before
-    firing. Knife wielders remain aggressive but give more weight to
+    Bazooka users adopt an evasive style, maximising distance and dodging
+    incoming rockets. Knife wielders remain aggressive but give more weight to
     projectile dodging.
     """
 
     if weapon_name == "bazooka":
         return SimplePolicy(
-            "kiter",
-            desired_dist_factor=0.8,
-            fire_range_factor=1.0,
+            "evader",
+            desired_dist_factor=1.2,
+            fire_range_factor=1.2,
         )
     if weapon_name == "knife":
         return SimplePolicy("aggressive", dodge_bias=1.0)
