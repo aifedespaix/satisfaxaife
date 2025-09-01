@@ -106,6 +106,7 @@ class SimplePolicy:
     dodge_bias: float = 0.5
     desired_dist_factor: float = 0.5
     fire_range_factor: float = 0.8
+    fire_range: float = 150.0
 
     def decide(
         self, me: EntityId, view: WorldView, projectile_speed: float | None = None
@@ -173,7 +174,7 @@ class SimplePolicy:
         )
         norm = math.hypot(*combined) or 1.0
         accel = (combined[0] / norm * 400.0, combined[1] / norm * 400.0)
-        fire = dist <= 150 and direction[0] * face[0] + direction[1] * face[1] >= cos_thresh
+        fire = dist <= self.fire_range and direction[0] * face[0] + direction[1] * face[1] >= cos_thresh
         return accel, fire
 
     def _evader(
@@ -249,4 +250,6 @@ def policy_for_weapon(weapon_name: str) -> SimplePolicy:
         )
     if weapon_name == "knife":
         return SimplePolicy("aggressive", dodge_bias=1.0)
+    if weapon_name == "shuriken":
+        return SimplePolicy("aggressive", fire_range=float("inf"))
     return SimplePolicy("aggressive")

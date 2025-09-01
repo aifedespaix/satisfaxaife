@@ -34,6 +34,8 @@ class Projectile(WeaponEffect):
     trail: list[Vec2] = field(default_factory=list)
     trail_width: int = 2
     acceleration: float = 0.0
+    bounces: int = 0
+    last_velocity: Vec2 = (0.0, 0.0)
 
     @classmethod
     def spawn(
@@ -73,14 +75,18 @@ class Projectile(WeaponEffect):
             spin=spin,
             trail_color=trail_color,
             acceleration=acceleration,
+            last_velocity=(float(velocity[0]), float(velocity[1])),
         )
 
     def step(self, dt: float) -> bool:
         """Advance state and return ``True`` while the projectile is alive."""
         self.ttl -= dt
+        vx = float(self.body.velocity.x)
+        vy = float(self.body.velocity.y)
+        if vx * self.last_velocity[0] < 0 or vy * self.last_velocity[1] < 0:
+            self.bounces += 1
+        self.last_velocity = (vx, vy)
         if self.acceleration != 0.0:
-            vx = float(self.body.velocity.x)
-            vy = float(self.body.velocity.y)
             speed = sqrt(vx * vx + vy * vy)
             if speed > 0.0:
                 new_speed = speed + self.acceleration * dt
@@ -99,7 +105,7 @@ class Projectile(WeaponEffect):
             self.trail.append(pos)
             if len(self.trail) > 8:
                 self.trail.pop(0)
-        return self.ttl > 0
+        return self.ttl > 0 or self.bounces < 2
 
     def collides(self, view: WorldView, position: Vec2, radius: float) -> bool:
         pos = self.body.position
@@ -132,6 +138,11 @@ class Projectile(WeaponEffect):
         self.owner = new_owner
         self.ttl = self.max_ttl
         self.angle = atan2(dy, dx) + pi / 2
+        self.bounces = 0
+        self.last_velocity = (
+            float(self.body.velocity.x),
+            float(self.body.velocity.y),
+        )
 
     def draw(self, renderer: Renderer, view: WorldView) -> None:
         pos = (float(self.body.position.x), float(self.body.position.y))

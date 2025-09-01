@@ -230,3 +230,10 @@ def test_policy_for_knife_prioritises_dodging() -> None:
     policy = policy_for_weapon("knife")
     assert policy.style == "aggressive"
     assert policy.dodge_bias > 0.5
+
+
+def test_shuriken_policy_fires_at_any_distance() -> None:
+    view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (1000.0, 0.0))
+    policy = policy_for_weapon("shuriken")
+    _, _, fire = policy.decide(EntityId(1), view, 600.0)
+    assert fire is True
