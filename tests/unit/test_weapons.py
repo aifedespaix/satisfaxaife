@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 
 import pytest
 
@@ -119,6 +120,90 @@ def test_bazooka_fires_missile() -> None:
     assert projectile["radius"] == bazooka.missile_radius
     effect = view.effects[0]
     assert effect.collides(view, (0.0, 0.0), 1.0) is False
+
+
+@dataclass
+class _OrientView(WorldView):
+    enemy: EntityId
+    enemy_pos: Vec2
+    effects: list[WeaponEffect] = field(default_factory=list)
+    projectile: WeaponEffect | None = None
+
+    def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
+        return self.enemy
+
+    def get_position(self, eid: EntityId) -> Vec2:  # noqa: D401
+        return self.enemy_pos if eid == self.enemy else (0.0, 0.0)
+
+    def get_velocity(self, eid: EntityId) -> Vec2:  # noqa: D401
+        return (0.0, 0.0)
+
+    def get_health_ratio(self, eid: EntityId) -> float:  # noqa: D401
+        return 1.0
+
+    def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:  # noqa: D401
+        return None
+
+    def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:  # noqa: D401
+        return None
+
+    def spawn_effect(self, effect: WeaponEffect) -> None:  # noqa: D401
+        self.effects.append(effect)
+
+    def spawn_projectile(
+        self,
+        owner: EntityId,
+        position: Vec2,
+        velocity: Vec2,
+        radius: float,
+        damage: Damage,
+        knockback: float,
+        ttl: float,
+        sprite: object | None = None,
+        spin: float = 0.0,
+    ) -> WeaponEffect:  # noqa: D401
+        class _Dummy(WeaponEffect):
+            owner: EntityId = owner
+            angle: float = 0.0
+
+            def step(self, dt: float) -> bool:
+                return False
+
+            def collides(self, view: WorldView, position: Vec2, radius: float) -> bool:
+                return False
+
+            def on_hit(self, view: WorldView, target: EntityId, timestamp: float) -> bool:
+                return False
+
+            def draw(self, renderer: object, view: WorldView) -> None:
+                return None
+
+            def destroy(self) -> None:
+                return None
+
+        proj = _Dummy()
+        self.projectile = proj
+        return proj
+
+    def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # noqa: D401
+        return []
+
+    def add_speed_bonus(self, eid: EntityId, bonus: float) -> None:  # noqa: D401
+        return None
+
+
+def test_bazooka_sprite_and_projectile_orientation() -> None:
+    view = _OrientView(enemy=EntityId(2), enemy_pos=(100.0, 100.0))
+    bazooka = Bazooka()
+    bazooka.update(EntityId(1), view, 0.0)
+    assert view.projectile is not None
+    assert len(view.effects) == 1
+    effect = view.effects[0]
+    dx, dy = 100.0, 100.0
+    expected_weapon_angle = math.atan2(dy, dx)
+    expected_projectile_angle = math.atan2(dy, dx) + math.pi / 2
+    assert effect.angle == pytest.approx(expected_weapon_angle)
+    assert view.projectile.angle == pytest.approx(expected_projectile_angle)
 
 
 class SpyWeapon(Weapon):

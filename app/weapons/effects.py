@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 from math import tau
 
 import numpy as np
@@ -33,6 +34,36 @@ class HeldSprite(WeaponEffect):
 
     def draw(self, renderer: Renderer, view: WorldView) -> None:  # noqa: D401
         pos = view.get_position(self.owner)
+        renderer.draw_sprite(self.sprite, pos, self.angle)
+
+    def destroy(self) -> None:  # noqa: D401
+        return None
+
+
+@dataclass(slots=True)
+class AimedSprite(WeaponEffect):
+    """Sprite attached to its owner and aligned with a given angle."""
+
+    owner: EntityId
+    sprite: pygame.Surface
+    offset: float
+    angle: float = 0.0
+
+    def step(self, dt: float) -> bool:  # noqa: D401
+        return True
+
+    def collides(self, view: WorldView, position: Vec2, radius: float) -> bool:  # noqa: D401
+        return False
+
+    def on_hit(self, view: WorldView, target: EntityId, timestamp: float) -> bool:  # noqa: D401
+        return True
+
+    def draw(self, renderer: Renderer, view: WorldView) -> None:  # noqa: D401
+        center = view.get_position(self.owner)
+        pos = (
+            center[0] + math.cos(self.angle) * self.offset,
+            center[1] + math.sin(self.angle) * self.offset,
+        )
         renderer.draw_sprite(self.sprite, pos, self.angle)
 
     def destroy(self) -> None:  # noqa: D401
