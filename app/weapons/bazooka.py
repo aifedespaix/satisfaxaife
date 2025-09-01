@@ -8,6 +8,7 @@ from app.core.types import Damage, EntityId, Vec2
 from app.render.sprites import load_sprite
 from app.world.entities import DEFAULT_BALL_RADIUS
 from app.world.projectiles import Projectile
+from pymunk import Vec2 as Vec2d
 
 from . import weapon_registry
 from .assets import load_weapon_sprite
@@ -70,7 +71,7 @@ class Bazooka(Weapon):
         enemy = view.get_enemy(owner)
         if enemy is not None:
             target = view.get_position(enemy)
-            enemy_velocity = view.get_velocity(enemy)
+            enemy_velocity = Vec2d(*view.get_velocity(enemy))
             origin = view.get_position(owner)
 
             dx, dy = target[0] - origin[0], target[1] - origin[1]
@@ -78,8 +79,8 @@ class Bazooka(Weapon):
 
             time_to_target = distance / self.speed if self.speed > 0 else 0.0
             predicted = (
-                target[0] + enemy_velocity[0] * time_to_target,
-                target[1] + enemy_velocity[1] * time_to_target,
+                target[0] + enemy_velocity.x * time_to_target,
+                target[1] + enemy_velocity.y * time_to_target,
             )
 
             dx, dy = predicted[0] - origin[0], predicted[1] - origin[1]

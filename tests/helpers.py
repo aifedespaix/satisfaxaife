@@ -1,4 +1,5 @@
 """Utility classes and helpers for tests."""
+
 from __future__ import annotations
 
 import pygame
@@ -30,8 +31,10 @@ class StubWorldView(WorldView):
     def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:
         self.ball.take_damage(damage)
 
-    def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:  # pragma: no cover - unused
-        self.ball.body.apply_impulse_at_local_point((vx, vy))
+    def apply_impulse(
+        self, eid: EntityId, vx: float, vy: float
+    ) -> None:  # pragma: no cover - unused
+        self.ball.body.apply_impulse_at_local_point((vx, vy))  # type: ignore[attr-defined]
 
     def add_speed_bonus(self, eid: EntityId, bonus: float) -> None:  # pragma: no cover - unused
         pass
