@@ -247,7 +247,7 @@ class GameController:
             self._update_players()
             self._update_effects(current_time)
             self.world.set_context(self.view, current_time)
-            self.world.step(settings.dt)
+            self.world.step(settings.dt, settings.physics_substeps)
             self._render_frame()
             self._capture_frame()
 

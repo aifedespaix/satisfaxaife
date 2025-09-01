@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import cast
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.core.types import Color
 from app.render.theme import TeamColors, Theme
@@ -64,6 +64,7 @@ class Settings(BaseModel):  # type: ignore[misc]
     background_color: Color = (30, 30, 30)
     ball_color: Color = (220, 220, 220)
     show_eyes: bool = True  # Render eyes on balls when ``True``.
+    physics_substeps: int = Field(default=4, ge=1)  # Physics integration substeps
 
     @property
     def width(self) -> int:

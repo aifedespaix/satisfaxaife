@@ -86,5 +86,29 @@ class PhysicsWorld:
                 self._on_projectile_removed(projectile)
         return False
 
-    def step(self, dt: float) -> None:
-        self.space.step(dt)
+    def step(self, dt: float, substeps: int = 1) -> None:
+        """Advance the physics simulation.
+
+        Parameters
+        ----------
+        dt:
+            Total delta time for this update in seconds.
+        substeps:
+            Number of internal substeps used to integrate ``dt``. A value of
+            one performs a single step, while higher values subdivide ``dt`` to
+            reduce tunneling when entities move at high speed. Must be at least
+            one.
+
+        Raises
+        ------
+        ValueError
+            If ``substeps`` is less than one.
+        """
+
+        if substeps < 1:
+            msg = "substeps must be >= 1"
+            raise ValueError(msg)
+
+        sub_dt = dt / float(substeps)
+        for _ in range(substeps):
+            self.space.step(sub_dt)
