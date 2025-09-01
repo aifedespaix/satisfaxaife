@@ -193,6 +193,7 @@ class GameController:
 
         self.effects: list[WeaponEffect] = []
         self.view = _MatchView(players, self.effects, world, renderer, engine)
+        self.world.set_projectile_removed_callback(self._on_projectile_removed)
         self.phase = Phase.INTRO
         self.elapsed = 0.0
         self.winner: EntityId | None = None
@@ -245,6 +246,7 @@ class GameController:
             current_time = intro_elapsed + self.elapsed
             self._update_players()
             self._update_effects(current_time)
+            self.world.set_context(self.view, current_time)
             self.world.step(settings.dt)
             self._render_frame()
             self._capture_frame()
@@ -290,7 +292,6 @@ class GameController:
                 continue
             if isinstance(eff, Projectile) and self._deflect_projectile(eff, current_time):
                 continue
-            self._check_effect_hits(eff, current_time)
 
     def _deflect_projectile(self, eff: Projectile, current_time: float) -> bool:
         """Return ``True`` if ``eff`` was deflected by another effect."""
@@ -311,21 +312,10 @@ class GameController:
                 return True
         return False
 
-    def _check_effect_hits(self, eff: WeaponEffect, current_time: float) -> None:
-        """Handle collisions between an effect and players."""
-        for p in self.players:
-            if p.eid == eff.owner or not p.alive:
-                continue
-            pos = (
-                float(p.ball.body.position.x),
-                float(p.ball.body.position.y),
-            )
-            if eff.collides(self.view, pos, p.ball.shape.radius):
-                keep = eff.on_hit(self.view, p.eid, current_time)
-                if not keep:
-                    eff.destroy()
-                    self.effects.remove(eff)
-                break
+    def _on_projectile_removed(self, projectile: Projectile) -> None:
+        """Remove ``projectile`` from the active effects list."""
+        if projectile in self.effects:
+            self.effects.remove(projectile)
 
     def _render_frame(self) -> None:
         """Render the current frame to the display surface."""
