@@ -14,6 +14,9 @@ from app.core.types import Color, Vec2
 from app.display import Display
 from app.render.hud import Hud
 
+# Angle quantization step for rotated sprite caching in degrees.
+_ROTATION_STEP_DEGREES = 5
+
 
 @dataclass(slots=True)
 class _BallState:
@@ -91,6 +94,9 @@ class Renderer:
             ).convert_alpha(),
         }
         self._scaled_ball_sprites: dict[tuple[Color, int], pygame.Surface] = {}
+        self._rotation_cache: dict[
+            tuple[pygame.Surface, int], pygame.Surface
+        ] = {}
 
     def clear(self) -> None:
         """Clear frame, update impacts and draw arena background."""
@@ -152,7 +158,14 @@ class Renderer:
         angle:
             Rotation angle in radians.
         """
-        rotated = pygame.transform.rotozoom(sprite, math.degrees(-angle), 1.0)
+        degrees = math.degrees(-angle)
+        quantized = int(round(degrees / _ROTATION_STEP_DEGREES) * _ROTATION_STEP_DEGREES)
+        quantized %= 360
+        key = (sprite, quantized)
+        rotated = self._rotation_cache.get(key)
+        if rotated is None:
+            rotated = pygame.transform.rotozoom(sprite, quantized, 1.0)
+            self._rotation_cache[key] = rotated
         rect = rotated.get_rect(center=self._offset(pos))
         self.surface.blit(rotated, rect)
 
