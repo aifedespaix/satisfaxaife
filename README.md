@@ -21,6 +21,7 @@ Image de prévisualisation à venir.
 - 🖥️ **Mode affichage** sans enregistrement grâce à l'option `--display`.
  - 🔄 **Reproductibilité totale** grâce aux seeds (mêmes combats → mêmes résultats).
  - 🛡️ **Esquives dépendantes de la seed** : chaque seed produit un biais d'évitement unique mais reproductible.
+- 🌀 **Dash** d'esquive avec invulnérabilité temporaire et 3 s de recharge.
 - 🧩 **Architecture plug-in** : ajout d'armes, IA ou effets visuels sans toucher au moteur.
 - 🔊 **Effets sonores** intégrés dans la piste audio.
 - 📦 **Batch mode** : génération de **N vidéos** en une seule commande.
@@ -108,6 +109,10 @@ Exemple : **Katana VS Shuriken**, seed = 42 :
 
 ````bash
 v```
+
+Pendant le match, pressez `Maj gauche` pour déclencher un *dash* offrant une
+brève invulnérabilité. L'IA l'utilise automatiquement lorsque un projectile est
+prévu à moins de `0,3 s`.
 
 📌 **Résultat :**
 Une vidéo **1080×1920, 60 FPS, .mp4**, prête pour TikTok, enregistrée dans

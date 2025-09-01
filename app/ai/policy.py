@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import random
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -173,6 +174,42 @@ class SimplePolicy:
             face = (offset_face[0] / norm, offset_face[1] / norm)
 
         return accel, face, fire, False
+
+    def dash_direction(
+        self,
+        me: EntityId,
+        view: WorldView,
+        now: float,
+        can_dash: Callable[[float], bool],
+    ) -> Vec2 | None:
+        """Return a dash vector if a projectile threatens ``me``.
+
+        The dash is triggered only when ``can_dash(now)`` is True and a
+        projectile is predicted to approach within ``0.3`` seconds.
+        """
+        if not can_dash(now):
+            return None
+        position = view.get_position(me)
+        for proj in view.iter_projectiles(excluding=me):
+            px, py = proj.position
+            vx, vy = proj.velocity
+            rx = px - position[0]
+            ry = py - position[1]
+            approach = rx * vx + ry * vy
+            if approach >= 0.0:
+                continue
+            speed_sq = vx * vx + vy * vy
+            if speed_sq <= 1e-6:
+                continue
+            t = -approach / speed_sq
+            if t <= 0.0 or t >= 0.3:
+                continue
+            hit_x = rx + vx * t
+            hit_y = ry + vy * t
+            if hit_x * hit_x + hit_y * hit_y > 200.0 ** 2:
+                continue
+            return _projectile_dodge(me, view, position, (1.0, 0.0))
+        return None
 
     def _aggressive(
         self,

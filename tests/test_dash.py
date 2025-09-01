@@ -1,0 +1,54 @@
+from __future__ import annotations
+
+import pytest
+
+from app.core.types import Damage
+from app.game.dash import Dash
+from app.world.entities import Ball
+from app.world.physics import PhysicsWorld
+
+
+def test_dash_cooldown_respected() -> None:
+    dash = Dash(cooldown=1.0, duration=0.1)
+    assert dash.can_dash(0.0)
+    dash.start((1.0, 0.0), 0.0)
+    assert dash.is_dashing
+    dash.update(0.15)
+    assert not dash.can_dash(0.5)
+    dash.update(1.01)
+    assert dash.can_dash(1.01)
+
+
+def test_dash_velocity_and_invulnerability() -> None:
+    world = PhysicsWorld()
+    ball = Ball.spawn(world, (0.0, 0.0))
+    dash = Dash(speed=500.0, duration=0.2, cooldown=1.0)
+    dash.start((1.0, 0.0), 0.0)
+    dash.update(0.0)
+    if dash.is_dashing:
+        ball.body.velocity = (
+            dash.direction[0] * dash.speed,
+            dash.direction[1] * dash.speed,
+        )
+    vx, vy = ball.body.velocity
+    assert vx == pytest.approx(500.0)
+    assert vy == pytest.approx(0.0)
+    assert dash.invulnerable_until > 0.0
+
+
+def test_dash_invulnerability_expires() -> None:
+    world = PhysicsWorld()
+    ball = Ball.spawn(world, (0.0, 0.0))
+    dash = Dash(duration=0.1, cooldown=1.0)
+    damage = Damage(10.0)
+    dash.start((1.0, 0.0), 0.0)
+    dash.update(0.0)
+    now = 0.05
+    if not (dash.is_dashing or now < dash.invulnerable_until):
+        ball.take_damage(damage)
+    assert ball.health == ball.stats.max_health
+    later = dash.invulnerable_until + 0.01
+    dash.update(later)
+    if not (dash.is_dashing or later < dash.invulnerable_until):
+        ball.take_damage(damage)
+    assert ball.health == ball.stats.max_health - damage.amount
