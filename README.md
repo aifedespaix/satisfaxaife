@@ -19,7 +19,8 @@ Image de prévisualisation à venir.
 - 🎨 **Rendu vertical 1080×1920** optimisé pour TikTok.
 - 🎥 **Export vidéo automatique** en `.mp4` via [imageio-ffmpeg](https://imageio.readthedocs.io/).
 - 🖥️ **Mode affichage** sans enregistrement grâce à l'option `--display`.
-- 🔄 **Reproductibilité totale** grâce aux seeds (mêmes combats → mêmes résultats).
+ - 🔄 **Reproductibilité totale** grâce aux seeds (mêmes combats → mêmes résultats).
+ - 🛡️ **Esquives dépendantes de la seed** : chaque seed produit un biais d'évitement unique mais reproductible.
 - 🧩 **Architecture plug-in** : ajout d'armes, IA ou effets visuels sans toucher au moteur.
 - 🔊 **Effets sonores** intégrés dans la piste audio.
 - 📦 **Batch mode** : génération de **N vidéos** en une seule commande.
