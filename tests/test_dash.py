@@ -30,9 +30,9 @@ def test_dash_velocity_and_invulnerability() -> None:
             dash.direction[0] * dash.speed,
             dash.direction[1] * dash.speed,
         )
-    vx, vy = ball.body.velocity
-    assert vx == pytest.approx(500.0)
-    assert vy == pytest.approx(0.0)
+    velocity = ball.body.velocity
+    assert velocity.x == pytest.approx(500.0)
+    assert velocity.y == pytest.approx(0.0)
     assert dash.invulnerable_until > 0.0
 
 

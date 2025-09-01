@@ -91,25 +91,23 @@ class Projectile(WeaponEffect):
     def step(self, dt: float) -> bool:
         """Advance state and return ``True`` while the projectile is alive."""
         self.ttl -= dt
-        vx = float(self.body.velocity.x)
-        vy = float(self.body.velocity.y)
-        if vx * self.last_velocity.x < 0 or vy * self.last_velocity.y < 0:
+        velocity = self.body.velocity
+        if velocity.x * self.last_velocity.x < 0 or velocity.y * self.last_velocity.y < 0:
             self.bounces += 1
-        self.last_velocity = Vec2d(vx, vy)
+        self.last_velocity = Vec2d(velocity.x, velocity.y)
         if self.acceleration != 0.0:
-            speed = sqrt(vx * vx + vy * vy)
+            speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y)
             if speed > 0.0:
                 new_speed = speed + self.acceleration * dt
                 scale = new_speed / speed
-                self.body.velocity = (vx * scale, vy * scale)
+                self.body.velocity = (velocity.x * scale, velocity.y * scale)
         if self.sprite is not None:
             if self.spin != 0.0:
                 self.angle = (self.angle + self.spin * dt) % (2 * pi)
             else:
-                vx = float(self.body.velocity.x)
-                vy = float(self.body.velocity.y)
-                if vx != 0.0 or vy != 0.0:
-                    self.angle = atan2(vy, vx) + pi / 2
+                velocity = self.body.velocity
+                if velocity.x != 0.0 or velocity.y != 0.0:
+                    self.angle = atan2(velocity.y, velocity.x) + pi / 2
         if self.trail_color is not None:
             pos = (float(self.body.position.x), float(self.body.position.y))
             self.trail.append(pos)

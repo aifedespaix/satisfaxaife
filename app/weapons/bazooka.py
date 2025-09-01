@@ -38,8 +38,9 @@ class Bazooka(Weapon):
     def _fire(self, owner: EntityId, view: WorldView, direction: Vec2) -> None:  # noqa: D401
         self.audio.on_throw()
 
-        angle = math.atan2(direction[1], direction[0]) + math.pi / 2
-        velocity = (direction[0] * self.speed, direction[1] * self.speed)
+        dir_vec = Vec2d(*direction)
+        angle = math.atan2(dir_vec.y, dir_vec.x) + math.pi / 2
+        velocity = Vec2d(dir_vec.x * self.speed, dir_vec.y * self.speed)
         position = view.get_position(owner)
 
         proj = cast(
@@ -47,7 +48,7 @@ class Bazooka(Weapon):
             view.spawn_projectile(
                 owner,
                 position,
-                velocity,
+                (velocity.x, velocity.y),
                 radius=self.missile_radius,
                 damage=self.damage,
                 knockback=200.0,
