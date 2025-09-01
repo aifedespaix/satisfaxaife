@@ -1,32 +1,11 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import pymunk
 
 from app.core.config import settings
-
-
-def _get_pymunk_version() -> tuple[tuple[int, ...], str]:
-    """Return the pymunk version as numeric tuple and original string.
-
-    ``pymunk`` exposes ``version_info`` in newer releases, which already
-    contains numeric components. Some older distributions only provide the
-    ``__version__`` string, so this helper parses it into integers when
-    ``version_info`` is absent.
-    """
-
-    if hasattr(pymunk, "version_info"):
-        info = tuple(int(part) for part in pymunk.version_info)
-        return info, ".".join(str(x) for x in info)
-    version_str = getattr(pymunk, "__version__", "")
-    numbers = tuple(int(part) for part in re.findall(r"\d+", version_str))
-    return numbers, version_str
-
-
-PYMUNK_VERSION, PYMUNK_VERSION_STR = _get_pymunk_version()
 
 if TYPE_CHECKING:
     from app.weapons.base import WorldView
@@ -47,12 +26,6 @@ class PhysicsWorld:
         self._view: WorldView | None = None
         self._timestamp: float = 0.0
         self._add_bounds()
-        if PYMUNK_VERSION < (7, 0):
-            msg = (
-                "PhysicsWorld requires pymunk >= 7.0, found "
-                f"{PYMUNK_VERSION_STR}. Please upgrade pymunk."
-            )
-            raise RuntimeError(msg)
         self._register_handlers()
 
     def _add_bounds(self) -> None:
@@ -76,12 +49,7 @@ class PhysicsWorld:
         from .entities import BALL_COLLISION_TYPE
         from .projectiles import PROJECTILE_COLLISION_TYPE
 
-        if hasattr(self.space, "add_collision_handler"):
-            handler = self.space.add_collision_handler(
-                PROJECTILE_COLLISION_TYPE, BALL_COLLISION_TYPE
-            )
-        else:
-            handler = self.space.collision_handler(PROJECTILE_COLLISION_TYPE, BALL_COLLISION_TYPE)
+        handler = self.space.add_collision_handler(PROJECTILE_COLLISION_TYPE, BALL_COLLISION_TYPE)
         handler.begin = self._handle_projectile_hit
 
     def register_ball(self, ball: Ball) -> None:
