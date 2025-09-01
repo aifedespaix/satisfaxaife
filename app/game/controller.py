@@ -188,14 +188,14 @@ class GameController:
         self.winner_weapon: str | None = None
         # Absolute timestamp (including intro) when the fatal hit occurred.
         self.death_ts: float | None = None
+        self.labels = (self.weapon_a.capitalize(), self.weapon_b.capitalize())
 
-    def run(self) -> str | None:  # noqa: C901
+    def run(self) -> str | None:
         """Execute the match and return the winning weapon, if any."""
         intro_elapsed = 0.0
         try:
             if not self.display:
                 self.engine.start_capture()
-            labels = (self.weapon_a.capitalize(), self.weapon_b.capitalize())
             ball_positions: tuple[Vec2, Vec2] = (
                 (
                     float(self.players[0].ball.body.position.x),
@@ -206,204 +206,219 @@ class GameController:
                     float(self.players[1].ball.body.position.y),
                 ),
             )
-            self.intro_manager.start()
-            while not self.intro_manager.is_finished():
-                self.intro_manager.update(settings.dt)
-                self.renderer.clear()
-                self.intro_manager.draw(
-                    self.renderer.surface, labels, self.hud, ball_positions
-                )
-                self.hud.draw_title(self.renderer.surface, settings.hud.title)
-                self.hud.draw_watermark(self.renderer.surface, settings.hud.watermark)
-                self.renderer.present()
-                if not self.display:
-                    frame_surface = self.renderer.surface.copy()
-                    frame = pygame.surfarray.array3d(frame_surface)
-                    self.recorder.add_frame(np.swapaxes(frame, 0, 1))
-                intro_elapsed += settings.dt
+            intro_elapsed = self._run_intro(ball_positions)
             self.phase = Phase.RUNNING
-            while (
-                len([p for p in self.players if p.alive]) >= 2 and self.elapsed < self.max_seconds
-            ):
-                current_time = intro_elapsed + self.elapsed
-                for p in self.players:
-                    if not p.alive:
-                        continue
-                    accel, face, fire = p.policy.decide(p.eid, self.view, p.weapon.speed)
-                    p.face = face
-                    p.ball.body.velocity = (
-                        p.ball.body.velocity[0] + accel[0] * settings.dt,
-                        p.ball.body.velocity[1] + accel[1] * settings.dt,
-                    )
-                    p.weapon.step(settings.dt)
-                    p.weapon.update(p.eid, self.view, settings.dt)
-                    if fire:
-                        p.weapon.trigger(p.eid, self.view, face)
-                    p.ball.cap_speed()
-
-                for eff in list(self.effects):
-                    if not eff.step(settings.dt):
-                        eff.destroy()
-                        self.effects.remove(eff)
-                        continue
-                    if isinstance(eff, Projectile):
-                        proj_pos = (
-                            float(eff.body.position.x),
-                            float(eff.body.position.y),
-                        )
-                        proj_rad = float(eff.shape.radius)
-                        deflected = False
-                        for other in self.effects:
-                            if other is eff:
-                                continue
-                            collide = getattr(other, "collides", None)
-                            if collide is None or not collide(self.view, proj_pos, proj_rad):
-                                continue
-                            reflector = getattr(other, "deflect_projectile", None)
-                            if reflector is not None:
-                                reflector(self.view, eff, current_time)
-                                deflected = True
-                                break
-                        if deflected:
-                            continue
-                    for p in self.players:
-                        if p.eid == eff.owner or not p.alive:
-                            continue
-                        pos = (
-                            float(p.ball.body.position.x),
-                            float(p.ball.body.position.y),
-                        )
-                        if eff.collides(self.view, pos, p.ball.shape.radius):
-                            keep = eff.on_hit(self.view, p.eid, current_time)
-                            if not keep:
-                                eff.destroy()
-                                self.effects.remove(eff)
-                            break
-                self.world.step(settings.dt)
-                self.renderer.clear()
-                for eff in self.effects:
-                    eff.draw(self.renderer, self.view)
-                for p in self.players:
-                    if not p.alive:
-                        continue
-                    pos = (
-                        float(p.ball.body.position.x),
-                        float(p.ball.body.position.y),
-                    )
-                    radius = int(p.ball.shape.radius)
-                    self.renderer.draw_ball(pos, radius, settings.ball_color, p.color)
-                    vx, vy = p.ball.body.velocity
-                    speed = sqrt(vx * vx + vy * vy)
-                    gaze = (vx / speed, vy / speed) if speed else p.face
-                    if settings.show_eyes:
-                        self.renderer.draw_eyes(pos, gaze, radius, p.color)
-                self.renderer.draw_impacts()
-                self.renderer.update_hp(
-                    self.players[0].ball.health / self.players[0].ball.stats.max_health,
-                    self.players[1].ball.health / self.players[1].ball.stats.max_health,
-                )
-                self.hud.draw_title(self.renderer.surface, settings.hud.title)
-                self.renderer.draw_hp(
-                    self.renderer.surface,
-                    self.hud,
-                    (self.weapon_a.capitalize(), self.weapon_b.capitalize()),
-                )
-                self.hud.draw_watermark(self.renderer.surface, settings.hud.watermark)
-                self.renderer.present()
-                if not self.display:
-                    frame_surface = self.renderer.surface.copy()
-                    frame = pygame.surfarray.array3d(frame_surface)
-                    self.recorder.add_frame(np.swapaxes(frame, 0, 1))
-
-                alive = [p for p in self.players if p.alive]
-                if len(alive) == 1:
-                    self.winner = alive[0].eid
-                    self.death_ts = current_time + settings.dt
-                    break
-
-                self.elapsed += settings.dt
-
-            if self.winner is not None:
-                for p in self.players:
-                    weapon_audio = getattr(p.weapon, "audio", None)
-                    if weapon_audio is not None:
-                        weapon_audio.stop_idle(self.death_ts)
-                for p in self.players:
-                    p.ball.body.velocity = (0.0, 0.0)
-                hp_a = max(
-                    0.0,
-                    self.players[0].ball.health / self.players[0].ball.stats.max_health,
-                )
-                hp_b = max(
-                    0.0,
-                    self.players[1].ball.health / self.players[1].ball.stats.max_health,
-                )
-                self.renderer.set_hp(hp_a, hp_b)
-                win_p = next(p for p in self.players if p.eid == self.winner)
-                lose_p = next(p for p in self.players if p.eid != self.winner)
-                self.winner_weapon = (
-                    self.weapon_a if self.winner == self.players[0].eid else self.weapon_b
-                )
-                shrink_frames = int(settings.end_screen.explosion_duration * settings.fps)
-                win_pos = (
-                    float(win_p.ball.body.position.x),
-                    float(win_p.ball.body.position.y),
-                )
-                lose_pos = (
-                    float(lose_p.ball.body.position.x),
-                    float(lose_p.ball.body.position.y),
-                )
-                self.renderer.add_impact(lose_pos, duration=2.0)
-                for frame_index in range(max(1, shrink_frames)):
-                    if frame_index > 0 and frame_index % 4 == 0:
-                        self.renderer.add_impact(lose_pos, duration=2.0)
-                    progress = (frame_index + 1) / max(1, shrink_frames)
-                    self.renderer.clear()
-                    lose_radius = int(lose_p.ball.shape.radius * (1.0 - progress))
-                    if lose_radius > 0:
-                        self.renderer.draw_ball(
-                            lose_pos, lose_radius, settings.ball_color, lose_p.color
-                        )
-                    win_radius = int(win_p.ball.shape.radius)
-                    self.renderer.draw_ball(win_pos, win_radius, settings.ball_color, win_p.color)
-                    if settings.show_eyes:
-                        self.renderer.draw_eyes(win_pos, win_p.face, win_radius, win_p.color)
-                    self.renderer.draw_impacts()
-                    self.renderer.draw_hp(
-                        self.renderer.surface,
-                        self.hud,
-                        (self.weapon_a.capitalize(), self.weapon_b.capitalize()),
-                    )
-                    self.hud.draw_title(self.renderer.surface, settings.hud.title)
-                    self.hud.draw_watermark(self.renderer.surface, settings.hud.watermark)
-                    self.renderer.present()
-                    if not self.display:
-                        frame_surface = self.renderer.surface.copy()
-                        self.recorder.add_frame(
-                            np.swapaxes(pygame.surfarray.array3d(frame_surface), 0, 1)
-                        )
-                self.phase = Phase.FINISHED
-                return self.winner_weapon
-
-            if len([p for p in self.players if p.alive]) >= 2 and self.elapsed >= self.max_seconds:
-                raise MatchTimeout(f"Match exceeded {self.max_seconds} seconds")
-            self.phase = Phase.FINISHED
+            self._run_match_loop(intro_elapsed)
             return self.winner_weapon
         finally:
-            for player in self.players:
-                weapon_audio = getattr(player.weapon, "audio", None)
-                if weapon_audio is not None:
-                    weapon_audio.stop_idle(None)
-            audio = self.engine.end_capture() if not self.display else None
-            self.engine.stop_all()
-            self.recorder.close(audio)
-            if not self.display and self.death_ts is not None and self.recorder.path is not None:
-                append_slowmo_ending(
-                    self.recorder.path,
-                    self.death_ts,
-                    settings.end_screen.pre_s,
-                    settings.end_screen.post_s,
-                    settings.end_screen.slow_factor,
-                    intro_elapsed,
-                )
-            self.engine.shutdown()
+            self._teardown(intro_elapsed)
+
+    def _run_intro(self, ball_positions: tuple[Vec2, Vec2]) -> float:
+        """Play the intro sequence and return its duration."""
+        intro_elapsed = 0.0
+        self.intro_manager.start()
+        while not self.intro_manager.is_finished():
+            self.intro_manager.update(settings.dt)
+            self.renderer.clear()
+            self.intro_manager.draw(self.renderer.surface, self.labels, self.hud, ball_positions)
+            self.hud.draw_title(self.renderer.surface, settings.hud.title)
+            self.hud.draw_watermark(self.renderer.surface, settings.hud.watermark)
+            self.renderer.present()
+            self._capture_frame()
+            intro_elapsed += settings.dt
+        return intro_elapsed
+
+    def _run_match_loop(self, intro_elapsed: float) -> None:
+        """Run the core match loop until a winner or timeout."""
+        while len([p for p in self.players if p.alive]) >= 2 and self.elapsed < self.max_seconds:
+            current_time = intro_elapsed + self.elapsed
+            self._update_players()
+            self._update_effects(current_time)
+            self.world.step(settings.dt)
+            self._render_frame()
+            self._capture_frame()
+
+            alive = [p for p in self.players if p.alive]
+            if len(alive) == 1:
+                self.winner = alive[0].eid
+                self.death_ts = current_time + settings.dt
+                break
+
+            self.elapsed += settings.dt
+
+        if self.winner is not None:
+            self._play_winner_sequence()
+            return
+        if len([p for p in self.players if p.alive]) >= 2 and self.elapsed >= self.max_seconds:
+            raise MatchTimeout(f"Match exceeded {self.max_seconds} seconds")
+        self.phase = Phase.FINISHED
+
+    def _update_players(self) -> None:
+        """Update player positions and weapon state."""
+        for p in self.players:
+            if not p.alive:
+                continue
+            accel, face, fire = p.policy.decide(p.eid, self.view, p.weapon.speed)
+            p.face = face
+            p.ball.body.velocity = (
+                p.ball.body.velocity[0] + accel[0] * settings.dt,
+                p.ball.body.velocity[1] + accel[1] * settings.dt,
+            )
+            p.weapon.step(settings.dt)
+            p.weapon.update(p.eid, self.view, settings.dt)
+            if fire:
+                p.weapon.trigger(p.eid, self.view, face)
+            p.ball.cap_speed()
+
+    def _update_effects(self, current_time: float) -> None:
+        """Advance active effects and resolve collisions."""
+        for eff in list(self.effects):
+            if not eff.step(settings.dt):
+                eff.destroy()
+                self.effects.remove(eff)
+                continue
+            if isinstance(eff, Projectile) and self._deflect_projectile(eff, current_time):
+                continue
+            self._check_effect_hits(eff, current_time)
+
+    def _deflect_projectile(self, eff: Projectile, current_time: float) -> bool:
+        """Return ``True`` if ``eff`` was deflected by another effect."""
+        proj_pos = (
+            float(eff.body.position.x),
+            float(eff.body.position.y),
+        )
+        proj_rad = float(eff.shape.radius)
+        for other in self.effects:
+            if other is eff:
+                continue
+            collide = getattr(other, "collides", None)
+            if collide is None or not collide(self.view, proj_pos, proj_rad):
+                continue
+            reflector = getattr(other, "deflect_projectile", None)
+            if reflector is not None:
+                reflector(self.view, eff, current_time)
+                return True
+        return False
+
+    def _check_effect_hits(self, eff: WeaponEffect, current_time: float) -> None:
+        """Handle collisions between an effect and players."""
+        for p in self.players:
+            if p.eid == eff.owner or not p.alive:
+                continue
+            pos = (
+                float(p.ball.body.position.x),
+                float(p.ball.body.position.y),
+            )
+            if eff.collides(self.view, pos, p.ball.shape.radius):
+                keep = eff.on_hit(self.view, p.eid, current_time)
+                if not keep:
+                    eff.destroy()
+                    self.effects.remove(eff)
+                break
+
+    def _render_frame(self) -> None:
+        """Render the current frame to the display surface."""
+        self.renderer.clear()
+        for eff in self.effects:
+            eff.draw(self.renderer, self.view)
+        for p in self.players:
+            if not p.alive:
+                continue
+            pos = (
+                float(p.ball.body.position.x),
+                float(p.ball.body.position.y),
+            )
+            radius = int(p.ball.shape.radius)
+            self.renderer.draw_ball(pos, radius, settings.ball_color, p.color)
+            vx, vy = p.ball.body.velocity
+            speed = sqrt(vx * vx + vy * vy)
+            gaze = (vx / speed, vy / speed) if speed else p.face
+            if settings.show_eyes:
+                self.renderer.draw_eyes(pos, gaze, radius, p.color)
+        self.renderer.draw_impacts()
+        self.renderer.update_hp(
+            self.players[0].ball.health / self.players[0].ball.stats.max_health,
+            self.players[1].ball.health / self.players[1].ball.stats.max_health,
+        )
+        self.hud.draw_title(self.renderer.surface, settings.hud.title)
+        self.renderer.draw_hp(self.renderer.surface, self.hud, self.labels)
+        self.hud.draw_watermark(self.renderer.surface, settings.hud.watermark)
+        self.renderer.present()
+
+    def _capture_frame(self) -> None:
+        """Capture the current surface for recording if headless."""
+        if self.display:
+            return
+        frame_surface = self.renderer.surface.copy()
+        frame = pygame.surfarray.array3d(frame_surface)
+        self.recorder.add_frame(np.swapaxes(frame, 0, 1))
+
+    def _play_winner_sequence(self) -> None:
+        """Render the end screen animation for the winning player."""
+        for p in self.players:
+            weapon_audio = getattr(p.weapon, "audio", None)
+            if weapon_audio is not None:
+                weapon_audio.stop_idle(self.death_ts)
+        for p in self.players:
+            p.ball.body.velocity = (0.0, 0.0)
+        hp_a = max(
+            0.0,
+            self.players[0].ball.health / self.players[0].ball.stats.max_health,
+        )
+        hp_b = max(
+            0.0,
+            self.players[1].ball.health / self.players[1].ball.stats.max_health,
+        )
+        self.renderer.set_hp(hp_a, hp_b)
+        win_p = next(p for p in self.players if p.eid == self.winner)
+        lose_p = next(p for p in self.players if p.eid != self.winner)
+        self.winner_weapon = self.weapon_a if self.winner == self.players[0].eid else self.weapon_b
+        shrink_frames = int(settings.end_screen.explosion_duration * settings.fps)
+        win_pos = (
+            float(win_p.ball.body.position.x),
+            float(win_p.ball.body.position.y),
+        )
+        lose_pos = (
+            float(lose_p.ball.body.position.x),
+            float(lose_p.ball.body.position.y),
+        )
+        self.renderer.add_impact(lose_pos, duration=2.0)
+        for frame_index in range(max(1, shrink_frames)):
+            if frame_index > 0 and frame_index % 4 == 0:
+                self.renderer.add_impact(lose_pos, duration=2.0)
+            progress = (frame_index + 1) / max(1, shrink_frames)
+            self.renderer.clear()
+            lose_radius = int(lose_p.ball.shape.radius * (1.0 - progress))
+            if lose_radius > 0:
+                self.renderer.draw_ball(lose_pos, lose_radius, settings.ball_color, lose_p.color)
+            win_radius = int(win_p.ball.shape.radius)
+            self.renderer.draw_ball(win_pos, win_radius, settings.ball_color, win_p.color)
+            if settings.show_eyes:
+                self.renderer.draw_eyes(win_pos, win_p.face, win_radius, win_p.color)
+            self.renderer.draw_impacts()
+            self.renderer.draw_hp(self.renderer.surface, self.hud, self.labels)
+            self.hud.draw_title(self.renderer.surface, settings.hud.title)
+            self.hud.draw_watermark(self.renderer.surface, settings.hud.watermark)
+            self.renderer.present()
+            self._capture_frame()
+        self.phase = Phase.FINISHED
+
+    def _teardown(self, intro_elapsed: float) -> None:
+        """Release resources and finalize recording."""
+        for player in self.players:
+            weapon_audio = getattr(player.weapon, "audio", None)
+            if weapon_audio is not None:
+                weapon_audio.stop_idle(None)
+        audio = self.engine.end_capture() if not self.display else None
+        self.engine.stop_all()
+        self.recorder.close(audio)
+        if not self.display and self.death_ts is not None and self.recorder.path is not None:
+            append_slowmo_ending(
+                self.recorder.path,
+                self.death_ts,
+                settings.end_screen.pre_s,
+                settings.end_screen.post_s,
+                settings.end_screen.slow_factor,
+                intro_elapsed,
+            )
+        self.engine.shutdown()
