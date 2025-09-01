@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pygame
 
+from app.audio.weapons import WeaponAudio
 from app.core.types import Damage, EntityId, Vec2
 from app.world.entities import DEFAULT_BALL_RADIUS
 
@@ -23,6 +24,7 @@ class Knife(Weapon):
             load_weapon_sprite("knife", max_dim=blade_height),
             -90,
         )
+        self.audio = WeaponAudio("melee", "knife")
         self._initialized = False
         self._boost_applied = False
 
@@ -38,8 +40,10 @@ class Knife(Weapon):
                 radius=60.0,
                 angle=0.0,
                 speed=self.speed,
+                audio=self.audio,
             )
             view.spawn_effect(effect)
+            self.audio.start_idle()
             self._initialized = True
         if not self._boost_applied:
             view.add_speed_bonus(owner, self.player_speed_bonus)

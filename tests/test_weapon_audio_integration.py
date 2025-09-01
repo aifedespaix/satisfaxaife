@@ -6,6 +6,7 @@ from app.audio.weapons import WeaponAudio
 from app.core.types import Damage, EntityId, Vec2
 from app.weapons.base import WeaponEffect, WorldView
 from app.weapons.katana import Katana
+from app.weapons.knife import Knife
 from app.weapons.shuriken import Shuriken
 from app.world.physics import PhysicsWorld
 from app.world.projectiles import Projectile
@@ -48,6 +49,36 @@ def test_katana_audio_events() -> None:
     view_obj = View()
     view = cast(WorldView, view_obj)
     katana.update(EntityId(1), view, 0.0)
+    assert stub_audio.idle_started
+    effect = view_obj.effects[0]
+    effect.on_hit(view, EntityId(2), timestamp=0.0)
+    assert stub_audio.touched
+
+
+def test_knife_audio_events() -> None:
+    knife = Knife()
+    stub_audio = StubAudio()
+    knife.audio = cast(WeaponAudio, stub_audio)
+
+    class View:
+        def __init__(self) -> None:
+            self.effects: list[WeaponEffect] = []
+
+        def spawn_effect(self, effect: WeaponEffect) -> None:  # noqa: D401
+            self.effects.append(effect)
+
+        def get_position(self, eid: EntityId) -> Vec2:  # noqa: D401
+            return (0.0, 0.0)
+
+        def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:  # noqa: D401
+            pass
+
+        def add_speed_bonus(self, eid: EntityId, bonus: float) -> None:  # noqa: D401
+            pass
+
+    view_obj = View()
+    view = cast(WorldView, view_obj)
+    knife.update(EntityId(1), view, 0.0)
     assert stub_audio.idle_started
     effect = view_obj.effects[0]
     effect.on_hit(view, EntityId(2), timestamp=0.0)
