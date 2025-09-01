@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from math import sqrt
 
@@ -12,6 +12,7 @@ from app.ai.stateful_policy import StatefulPolicy
 from app.audio import AudioEngine, BallAudio
 from app.core.config import settings
 from app.core.types import Color, Damage, EntityId, ProjectileInfo, Vec2
+from app.game.dash import Dash
 from app.intro import IntroManager
 from app.render.hud import Hud
 from app.render.renderer import Renderer
@@ -32,6 +33,7 @@ class Player:
     face: Vec2
     color: Color
     audio: BallAudio
+    dash: Dash = field(default_factory=Dash)
     alive: bool = True
 
 
@@ -85,6 +87,8 @@ class _MatchView(WorldView):
         """Apply ``damage`` to ``eid`` at ``timestamp``."""
         for p in self.players:
             if p.eid == eid and p.alive:
+                if p.dash.is_dashing or timestamp < p.dash.invulnerable_until:
+                    return
                 pos = self.get_position(eid)
                 p.alive = not p.ball.take_damage(damage)
                 if p.alive:
@@ -104,7 +108,7 @@ class _MatchView(WorldView):
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:
         for p in self.players:
             if p.eid == eid:
-                p.ball.body.apply_impulse_at_local_point((vx, vy))
+                p.ball.body.apply_impulse_at_local_point((vx, vy))  # type: ignore[attr-defined]
                 return
 
     def add_speed_bonus(self, eid: EntityId, bonus: float) -> None:
@@ -244,7 +248,10 @@ class GameController:
         """Run the core match loop until a winner or timeout."""
         while len([p for p in self.players if p.alive]) >= 2 and self.elapsed < self.max_seconds:
             current_time = intro_elapsed + self.elapsed
-            self._update_players()
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_LSHIFT:
+                    self.players[0].dash.start(self.players[0].face, current_time)
+            self._update_players(current_time)
             self._update_effects(current_time)
             self.world.set_context(self.view, current_time)
             self.world.step(settings.dt, settings.physics_substeps)
@@ -266,17 +273,28 @@ class GameController:
             raise MatchTimeout(f"Match exceeded {self.max_seconds} seconds")
         self.phase = Phase.FINISHED
 
-    def _update_players(self) -> None:
-        """Update player positions and weapon state."""
+    def _update_players(self, now: float) -> None:
+        """Update player positions, dash and weapon state."""
         for p in self.players:
             if not p.alive:
                 continue
             accel, face, fire, parry = p.policy.decide(p.eid, self.view, p.weapon.speed)
+            dash_dir = p.policy.dash_direction(p.eid, self.view, now, p.dash.can_dash)
             p.face = face
+            if dash_dir is not None:
+                p.dash.start(dash_dir, now)
+            p.dash.update(now)
+            vx = float(p.ball.body.velocity.x)
+            vy = float(p.ball.body.velocity.y)
             p.ball.body.velocity = (
-                p.ball.body.velocity[0] + accel[0] * settings.dt,
-                p.ball.body.velocity[1] + accel[1] * settings.dt,
+                vx + accel[0] * settings.dt,
+                vy + accel[1] * settings.dt,
             )
+            if p.dash.is_dashing:
+                p.ball.body.velocity = (
+                    p.dash.direction[0] * p.dash.speed,
+                    p.dash.direction[1] * p.dash.speed,
+                )
             p.weapon.step(settings.dt)
             p.weapon.update(p.eid, self.view, settings.dt)
             if parry:
