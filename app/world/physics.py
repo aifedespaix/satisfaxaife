@@ -7,8 +7,10 @@ import pymunk
 
 from app.core.config import settings
 
-PYMUNK_VERSION = tuple(pymunk.version[:2])
-PYMUNK_VERSION_STR = ".".join(map(str, pymunk.version))
+# ``pymunk.version_info`` already exposes numeric components. Using it avoids
+# string parsing and ensures version comparisons operate on integers.
+PYMUNK_VERSION = tuple(pymunk.version_info[:2])
+PYMUNK_VERSION_STR = ".".join(map(str, pymunk.version_info))
 
 if TYPE_CHECKING:
     from app.weapons.base import WorldView
@@ -63,9 +65,7 @@ class PhysicsWorld:
                 PROJECTILE_COLLISION_TYPE, BALL_COLLISION_TYPE
             )
         else:
-            handler = self.space.collision_handler(
-                PROJECTILE_COLLISION_TYPE, BALL_COLLISION_TYPE
-            )
+            handler = self.space.collision_handler(PROJECTILE_COLLISION_TYPE, BALL_COLLISION_TYPE)
         handler.begin = self._handle_projectile_hit
 
     def register_ball(self, ball: Ball) -> None:
