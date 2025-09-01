@@ -51,6 +51,7 @@ class ProjectileView:
         ttl: float,
         sprite: object | None = None,
         spin: float = 0.0,
+        acceleration: float = 0.0,
     ) -> WeaponEffect:
         proj = Projectile.spawn(
             self.world,
@@ -63,6 +64,7 @@ class ProjectileView:
             ttl,
             sprite,
             spin,
+            acceleration=acceleration,
         )
         self.projectile = proj
         return proj
@@ -143,7 +145,8 @@ def test_shuriken_audio_events() -> None:
     projectile = view_obj.projectile
     assert projectile is not None
     projectile.on_hit(view, EntityId(2), timestamp=0.0)
-    assert stub_audio.touched*
+    assert stub_audio.touched
+
     class View:
         def __init__(self) -> None:
             self.world = PhysicsWorld()
@@ -165,6 +168,7 @@ def test_shuriken_audio_events() -> None:
             sprite: object | None = None,
             spin: float = 0.0,
             trail_color: tuple[int, int, int] | None = None,
+            acceleration: float = 0.0,
         ) -> WeaponEffect:
             proj = Projectile.spawn(
                 self.world,
@@ -178,6 +182,7 @@ def test_shuriken_audio_events() -> None:
                 sprite,
                 spin,
                 trail_color,
+                acceleration,
             )
             self.projectile = proj
             return proj

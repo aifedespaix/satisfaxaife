@@ -49,6 +49,7 @@ class WorldView(Protocol):
         sprite: pygame.Surface | None = None,
         spin: float = 0.0,
         trail_color: Color | None = None,
+        acceleration: float = 0.0,
     ) -> WeaponEffect:
         """Spawn a projectile owned by *owner* and register it."""
 

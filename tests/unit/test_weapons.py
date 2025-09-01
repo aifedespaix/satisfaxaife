@@ -62,6 +62,7 @@ class DummyView(WorldView):
         sprite: object | None = None,
         spin: float = 0.0,
         trail_color: tuple[int, int, int] | None = None,
+        acceleration: float = 0.0,
     ) -> WeaponEffect:  # noqa: D401,E501
         self.projectiles.append(
             {
@@ -72,6 +73,7 @@ class DummyView(WorldView):
                 "damage": damage,
                 "ttl": ttl,
                 "trail_color": trail_color,
+                "acceleration": acceleration,
             }
         )
 
@@ -138,7 +140,7 @@ def test_bazooka_fires_missile() -> None:
     assert vx == pytest.approx(bazooka.speed)
     assert vy == pytest.approx(0.0)
     assert projectile["radius"] == bazooka.missile_radius
-    assert projectile["ttl"] == pytest.approx(15.0)
+    assert math.isinf(cast(float, projectile["ttl"]))
     assert projectile["trail_color"] == (255, 200, 50)
     effect = view.effects[0]
     assert effect.collides(view, (0.0, 0.0), 1.0) is False
@@ -204,6 +206,7 @@ class _OrientView(WorldView):
         sprite: object | None = None,
         spin: float = 0.0,
         trail_color: tuple[int, int, int] | None = None,
+        acceleration: float = 0.0,
     ) -> WeaponEffect:  # noqa: D401
         class _Dummy(WeaponEffect):
             owner: EntityId = owner

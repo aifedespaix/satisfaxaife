@@ -19,6 +19,7 @@ class Bazooka(Weapon):
     """AI-controlled launcher that fires slow, heavy missiles."""
 
     missile_radius: float
+    acceleration: float
 
     def __init__(self) -> None:
         super().__init__(name="bazooka", cooldown=0.8, damage=Damage(20), speed=300.0)
@@ -31,6 +32,7 @@ class Bazooka(Weapon):
         self._missile_sprite = load_sprite("weapons/bazooka/missile.png", max_dim=missile_size)
 
         self.audio = WeaponAudio("throw", "bazooka")
+        self.acceleration = 50.0
 
     def _fire(self, owner: EntityId, view: WorldView, direction: Vec2) -> None:  # noqa: D401
         self.audio.on_throw()
@@ -48,9 +50,10 @@ class Bazooka(Weapon):
                 radius=self.missile_radius,
                 damage=self.damage,
                 knockback=200.0,
-                ttl=15.0,  # portée/longévité augmentée
+                ttl=float("inf"),
                 sprite=self._missile_sprite,
                 trail_color=(255, 200, 50),
+                acceleration=self.acceleration,
             ),
         )
 
