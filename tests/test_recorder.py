@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import imageio
 import numpy as np
-from pytest import CaptureFixture
+from pytest import CaptureFixture, LogCaptureFixture
 
 from app.video.recorder import NullRecorder, Recorder
 
@@ -26,3 +27,19 @@ def test_null_recorder_path_is_none() -> None:
     """NullRecorder exposes a path attribute set to ``None``."""
     recorder = NullRecorder()
     assert recorder.path is None
+
+
+def test_recorder_logs_each_second(tmp_path: Path, caplog: LogCaptureFixture) -> None:
+    width, height, fps = 10, 10, 5
+    recorder = Recorder(width, height, fps, tmp_path / "out.mp4")
+    frame = np.zeros((height, width, 3), dtype=np.uint8)
+    with caplog.at_level(logging.DEBUG, logger="app.video.recorder"):
+        for _ in range(fps * 3):
+            recorder.add_frame(frame)
+    recorder.close()
+    messages = [r.message for r in caplog.records if r.name == "app.video.recorder"]
+    assert messages == [
+        "Recorded 1 second(s) of video",
+        "Recorded 2 second(s) of video",
+        "Recorded 3 second(s) of video",
+    ]

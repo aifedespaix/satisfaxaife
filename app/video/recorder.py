@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import subprocess
 import wave
 from pathlib import Path
@@ -8,6 +9,8 @@ from typing import Protocol
 import imageio
 import imageio_ffmpeg
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 class RecorderProtocol(Protocol):
@@ -37,6 +40,7 @@ class Recorder(RecorderProtocol):
         self.path = Path(path)
         self._format = "mp4"
         self._video_path = self.path.with_suffix(".video.mp4")
+        self._frame_count = 0
         try:
             self.writer = imageio.get_writer(
                 self._video_path,
@@ -53,6 +57,10 @@ class Recorder(RecorderProtocol):
     def add_frame(self, frame: np.ndarray) -> None:
         """Append a pre-rendered frame to the output video."""
         self.writer.append_data(frame)
+        self._frame_count += 1
+        if self._frame_count % self.fps == 0:
+            seconds = self._frame_count // self.fps
+            logger.debug("Recorded %s second(s) of video", seconds)
 
     def close(self, audio: np.ndarray | None = None, rate: int = 48_000) -> None:
         """Finalize the video and optionally mux an audio track."""
