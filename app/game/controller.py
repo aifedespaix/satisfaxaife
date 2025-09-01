@@ -126,6 +126,7 @@ class _MatchView(WorldView):
         ttl: float,
         sprite: pygame.Surface | None = None,
         spin: float = 0.0,
+        trail_color: Color | None = None,
     ) -> WeaponEffect:
         proj = Projectile.spawn(
             self.world,
@@ -138,6 +139,7 @@ class _MatchView(WorldView):
             ttl,
             sprite,
             spin,
+            trail_color,
         )
         self.effects.append(proj)
         return proj

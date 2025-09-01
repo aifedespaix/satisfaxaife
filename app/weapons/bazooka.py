@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import math
+from typing import cast
 
 from app.core.types import Damage, EntityId, Vec2
-from app.world.entities import DEFAULT_BALL_RADIUS
 from app.render.sprites import load_sprite
+from app.world.entities import DEFAULT_BALL_RADIUS
+from app.world.projectiles import Projectile
 
 from . import weapon_registry
 from .assets import load_weapon_sprite
@@ -29,15 +31,19 @@ class Bazooka(Weapon):
     def _fire(self, owner: EntityId, view: WorldView, direction: Vec2) -> None:  # noqa: D401
         velocity = (direction[0] * self.speed, direction[1] * self.speed)
         position = view.get_position(owner)
-        proj = view.spawn_projectile(
-            owner,
-            position,
-            velocity,
-            radius=self.missile_radius,
-            damage=self.damage,
-            knockback=200.0,
-            ttl=1.5,
-            sprite=self._missile_sprite,
+        proj = cast(
+            Projectile,
+            view.spawn_projectile(
+                owner,
+                position,
+                velocity,
+                radius=self.missile_radius,
+                damage=self.damage,
+                knockback=200.0,
+                ttl=1.5,
+                sprite=self._missile_sprite,
+                trail_color=(255, 200, 50),
+            ),
         )
         proj.angle = math.atan2(direction[1], direction[0]) + math.pi / 2
 

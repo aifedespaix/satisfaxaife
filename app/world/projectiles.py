@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from math import sqrt
+from dataclasses import dataclass, field
+from math import atan2, pi, sqrt
 from typing import cast
 
 import pygame
 import pymunk
 
 from app.audio.weapons import WeaponAudio
-from app.core.types import Damage, EntityId, Vec2
+from app.core.types import Color, Damage, EntityId, Vec2
 from app.render.renderer import Renderer
 from app.weapons.base import WeaponEffect, WorldView
 from app.world.physics import PhysicsWorld
@@ -30,6 +30,9 @@ class Projectile(WeaponEffect):
     angle: float = 0.0
     spin: float = 0.0
     audio: WeaponAudio | None = None
+    trail_color: Color | None = None
+    trail: list[Vec2] = field(default_factory=list)
+    trail_width: int = 2
 
     @classmethod
     def spawn(
@@ -44,6 +47,7 @@ class Projectile(WeaponEffect):
         ttl: float,
         sprite: pygame.Surface | None = None,
         spin: float = 0.0,
+        trail_color: Color | None = None,
     ) -> Projectile:
         """Create and add a projectile to the physics world."""
         moment = pymunk.moment_for_circle(1.0, 0, radius)
@@ -65,13 +69,25 @@ class Projectile(WeaponEffect):
             max_ttl=ttl,
             sprite=sprite,
             spin=spin,
+            trail_color=trail_color,
         )
 
     def step(self, dt: float) -> bool:
         """Advance state and return ``True`` while the projectile is alive."""
         self.ttl -= dt
-        if self.sprite is not None and self.spin != 0.0:
-            self.angle = (self.angle + self.spin * dt) % (2 * 3.14159)
+        if self.sprite is not None:
+            if self.spin != 0.0:
+                self.angle = (self.angle + self.spin * dt) % (2 * pi)
+            else:
+                vx = float(self.body.velocity.x)
+                vy = float(self.body.velocity.y)
+                if vx != 0.0 or vy != 0.0:
+                    self.angle = atan2(vy, vx) + pi / 2
+        if self.trail_color is not None:
+            pos = (float(self.body.position.x), float(self.body.position.y))
+            self.trail.append(pos)
+            if len(self.trail) > 8:
+                self.trail.pop(0)
         return self.ttl > 0
 
     def collides(self, view: WorldView, position: Vec2, radius: float) -> bool:
@@ -104,9 +120,16 @@ class Projectile(WeaponEffect):
         self.body.velocity = (dx / norm * speed, dy / norm * speed)
         self.owner = new_owner
         self.ttl = self.max_ttl
+        self.angle = atan2(dy, dx) + pi / 2
 
     def draw(self, renderer: Renderer, view: WorldView) -> None:
         pos = (float(self.body.position.x), float(self.body.position.y))
+        if self.trail_color is not None and len(self.trail) > 1:
+            denom = len(self.trail) - 1
+            for i, (a, b) in enumerate(zip(self.trail, self.trail[1:], strict=False)):
+                t = (i + 1) / denom
+                color = cast(Color, tuple(int(c * t) for c in self.trail_color))
+                renderer.draw_line(a, b, color, self.trail_width)
         if self.sprite is not None:
             renderer.draw_sprite(self.sprite, pos, self.angle)
         else:
