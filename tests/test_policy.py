@@ -150,6 +150,22 @@ def test_low_health_fire_requires_range(style: Literal["aggressive", "kiter", "e
     assert fire is False
 
 
+@pytest.mark.parametrize("style", ["aggressive", "kiter", "evader"])
+def test_both_low_health_engage(style: Literal["aggressive", "kiter", "evader"]) -> None:
+    view = DummyView(
+        EntityId(1),
+        EntityId(2),
+        (0.0, 0.0),
+        (50.0, 0.0),
+        health_me=0.1,
+        health_enemy=0.1,
+    )
+    policy = SimplePolicy(style)
+    accel, _, fire = policy.decide(EntityId(1), view, 600.0)
+    assert accel[0] > 0  # moves toward enemy
+    assert fire is True
+
+
 def test_horizontal_alignment_has_vertical_component() -> None:
     me = EntityId(1)
     enemy = EntityId(2)
