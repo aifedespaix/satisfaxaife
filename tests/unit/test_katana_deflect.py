@@ -50,6 +50,7 @@ class DummyView(WorldView):
         ttl: float,
         sprite: pygame.Surface | None = None,
         spin: float = 0.0,
+        trail_color: tuple[int, int, int] | None = None,
     ) -> WeaponEffect:
         raise NotImplementedError
 

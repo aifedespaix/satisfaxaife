@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import math
+from dataclasses import dataclass, field
+from typing import Any, cast
 
 import pytest
 
@@ -12,10 +13,10 @@ from app.render.renderer import Renderer
 from app.video.recorder import NullRecorder
 from app.weapons import weapon_registry
 from app.weapons.base import Weapon, WeaponEffect, WorldView
-from app.weapons.katana import Katana
-from app.weapons.shuriken import Shuriken
-from app.weapons.knife import Knife
 from app.weapons.bazooka import Bazooka
+from app.weapons.katana import Katana
+from app.weapons.knife import Knife
+from app.weapons.shuriken import Shuriken
 
 
 @dataclass
@@ -49,15 +50,30 @@ class DummyView(WorldView):
     def spawn_effect(self, effect: WeaponEffect) -> None:  # noqa: D401
         self.effects.append(effect)
 
-    def spawn_projectile(self, owner: EntityId, position: Vec2, velocity: Vec2, radius: float, damage: Damage, knockback: float, ttl: float, sprite: object | None = None, spin: float = 0.0) -> WeaponEffect:  # noqa: D401,E501
-        self.projectiles.append({
-            "owner": owner,
-            "position": position,
-            "velocity": velocity,
-            "radius": radius,
-            "damage": damage,
-            "ttl": ttl,
-        })
+    def spawn_projectile(
+        self,
+        owner: EntityId,
+        position: Vec2,
+        velocity: Vec2,
+        radius: float,
+        damage: Damage,
+        knockback: float,
+        ttl: float,
+        sprite: object | None = None,
+        spin: float = 0.0,
+        trail_color: tuple[int, int, int] | None = None,
+    ) -> WeaponEffect:  # noqa: D401,E501
+        self.projectiles.append(
+            {
+                "owner": owner,
+                "position": position,
+                "velocity": velocity,
+                "radius": radius,
+                "damage": damage,
+                "ttl": ttl,
+                "trail_color": trail_color,
+            }
+        )
 
         class _Dummy(WeaponEffect):
             owner: EntityId = EntityId(0)
@@ -115,11 +131,12 @@ def test_bazooka_fires_missile() -> None:
     bazooka.update(EntityId(1), view, 0.0)
     assert len(view.projectiles) == 1
     projectile = view.projectiles[0]
-    vx, vy = projectile["velocity"]
+    vx, vy = cast(Vec2, projectile["velocity"])
     assert vx == pytest.approx(bazooka.speed)
     assert vy == pytest.approx(0.0)
     assert projectile["radius"] == bazooka.missile_radius
     assert projectile["ttl"] == pytest.approx(15.0)
+    assert projectile["trail_color"] == (255, 200, 50)
     effect = view.effects[0]
     assert effect.collides(view, (0.0, 0.0), 1.0) is False
 
@@ -149,7 +166,7 @@ class _OrientView(WorldView):
     enemy: EntityId
     enemy_pos: Vec2
     effects: list[WeaponEffect] = field(default_factory=list)
-    projectile: WeaponEffect | None = None
+    projectile: object | None = None
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
         return self.enemy
@@ -183,6 +200,7 @@ class _OrientView(WorldView):
         ttl: float,
         sprite: object | None = None,
         spin: float = 0.0,
+        trail_color: tuple[int, int, int] | None = None,
     ) -> WeaponEffect:  # noqa: D401
         class _Dummy(WeaponEffect):
             owner: EntityId = owner
@@ -220,12 +238,13 @@ def test_bazooka_sprite_and_projectile_orientation() -> None:
     bazooka.update(EntityId(1), view, 0.0)
     assert view.projectile is not None
     assert len(view.effects) == 1
-    effect = view.effects[0]
+    effect = cast(Any, view.effects[0])
     dx, dy = 100.0, 100.0
     expected_weapon_angle = math.atan2(dy, dx)
     expected_projectile_angle = math.atan2(dy, dx) + math.pi / 2
     assert effect.angle == pytest.approx(expected_weapon_angle)
-    assert view.projectile.angle == pytest.approx(expected_projectile_angle)
+    proj = cast(Any, view.projectile)
+    assert proj.angle == pytest.approx(expected_projectile_angle)
 
 
 class SpyWeapon(Weapon):
