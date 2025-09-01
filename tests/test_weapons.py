@@ -1,7 +1,7 @@
-from app.weapons.katana import Katana
-from app.weapons.shuriken import Shuriken
-from app.weapons.knife import Knife
 from app.weapons.bazooka import Bazooka
+from app.weapons.katana import Katana
+from app.weapons.knife import Knife
+from app.weapons.shuriken import Shuriken
 from app.world.entities import DEFAULT_BALL_RADIUS
 
 

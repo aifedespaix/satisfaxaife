@@ -33,6 +33,7 @@ class Projectile(WeaponEffect):
     trail_color: Color | None = None
     trail: list[Vec2] = field(default_factory=list)
     trail_width: int = 2
+    acceleration: float = 0.0
 
     @classmethod
     def spawn(
@@ -48,6 +49,7 @@ class Projectile(WeaponEffect):
         sprite: pygame.Surface | None = None,
         spin: float = 0.0,
         trail_color: Color | None = None,
+        acceleration: float = 0.0,
     ) -> Projectile:
         """Create and add a projectile to the physics world."""
         moment = pymunk.moment_for_circle(1.0, 0, radius)
@@ -70,11 +72,20 @@ class Projectile(WeaponEffect):
             sprite=sprite,
             spin=spin,
             trail_color=trail_color,
+            acceleration=acceleration,
         )
 
     def step(self, dt: float) -> bool:
         """Advance state and return ``True`` while the projectile is alive."""
         self.ttl -= dt
+        if self.acceleration != 0.0:
+            vx = float(self.body.velocity.x)
+            vy = float(self.body.velocity.y)
+            speed = sqrt(vx * vx + vy * vy)
+            if speed > 0.0:
+                new_speed = speed + self.acceleration * dt
+                scale = new_speed / speed
+                self.body.velocity = (vx * scale, vy * scale)
         if self.sprite is not None:
             if self.spin != 0.0:
                 self.angle = (self.angle + self.spin * dt) % (2 * pi)

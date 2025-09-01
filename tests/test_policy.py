@@ -59,6 +59,7 @@ class DummyView(WorldView):
         sprite: object | None = None,
         spin: float = 0.0,
         trail_color: tuple[int, int, int] | None = None,
+        acceleration: float = 0.0,
     ) -> WeaponEffect:  # noqa: D401
         self.last_velocity = velocity
 

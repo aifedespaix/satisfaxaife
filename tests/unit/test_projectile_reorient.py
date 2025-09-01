@@ -31,3 +31,23 @@ def test_projectile_reorients_and_trails() -> None:
     projectile.step(0.1)
     assert projectile.angle == pytest.approx(math.pi)
     assert len(projectile.trail) == 2
+
+
+def test_projectile_accelerates() -> None:
+    pygame.init()
+    world = PhysicsWorld()
+    projectile = Projectile.spawn(
+        world,
+        owner=EntityId(1),
+        position=(0.0, 0.0),
+        velocity=(10.0, 0.0),
+        radius=1.0,
+        damage=Damage(1),
+        knockback=0.0,
+        ttl=1.0,
+        acceleration=10.0,
+    )
+    projectile.step(0.5)
+    vx = float(projectile.body.velocity.x)
+    speed = math.hypot(vx, float(projectile.body.velocity.y))
+    assert speed == pytest.approx(15.0)
