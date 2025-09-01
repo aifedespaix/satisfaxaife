@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from pathlib import Path
 
 from app.ai.stateful_policy import policy_for_weapon
@@ -38,12 +39,17 @@ def create_controller(
     max_seconds: int = 120,
     display: bool = False,
     intro_config: IntroConfig | None = None,
+    rng: random.Random | None = None,
 ) -> GameController:
     """Construct a :class:`GameController` with default components."""
     engine = get_default_engine()
     world = PhysicsWorld()
     renderer = renderer or Renderer(settings.width, settings.height, display=display)
     hud = Hud(settings.theme)
+
+    rng = rng or random.Random(random.randint(0, 2**63 - 1))
+    rng_a = random.Random(rng.randint(0, 2**63 - 1))
+    rng_b = random.Random(rng.randint(0, 2**63 - 1))
 
     ball_a = Ball.spawn(world, (settings.width * 0.25, settings.height * 0.5))
     ball_b = Ball.spawn(world, (settings.width * 0.75, settings.height * 0.5))
@@ -52,7 +58,7 @@ def create_controller(
             ball_a.eid,
             ball_a,
             weapon_registry.create(weapon_a),
-            policy_for_weapon(weapon_a),
+            policy_for_weapon(weapon_a, rng=rng_a),
             (1.0, 0.0),
             settings.theme.team_a.primary,
             BallAudio(engine=engine),
@@ -61,7 +67,7 @@ def create_controller(
             ball_b.eid,
             ball_b,
             weapon_registry.create(weapon_b),
-            policy_for_weapon(weapon_b),
+            policy_for_weapon(weapon_b, rng=rng_b),
             (-1.0, 0.0),
             settings.theme.team_b.primary,
             BallAudio(engine=engine),

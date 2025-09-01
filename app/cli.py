@@ -45,6 +45,7 @@ def run(
 ) -> None:
     """Run a single match and export a video to ``./generated``."""
     random.seed(seed)
+    rng = random.Random(seed)
 
     driver = None if display else "dummy"
 
@@ -87,6 +88,7 @@ def run(
             renderer,
             display=display,
             intro_config=intro_config,
+            rng=rng,
         )
         try:
             winner = controller.run()
@@ -130,6 +132,7 @@ def batch(
             temp_path = out_dir / f"{timestamp}-{safe_a}-VS-{safe_b}.mp4"
 
             random.seed(seed)
+            rng = random.Random(seed)
             recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
             renderer = Renderer(settings.width, settings.height)
 
@@ -138,6 +141,7 @@ def batch(
                 weapon_b,
                 recorder,
                 renderer,
+                rng=rng,
             )
             try:
                 winner = controller.run()

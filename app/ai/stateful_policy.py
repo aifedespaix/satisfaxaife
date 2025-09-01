@@ -7,9 +7,12 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal
 
+import random
+
 from app.ai.policy import (
     SimplePolicy,
     _lead_target,
+    _new_rng,
     _projectile_dodge,
 )
 from app.core.types import Damage, EntityId, Vec2
@@ -172,17 +175,30 @@ class StatefulPolicy(SimplePolicy):
         return damage
 
 
-def policy_for_weapon(weapon_name: str) -> StatefulPolicy:
-    """Return a :class:`StatefulPolicy` tuned for ``weapon_name``."""
+def policy_for_weapon(
+    weapon_name: str, rng: random.Random | None = None
+) -> StatefulPolicy:
+    """Return a :class:`StatefulPolicy` tuned for ``weapon_name``.
 
+    Parameters
+    ----------
+    weapon_name:
+        Identifier of the weapon used by the agent.
+    rng:
+        Optional random number generator. When ``None``, a new instance
+        derived from the global seed is created.
+    """
+
+    rng = rng or _new_rng()
     if weapon_name == "bazooka":
         return StatefulPolicy(
             "evader",
             desired_dist_factor=1.2,
             fire_range_factor=1.2,
+            rng=rng,
         )
     if weapon_name == "knife":
-        return StatefulPolicy("aggressive", dodge_bias=1.0)
+        return StatefulPolicy("aggressive", dodge_bias=1.0, rng=rng)
     if weapon_name == "shuriken":
-        return StatefulPolicy("aggressive", fire_range=float("inf"))
-    return StatefulPolicy("aggressive")
+        return StatefulPolicy("aggressive", fire_range=float("inf"), rng=rng)
+    return StatefulPolicy("aggressive", rng=rng)

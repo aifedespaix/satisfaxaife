@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import math
+import random
 from dataclasses import dataclass, field
 from typing import Literal
 
 from app.core.types import EntityId, Vec2
 from app.weapons.base import WorldView
+
+
+def _new_rng() -> random.Random:
+    """Return a :class:`random.Random` seeded from the global generator."""
+    return random.Random(random.randint(0, 2**63 - 1))
 
 
 def _lead_target(
@@ -117,6 +123,7 @@ class SimplePolicy:
     desired_dist_factor: float = 0.5
     fire_range_factor: float = 0.8
     fire_range: float = 150.0
+    rng: random.Random = field(default_factory=_new_rng, repr=False)
     _prev_dodge: Vec2 = field(default=(1.0, 0.0), init=False, repr=False)
 
     def decide(
@@ -160,7 +167,8 @@ class SimplePolicy:
             accel = (-direction[0] * 400.0, -direction[1] * 400.0)
 
         if abs(dy) <= 1e-6:
-            offset_face = (direction[0], self.vertical_offset)
+            offset = self.vertical_offset + self.rng.uniform(-0.05, 0.05)
+            offset_face = (direction[0], offset)
             norm = math.hypot(*offset_face) or 1.0
             face = (offset_face[0] / norm, offset_face[1] / norm)
 
@@ -180,9 +188,10 @@ class SimplePolicy:
 
         raw_dodge = _projectile_dodge(me, view, my_pos, direction)
         dodge = self._smooth_dodge(raw_dodge)
+        bias = self.dodge_bias + self.rng.uniform(-0.1, 0.1)
         combined = (
-            direction[0] + self.dodge_bias * dodge[0],
-            direction[1] + self.dodge_bias * dodge[1],
+            direction[0] + bias * dodge[0],
+            direction[1] + bias * dodge[1],
         )
         norm = math.hypot(*combined) or 1.0
         accel = (combined[0] / norm * 400.0, combined[1] / norm * 400.0)
@@ -205,9 +214,10 @@ class SimplePolicy:
         raw_dodge = _projectile_dodge(me, view, my_pos, direction)
         dodge = self._smooth_dodge(raw_dodge)
         base = (-direction[0], -direction[1])
+        bias = self.dodge_bias + self.rng.uniform(-0.1, 0.1)
         combined = (
-            base[0] + self.dodge_bias * dodge[0],
-            base[1] + self.dodge_bias * dodge[1],
+            base[0] + bias * dodge[0],
+            base[1] + bias * dodge[1],
         )
         norm = math.hypot(*combined) or 1.0
         accel = (combined[0] / norm * 400.0, combined[1] / norm * 400.0)
@@ -262,22 +272,28 @@ class SimplePolicy:
         return accel, fire
 
 
-def policy_for_weapon(weapon_name: str) -> SimplePolicy:
+def policy_for_weapon(weapon_name: str, rng: random.Random | None = None) -> SimplePolicy:
     """Return a :class:`SimplePolicy` tuned for ``weapon_name``.
 
-    Bazooka users adopt an evasive style, maximising distance and dodging
-    incoming rockets. Knife wielders remain aggressive but give more weight to
-    projectile dodging.
+    Parameters
+    ----------
+    weapon_name:
+        Identifier of the weapon used by the agent.
+    rng:
+        Optional random number generator. When ``None``, a new instance
+        derived from the global seed is created.
     """
 
+    rng = rng or _new_rng()
     if weapon_name == "bazooka":
         return SimplePolicy(
             "evader",
             desired_dist_factor=1.2,
             fire_range_factor=1.2,
+            rng=rng,
         )
     if weapon_name == "knife":
-        return SimplePolicy("aggressive", dodge_bias=1.0)
+        return SimplePolicy("aggressive", dodge_bias=1.0, rng=rng)
     if weapon_name == "shuriken":
-        return SimplePolicy("aggressive", fire_range=float("inf"))
-    return SimplePolicy("aggressive")
+        return SimplePolicy("aggressive", fire_range=float("inf"), rng=rng)
+    return SimplePolicy("aggressive", rng=rng)

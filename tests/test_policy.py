@@ -143,7 +143,7 @@ def test_retreats_on_low_health(style: Literal["aggressive", "kiter", "evader"])
     policy = SimplePolicy(style)
     accel, face, fire, parry = policy.decide(EntityId(1), view, 600.0)
     assert accel[0] < 0  # retreats from enemy
-    assert face == (1.0, 0.0)  # still faces enemy
+    assert face[0] > 0  # still faces enemy horizontally
     assert fire is True
     assert parry is False
 
