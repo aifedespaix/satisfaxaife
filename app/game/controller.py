@@ -218,6 +218,7 @@ class GameController:
         intro_elapsed = 0.0
         self.intro_manager.start()
         while not self.intro_manager.is_finished():
+            print(f"Intro elapsed: {intro_elapsed:.2f}s")
             self.intro_manager.update(settings.dt)
             self.renderer.clear()
             self.intro_manager.draw(self.renderer.surface, self.labels, self.hud, ball_positions)
