@@ -389,3 +389,71 @@ def test_cached_positions_and_reset(monkeypatch: pytest.MonkeyPatch) -> None:
     renderer.draw(surface, ("A", "B"), 0.0, IntroState.HOLD)
     assert calls == [1.0, 1.0]
     pygame.quit()
+
+
+def test_hold_float_oscillates_without_drift(monkeypatch: pytest.MonkeyPatch) -> None:
+    pygame.init()
+    config = IntroConfig(hold_float_amplitude=5.0, hold_float_frequency=2.0)
+    renderer = IntroRenderer(200, 100, config=config)
+    surface = pygame.Surface((200, 100), flags=pygame.SRCALPHA)
+
+    # Prepare a single element positioned at the centre to simplify tracking.
+    _, _, center = renderer.compute_positions(1.0)
+
+    def fake_prepare(
+        labels: tuple[str, str],
+        prog: float,
+        left: tuple[float, float],
+        right: tuple[float, float],
+        center_pos: tuple[float, float],
+    ) -> list[tuple[_pygame.Surface, tuple[float, float]]]:
+        surf = pygame.Surface((10, 10), flags=pygame.SRCALPHA)
+        return [(surf, center_pos)]
+
+    monkeypatch.setattr(renderer, "_prepare_elements", fake_prepare)
+
+    angles: list[float] = []
+    positions: list[float] = []
+
+    original_rotozoom = pygame.transform.rotozoom
+
+    def tracking_rotozoom(img: _pygame.Surface, angle: float, scale: float) -> _pygame.Surface:
+        angles.append(angle)
+        return original_rotozoom(img, angle, scale)
+
+    monkeypatch.setattr(pygame.transform, "rotozoom", tracking_rotozoom)
+
+    blits: list[tuple[int, int]] = []
+    original_blit = pygame.Surface.blit
+
+    def tracking_blit(
+        self: _pygame.Surface,
+        source: _pygame.Surface,
+        dest: _pygame.Rect | tuple[int, int],
+        *args: object,
+        **kwargs: object,
+    ) -> _pygame.Rect:
+        center_dest = dest.center if hasattr(dest, "center") else dest
+        blits.append((int(center_dest[0]), int(center_dest[1])))
+        return original_blit(self, source, dest, *args, **kwargs)
+
+    monkeypatch.setattr(pygame.Surface, "blit", tracking_blit)
+
+    import math
+    import statistics
+
+    times = [i * 0.1 for i in range(int(2 * math.pi / 0.1))]
+    for t in times:
+        renderer.draw(surface, ("A", "B"), 1.0, IntroState.HOLD, None, None, t)
+        positions.append(blits[-1][1])
+
+    base_angle, _ = renderer._compute_transform(1.0)
+
+    mean_pos = statistics.fmean(positions)
+    mean_angle = statistics.fmean(angles)
+
+    assert abs(mean_pos - center[1]) < 0.1
+    assert abs(mean_angle - base_angle) < 0.1
+    assert max(positions) - min(positions) > 0
+    assert max(angles) - min(angles) > 0
+    pygame.quit()
