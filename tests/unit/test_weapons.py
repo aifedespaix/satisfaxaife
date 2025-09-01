@@ -106,9 +106,11 @@ def test_weapon_speed_attribute() -> None:
     """Weapons expose their projectile speed on the base class."""
     katana = Katana()
     shuriken = Shuriken()
+    knife = Knife()
 
     assert katana.speed == 5.0
     assert shuriken.speed == 600.0
+    assert knife.speed == 12.0
 
 
 def test_knife_applies_speed_bonus() -> None:
@@ -116,6 +118,7 @@ def test_knife_applies_speed_bonus() -> None:
     knife = Knife()
     knife.update(EntityId(1), view, 0.0)
     assert view.speed_bonus[EntityId(1)] == knife.player_speed_bonus
+    assert knife.player_speed_bonus == 120.0
     assert len(view.effects) == 1
 
 
@@ -150,7 +153,7 @@ def test_bazooka_leads_moving_target() -> None:
     bazooka = Bazooka()
     bazooka.update(EntityId(1), view, 0.0)
     projectile = view.projectiles[0]
-    vx, vy = projectile["velocity"]
+    vx, vy = cast(Vec2, projectile["velocity"])
     distance = math.hypot(300.0, 0.0)
     time_to_target = distance / bazooka.speed
     predicted_y = 0.0 + 100.0 * time_to_target

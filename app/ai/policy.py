@@ -60,6 +60,9 @@ class SimplePolicy:
 
     style: Literal["aggressive", "kiter"]
     vertical_offset: float = 0.1
+    dodge_bias: float = 0.5
+    desired_dist_factor: float = 0.5
+    fire_range_factor: float = 0.8
 
     def decide(
         self, me: EntityId, view: WorldView, projectile_speed: float | None = None
@@ -144,8 +147,8 @@ class SimplePolicy:
             dodge = (-direction[1], direction[0])
 
         combined = (
-            direction[0] + 0.5 * dodge[0],
-            direction[1] + 0.5 * dodge[1],
+            direction[0] + self.dodge_bias * dodge[0],
+            direction[1] + self.dodge_bias * dodge[1],
         )
         norm = math.hypot(*combined) or 1.0
         accel = (combined[0] / norm * 400.0, combined[1] / norm * 400.0)
@@ -163,11 +166,11 @@ class SimplePolicy:
         """Keep distance while staying within weapon range."""
 
         if projectile_speed and projectile_speed > 0.0:
-            desired = projectile_speed * 0.5
-            fire_range = projectile_speed * 0.8
+            desired = projectile_speed * self.desired_dist_factor
+            fire_range = projectile_speed * self.fire_range_factor
         else:
-            desired = 250.0
-            fire_range = 300.0
+            desired = 250.0 * (self.desired_dist_factor / 0.5)
+            fire_range = 300.0 * (self.fire_range_factor / 0.8)
 
         accel: Vec2 = (0.0, 0.0)
         if dist < desired:
@@ -177,3 +180,22 @@ class SimplePolicy:
 
         fire = dist <= fire_range and direction[0] * face[0] + direction[1] * face[1] >= cos_thresh
         return accel, fire
+
+
+def policy_for_weapon(weapon_name: str) -> SimplePolicy:
+    """Return a :class:`SimplePolicy` tuned for ``weapon_name``.
+
+    Bazooka users favour a kiting style, keeping more distance before
+    firing. Knife wielders remain aggressive but give more weight to
+    projectile dodging.
+    """
+
+    if weapon_name == "bazooka":
+        return SimplePolicy(
+            "kiter",
+            desired_dist_factor=0.8,
+            fire_range_factor=1.0,
+        )
+    if weapon_name == "knife":
+        return SimplePolicy("aggressive", dodge_bias=1.0)
+    return SimplePolicy("aggressive")
