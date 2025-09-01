@@ -22,6 +22,7 @@ from app.weapons.bazooka import Bazooka
 class DummyView(WorldView):
     enemy: EntityId
     enemy_pos: Vec2
+    enemy_vel: Vec2 = (0.0, 0.0)
     damage_values: list[float] = field(default_factory=list)
     speed_bonus: dict[EntityId, float] = field(default_factory=dict)
     effects: list[WeaponEffect] = field(default_factory=list)
@@ -34,7 +35,7 @@ class DummyView(WorldView):
         return self.enemy_pos if eid == self.enemy else (0.0, 0.0)
 
     def get_velocity(self, eid: EntityId) -> Vec2:  # noqa: D401
-        return (0.0, 0.0)
+        return self.enemy_vel if eid == self.enemy else (0.0, 0.0)
 
     def get_health_ratio(self, eid: EntityId) -> float:  # noqa: D401
         return 1.0
@@ -118,8 +119,29 @@ def test_bazooka_fires_missile() -> None:
     assert vx == pytest.approx(bazooka.speed)
     assert vy == pytest.approx(0.0)
     assert projectile["radius"] == bazooka.missile_radius
+    assert projectile["ttl"] == pytest.approx(15.0)
     effect = view.effects[0]
     assert effect.collides(view, (0.0, 0.0), 1.0) is False
+
+
+def test_bazooka_leads_moving_target() -> None:
+    view = DummyView(
+        enemy=EntityId(2),
+        enemy_pos=(300.0, 0.0),
+        enemy_vel=(0.0, 100.0),
+    )
+    bazooka = Bazooka()
+    bazooka.update(EntityId(1), view, 0.0)
+    projectile = view.projectiles[0]
+    vx, vy = projectile["velocity"]
+    distance = math.hypot(300.0, 0.0)
+    time_to_target = distance / bazooka.speed
+    predicted_y = 0.0 + 100.0 * time_to_target
+    norm = math.hypot(300.0, predicted_y)
+    expected_vx = bazooka.speed * 300.0 / norm
+    expected_vy = bazooka.speed * predicted_y / norm
+    assert vx == pytest.approx(expected_vx)
+    assert vy == pytest.approx(expected_vy)
 
 
 @dataclass
