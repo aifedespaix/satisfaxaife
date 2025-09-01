@@ -93,9 +93,10 @@ class _MatchView(WorldView):
                 else:
                     self.renderer.add_impact(pos, duration=2.0)
                     p.audio.on_explode(timestamp=timestamp)
-                    weapon_audio = getattr(p.weapon, "audio", None)
-                    if weapon_audio is not None:
-                        weapon_audio.stop_idle(timestamp)
+                    for other in self.players:
+                        weapon_audio = getattr(other.weapon, "audio", None)
+                        if weapon_audio is not None:
+                            weapon_audio.stop_idle(timestamp)
                 self.renderer.trigger_blink(p.color, int(damage.amount))
                 self.renderer.trigger_hit_flash(p.color)
                 return
