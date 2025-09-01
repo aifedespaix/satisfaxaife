@@ -40,6 +40,7 @@ class IntroRenderer:
         self.font: pygame.font.Font | None = font or (assets.font if assets else None)
         self.assets = assets
         self._final_positions: tuple[Vec2, Vec2, Vec2] | None
+        self._base_progress = 1.0
         self.reset()
 
     def reset(self) -> None:
@@ -50,6 +51,7 @@ class IntroRenderer:
         positions.
         """
         self._final_positions = None
+        self._base_progress = 1.0
 
     def compute_positions(self, progress: float) -> tuple[Vec2, Vec2, Vec2]:
         """Return positions for the two labels and the central marker.
@@ -99,6 +101,23 @@ class IntroRenderer:
         if state is _IntroState.FADE_OUT:
             return int(p * 255)
         return 255
+
+    def _compute_transform(self, progress: float) -> tuple[float, float]:
+        """Return rotation and scale factors for ``progress``.
+
+        Rotation and additional scaling are applied relative to the progress
+        reached at the end of ``LOGO_IN`` so that subsequent phases start from
+        that baseline rather than resetting.
+        """
+
+        if progress > self._base_progress:
+            delta = progress - self._base_progress
+            angle = (self._base_progress - 0.5) * 10 + delta * 10
+            scale = 1.0 + delta
+        else:
+            angle = (progress - 0.5) * 10
+            scale = 1.0
+        return angle, scale
 
     def _interpolate_to_targets(
         self,
@@ -161,6 +180,7 @@ class IntroRenderer:
         center_pos: Vec2,
     ) -> list[tuple[pygame.Surface, Vec2]]:
         """Return surfaces and positions for rendering."""
+        angle, scale_factor = self._compute_transform(progress)
         if self.assets is not None:
             if self.font is None:
                 self.font = self.assets.font
@@ -173,13 +193,13 @@ class IntroRenderer:
                 (self.assets.weapon_a, self.assets.weapon_b), text_surfaces, strict=False
             ):
                 target_width = self.width * self.WEAPON_WIDTH_RATIO
-                scale = target_width / source.get_width()
-                img = pygame.transform.rotozoom(source, (progress - 0.5) * 10, scale)
+                base_scale = target_width / source.get_width()
+                img = pygame.transform.rotozoom(source, angle, base_scale * scale_factor)
                 text_height = text_surf.get_height()
                 img_y = pos[1] - text_height / 2 - self.IMAGE_TEXT_GAP - img.get_height() / 2
                 weapon_surfaces.append((img, (pos[0], img_y)))
             logo_img = pygame.transform.rotozoom(
-                self.assets.logo, (progress - 0.5) * 10, self.config.logo_scale
+                self.assets.logo, angle, self.config.logo_scale * scale_factor
             )
             logo_and_text = [(logo_img, center_pos)] + text_surfaces
             return weapon_surfaces + logo_and_text
@@ -237,6 +257,7 @@ class IntroRenderer:
             left_pos, right_pos, center_pos = self.compute_positions(progress)
             if progress >= 1.0:
                 self._final_positions = (left_pos, right_pos, center_pos)
+                self._base_progress = progress
         elif state is _IntroState.WEAPONS_IN:
             if self._final_positions is None:
                 self._final_positions = self.compute_positions(1.0)
@@ -249,6 +270,7 @@ class IntroRenderer:
             left_pos, right_pos, center_pos = self.compute_positions(progress)
         alpha = self.compute_alpha(progress, state)
         elements = self._prepare_elements(labels, progress, left_pos, right_pos, center_pos)
+        angle, scale_factor = self._compute_transform(progress)
 
         if state is _IntroState.FADE_OUT:
             if targets is not None:
@@ -263,7 +285,7 @@ class IntroRenderer:
 
         for img, pos in elements:
             if self.assets is None:
-                img = pygame.transform.rotozoom(img, (progress - 0.5) * 10, 1.0)
+                img = pygame.transform.rotozoom(img, angle, scale_factor)
             img.set_alpha(alpha)
             shadow = img.copy()
             shadow.fill((0, 0, 0, 180), special_flags=pygame.BLEND_RGBA_MULT)
