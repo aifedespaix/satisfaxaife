@@ -21,7 +21,7 @@ class Bazooka(Weapon):
     missile_radius: float
 
     def __init__(self) -> None:
-        super().__init__(name="bazooka", cooldown=1.2, damage=Damage(20), speed=300.0)
+        super().__init__(name="bazooka", cooldown=0.8, damage=Damage(20), speed=300.0)
         weapon_size = DEFAULT_BALL_RADIUS * 2.0
         self._sprite = load_weapon_sprite("bazooka", max_dim=weapon_size)
         self._effect: AimedSprite | None = None
