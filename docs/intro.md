@@ -17,7 +17,7 @@ Ce document décrit l'architecture de l'animation d'introduction avant chaque ma
 - Les images des armes (40 % de la largeur de l'écran) apparaissent juste au-dessus de leur nom,
   tous deux alignés horizontalement légèrement sous le milieu de l'écran.
 - Les noms sont rendus avec la police `assets/fonts/FightKickDemoRegular.ttf`.
-- Les éléments restent visibles pendant `hold=1s` puis disparaissent via `fade_out=0.25s`.
+- Les éléments apparaissent instantanément (`logo_in=0s`, `weapons_in=0s`), restent visibles pendant `hold=1s` puis disparaissent via `fade_out=0.25s`.
 
 ## Tween / Easing
 

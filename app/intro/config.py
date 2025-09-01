@@ -22,7 +22,9 @@ class IntroConfig:
     Parameters
     ----------
     logo_in, weapons_in, hold, fade_out:
-        Durations in seconds for each phase of the intro animation.
+        Durations in seconds for each phase of the intro animation. Defaults to
+        ``logo_in=0.0``, ``weapons_in=0.0``, ``hold=1.0`` and
+        ``fade_out=0.25``.
     micro_bounce, pulse, fade:
         Easing functions used for the various phases.
     left_pos_pct, right_pos_pct, center_pos_pct:
@@ -45,10 +47,10 @@ class IntroConfig:
         for the gentle floating effect applied during the ``HOLD`` phase.
     """
 
-    logo_in: float = 1.0
-    weapons_in: float = 1.0
+    logo_in: float = 0.0
+    weapons_in: float = 0.0
     hold: float = 1.0
-    fade_out: float = 1.0
+    fade_out: float = 0.25
     hold_float_amplitude: float = 5.0
     hold_float_frequency: float = 2.0
     micro_bounce: Easing = ease_out_back
