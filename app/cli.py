@@ -64,7 +64,6 @@ def run(
         intro_config = set_intro_weapons(
             paths.get("left"),
             paths.get("right"),
-            config=IntroConfig(hold=1.0, fade_out=0.25),
         )
 
     with temporary_sdl_audio_driver(driver):

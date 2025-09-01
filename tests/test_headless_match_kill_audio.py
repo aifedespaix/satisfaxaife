@@ -60,7 +60,7 @@ def test_headless_match_records_kill_audio() -> None:
     run_match("instakill", "instakill", recorder, renderer, max_seconds=1)
     assert recorder.audio is not None
 
-    intro_config = IntroConfig(hold=1.0, fade_out=0.25)
+    intro_config = IntroConfig()
     intro_duration = (
         intro_config.logo_in + intro_config.weapons_in + intro_config.hold + intro_config.fade_out
     )
