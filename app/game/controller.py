@@ -8,7 +8,7 @@ from math import sqrt
 import numpy as np
 import pygame
 
-from app.ai.policy import SimplePolicy
+from app.ai.stateful_policy import StatefulPolicy
 from app.audio import AudioEngine, BallAudio
 from app.core.config import settings
 from app.core.types import Color, Damage, EntityId, ProjectileInfo, Vec2
@@ -28,7 +28,7 @@ class Player:
     eid: EntityId
     ball: Ball
     weapon: Weapon
-    policy: SimplePolicy
+    policy: StatefulPolicy
     face: Vec2
     color: Color
     audio: BallAudio
