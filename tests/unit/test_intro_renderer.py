@@ -162,6 +162,7 @@ def test_draw_with_assets(monkeypatch: pytest.MonkeyPatch) -> None:
         weapon_a_path=Path("assets/ball-a.png"),
         weapon_b_path=Path("assets/ball-b.png"),
     )
+    assert config.logo_scale == 0.5
     assets = IntroAssets.load(config)
     renderer = IntroRenderer(200, 100, config=config, assets=assets)
     surface = pygame.Surface((200, 100), flags=pygame.SRCALPHA)
@@ -216,6 +217,27 @@ def test_draw_with_assets(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert len(blits) == len(expected_centers)
     assert set(expected_centers).issubset(set(blits))
+    pygame.quit()
+
+
+def test_logo_scaled_to_config() -> None:
+    pygame.init()
+    config = IntroConfig(
+        font_path=Path("assets/fonts/FightKickDemoRegular.ttf"),
+        logo_path=Path("assets/vs.png"),
+        weapon_a_path=Path("assets/ball-a.png"),
+        weapon_b_path=Path("assets/ball-b.png"),
+    )
+    assets = IntroAssets.load(config)
+    renderer = IntroRenderer(200, 100, config=config, assets=assets)
+    left, right, center = renderer.compute_positions(1.0)
+    elements = renderer._prepare_elements(("A", "B"), 1.0, left, right, center)
+    logo_surface = elements[2][0]
+    angle, scale_factor = renderer._compute_transform(1.0)
+    expected_logo = pygame.transform.rotozoom(
+        assets.logo, angle, config.logo_scale * scale_factor
+    )
+    assert logo_surface.get_size() == expected_logo.get_size()
     pygame.quit()
 
 

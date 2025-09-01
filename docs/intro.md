@@ -13,7 +13,7 @@ Ce document décrit l'architecture de l'animation d'introduction avant chaque ma
 
 - Calcule les positions et l'opacité des éléments selon le `progress` fourni par le gestionnaire.
 - Utilise les paramètres d'`IntroConfig` pour les dimensions, les positions et les fonctions d'interpolation.
-- Affiche le logo VS centré au-dessus des noms des armes.
+- Affiche le logo VS centré au-dessus des noms des armes, à 50 % de sa taille d'origine.
 - Les images des armes (40 % de la largeur de l'écran) apparaissent juste au-dessus de leur nom,
   tous deux alignés horizontalement légèrement sous le milieu de l'écran.
 - Les noms sont rendus avec la police `assets/fonts/FightKickDemoRegular.ttf`.
