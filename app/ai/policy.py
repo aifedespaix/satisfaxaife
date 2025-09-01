@@ -54,9 +54,7 @@ def _lead_target(
     return (dir_x / norm, dir_y / norm)
 
 
-def _projectile_dodge(
-    me: EntityId, view: WorldView, position: Vec2, direction: Vec2
-) -> Vec2:
+def _projectile_dodge(me: EntityId, view: WorldView, position: Vec2, direction: Vec2) -> Vec2:
     """Return a unit vector helping ``me`` dodge incoming projectiles.
 
     The function inspects all projectiles except those owned by ``me`` and
@@ -114,8 +112,9 @@ class SimplePolicy:
     ) -> tuple[Vec2, Vec2, bool]:
         """Return acceleration, facing vector and fire decision.
 
-        When health drops below ``15%`` the policy retreats from the enemy but
-        still evaluates firing as usual.
+        The agent retreats when its health falls below ``15%``. If both
+        combatants are in this critical state the retreat is cancelled and the
+        agent switches to an aggressive style for the remainder of the fight.
         """
         enemy = view.get_enemy(me)
         assert enemy is not None
@@ -127,15 +126,18 @@ class SimplePolicy:
         dist = math.hypot(dx, dy)
         direction = (dx / dist, dy / dist) if dist else (1.0, 0.0)
         my_health = view.get_health_ratio(me)
+        enemy_health = view.get_health_ratio(enemy)
 
         face: Vec2 = _lead_target(my_pos, enemy_pos, enemy_vel, projectile_speed or 0.0)
         cos_thresh = math.cos(math.radians(18))
 
-        fleeing = my_health < 0.15
+        both_critical = my_health < 0.15 and enemy_health < 0.15
+        fleeing = my_health < 0.15 and not both_critical
+        style = "aggressive" if both_critical else self.style
 
-        if self.style == "aggressive":
+        if style == "aggressive":
             accel, fire = self._aggressive(me, view, my_pos, direction, dist, face, cos_thresh)
-        elif self.style == "evader":
+        elif style == "evader":
             accel, fire = self._evader(
                 me, view, my_pos, direction, dist, face, cos_thresh, projectile_speed
             )
