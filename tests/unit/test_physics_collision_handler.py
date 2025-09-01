@@ -1,5 +1,3 @@
-from typing import Any
-
 import pytest
 
 pymunk = pytest.importorskip("pymunk")
@@ -20,7 +18,7 @@ class _TrackingPhysicsWorld(PhysicsWorld):
         self.hit_called = False
 
     def _handle_projectile_hit(
-        self, arbiter: object, space: object, data: Any
+        self, arbiter: object, space: object, data: object
     ) -> bool:
         self.hit_called = True
         return super()._handle_projectile_hit(arbiter, space, data)

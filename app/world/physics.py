@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import pymunk
 
@@ -72,7 +72,7 @@ class PhysicsWorld:
         self._timestamp = timestamp
 
     def _handle_projectile_hit(
-        self, arbiter: pymunk.Arbiter, _space: pymunk.Space, _data: Any
+        self, arbiter: pymunk.Arbiter, _space: pymunk.Space, _data: object
     ) -> bool:
         proj_shape, ball_shape = arbiter.shapes
         projectile = self._projectiles.get(proj_shape)
