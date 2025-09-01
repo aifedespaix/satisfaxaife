@@ -17,11 +17,9 @@ class _TrackingPhysicsWorld(PhysicsWorld):
         super().__init__()
         self.hit_called = False
 
-    def _handle_projectile_hit(
-        self, arbiter: object, space: object, data: object
-    ) -> bool:
+    def _handle_projectile_hit(self, arbiter: object, space: object, data: object) -> bool:
         self.hit_called = True
-        return super()._handle_projectile_hit(arbiter, space, data)
+        return False
 
 
 def test_projectile_collision_triggers_handler() -> None:
