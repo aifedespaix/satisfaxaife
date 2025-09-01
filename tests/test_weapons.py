@@ -28,4 +28,4 @@ def test_knife_sprite_loaded() -> None:
 
 def test_bazooka_missile_radius() -> None:
     bazooka = Bazooka()
-    assert bazooka.missile_radius > DEFAULT_BALL_RADIUS / 3
+    assert bazooka.missile_radius == DEFAULT_BALL_RADIUS

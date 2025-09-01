@@ -25,16 +25,20 @@ class Bazooka(Weapon):
         weapon_size = DEFAULT_BALL_RADIUS * 2.0
         self._sprite = load_weapon_sprite("bazooka", max_dim=weapon_size)
         self._effect: AimedSprite | None = None
-        self.missile_radius = DEFAULT_BALL_RADIUS / 2.0
+
+        self.missile_radius = DEFAULT_BALL_RADIUS
         missile_size = self.missile_radius * 2.0
         self._missile_sprite = load_sprite("weapons/bazooka/missile.png", max_dim=missile_size)
+
         self.audio = WeaponAudio("throw", "bazooka")
 
     def _fire(self, owner: EntityId, view: WorldView, direction: Vec2) -> None:  # noqa: D401
         self.audio.on_throw()
+
         angle = math.atan2(direction[1], direction[0]) + math.pi / 2
         velocity = (direction[0] * self.speed, direction[1] * self.speed)
         position = view.get_position(owner)
+
         proj = cast(
             Projectile,
             view.spawn_projectile(
@@ -44,11 +48,12 @@ class Bazooka(Weapon):
                 radius=self.missile_radius,
                 damage=self.damage,
                 knockback=200.0,
-                ttl=1.5,
+                ttl=15.0,  # portée/longévité augmentée
                 sprite=self._missile_sprite,
                 trail_color=(255, 200, 50),
             ),
         )
+
         if isinstance(proj, Projectile):
             proj.audio = self.audio
             proj.angle = angle
@@ -58,19 +63,34 @@ class Bazooka(Weapon):
             effect = AimedSprite(owner=owner, sprite=self._sprite, offset=DEFAULT_BALL_RADIUS * 1.5)
             view.spawn_effect(effect)
             self._effect = effect
+
         enemy = view.get_enemy(owner)
         if enemy is not None:
             target = view.get_position(enemy)
+            enemy_velocity = view.get_velocity(enemy)
             origin = view.get_position(owner)
+
             dx, dy = target[0] - origin[0], target[1] - origin[1]
+            distance = math.hypot(dx, dy)
+
+            time_to_target = distance / self.speed if self.speed > 0 else 0.0
+            predicted = (
+                target[0] + enemy_velocity[0] * time_to_target,
+                target[1] + enemy_velocity[1] * time_to_target,
+            )
+
+            dx, dy = predicted[0] - origin[0], predicted[1] - origin[1]
             angle = math.atan2(dy, dx)
+
             if self._effect is not None:
                 self._effect.angle = angle
-            if self._timer <= 0.0:
+
+            if self._timer <= 0.0 and distance > 0.0:
                 norm = math.hypot(dx, dy) or 1.0
                 direction = (dx / norm, dy / norm)
                 self._fire(owner, view, direction)
                 self._timer = self.cooldown
+
         super().update(owner, view, dt)
 
 
