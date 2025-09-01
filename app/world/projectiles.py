@@ -13,6 +13,9 @@ from app.render.renderer import Renderer
 from app.weapons.base import WeaponEffect, WorldView
 from app.world.physics import PhysicsWorld
 
+PROJECTILE_COLLISION_TYPE: int = 2
+"""Pymunk collision type value for projectile shapes."""
+
 
 @dataclass(slots=True)
 class Projectile(WeaponEffect):
@@ -61,8 +64,9 @@ class Projectile(WeaponEffect):
         shape = pymunk.Circle(body, radius)
         shape.elasticity = 1.0
         shape.friction = 0.0
+        shape.collision_type = PROJECTILE_COLLISION_TYPE
         world.space.add(body, shape)
-        return cls(
+        projectile = cls(
             world=world,
             owner=owner,
             body=body,
@@ -77,6 +81,8 @@ class Projectile(WeaponEffect):
             acceleration=acceleration,
             last_velocity=(float(velocity[0]), float(velocity[1])),
         )
+        world.register_projectile(projectile)
+        return projectile
 
     def step(self, dt: float) -> bool:
         """Advance state and return ``True`` while the projectile is alive."""
@@ -158,4 +164,5 @@ class Projectile(WeaponEffect):
             renderer.draw_projectile(pos, int(self.shape.radius), (255, 255, 0))
 
     def destroy(self) -> None:
+        self.world.unregister_projectile(self)
         self.world.space.remove(self.body, self.shape)

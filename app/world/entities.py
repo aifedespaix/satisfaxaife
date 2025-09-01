@@ -11,6 +11,9 @@ from app.world.physics import PhysicsWorld
 DEFAULT_BALL_RADIUS: float = 40.0
 """Default radius used for spawned balls in pixels."""
 
+BALL_COLLISION_TYPE: int = 1
+"""Pymunk collision type value for ball shapes."""
+
 _id_gen = itertools.count(1)
 
 
@@ -40,9 +43,12 @@ class Ball:
         shape = pymunk.Circle(body, radius)
         shape.elasticity = 1.0
         shape.friction = 0.0
+        shape.collision_type = BALL_COLLISION_TYPE
         world.space.add(body, shape)
         stats = stats or Stats(max_health=100.0, max_speed=400.0)
-        return cls(eid=eid, body=body, shape=shape, stats=stats, health=stats.max_health)
+        ball = cls(eid=eid, body=body, shape=shape, stats=stats, health=stats.max_health)
+        world.register_ball(ball)
+        return ball
 
     def take_damage(self, damage: Damage) -> bool:
         """Apply damage and return True if entity is dead."""
