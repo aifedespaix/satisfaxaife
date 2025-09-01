@@ -42,17 +42,20 @@ class IntroRenderer:
         self.assets = assets
         self._final_positions: tuple[Vec2, Vec2, Vec2] | None
         self._base_progress = 1.0
+        self._fade_start_offset = 0.0
         self.reset()
 
     def reset(self) -> None:
-        """Clear any cached final positions.
+        """Clear cached final positions and floating offset.
 
         This should be called when starting a new intro sequence to ensure
         that the slide-in animation begins from the correct initial
-        positions.
+        positions and that no floating offset from a previous sequence
+        persists.
         """
         self._final_positions = None
         self._base_progress = 1.0
+        self._fade_start_offset = 0.0
 
     def compute_positions(self, progress: float) -> tuple[Vec2, Vec2, Vec2]:
         """Return positions for the two labels and the central marker.
@@ -290,12 +293,20 @@ class IntroRenderer:
             offset = self._hold_offset(elapsed)
             angle += offset
             elements = [(img, (pos[0], pos[1] + offset)) for img, pos in elements]
+            self._fade_start_offset = offset
 
         if state is _IntroState.FADE_OUT:
+            offset = self._fade_start_offset
+            angle += offset
+            elements = [(img, (pos[0], pos[1] + offset)) for img, pos in elements]
             if targets is not None:
                 self._interpolate_to_targets(
                     elements,
-                    (center_pos, left_pos, right_pos),
+                    (
+                        (center_pos[0], center_pos[1] + offset),
+                        (left_pos[0], left_pos[1] + offset),
+                        (right_pos[0], right_pos[1] + offset),
+                    ),
                     targets,
                     progress,
                 )
