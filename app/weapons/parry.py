@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from app.core.types import EntityId, Vec2
-from app.render.renderer import Renderer
 from app.world.projectiles import Projectile
 
 from .base import WeaponEffect, WorldView
+
+if TYPE_CHECKING:
+    from app.render.renderer import Renderer
 
 
 @dataclass(slots=True)

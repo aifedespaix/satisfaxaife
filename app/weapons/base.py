@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from __future__ import annotations
+
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Protocol
-
-import pygame
+from typing import TYPE_CHECKING, Protocol
 
 from app.core.types import Color, Damage, EntityId, ProjectileInfo, Vec2
-from app.render.renderer import Renderer
+
+if TYPE_CHECKING:
+    import pygame
+    from app.render.renderer import Renderer
 
 
 class WorldView(Protocol):
