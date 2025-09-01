@@ -4,18 +4,11 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from app.core.tween import ease_out_back
 from app.core.types import Vec2
 from app.core.utils import clamp, ease_out_quad
 
 Easing = Callable[[float], float]
-
-
-def ease_out_back(t: float) -> float:
-    """Return an easing with a small overshoot for a bounce effect."""
-    c1 = 1.70158
-    c3 = c1 + 1.0
-    return 1 + c3 * (t - 1) ** 3 + c1 * (t - 1) ** 2
-
 
 def monotone_pulse(t: float) -> float:
     """Return a monotonic easing curve for the weapon intro."""
