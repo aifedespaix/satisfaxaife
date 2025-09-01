@@ -9,6 +9,7 @@ from app.ai.policy import SimplePolicy, policy_for_weapon
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.weapons.base import WeaponEffect, WorldView
 from app.weapons.shuriken import Shuriken
+from pymunk import Vec2 as Vec2d
 
 
 @dataclass
@@ -21,7 +22,7 @@ class DummyView(WorldView):
     vel_enemy: Vec2 = (0.0, 0.0)
     health_me: float = 1.0
     health_enemy: float = 1.0
-    last_velocity: Vec2 | None = field(default=None, init=False)
+    last_velocity: Vec2d | None = field(default=None, init=False)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
         return self.enemy
@@ -61,7 +62,7 @@ class DummyView(WorldView):
         trail_color: tuple[int, int, int] | None = None,
         acceleration: float = 0.0,
     ) -> WeaponEffect:  # noqa: D401
-        self.last_velocity = velocity
+        self.last_velocity = Vec2d(*velocity)
 
         class _Dummy(WeaponEffect):
             owner: EntityId = owner
@@ -186,7 +187,7 @@ def test_horizontal_alignment_has_vertical_component() -> None:
     assert parry is False
     weapon.trigger(me, view, face)
     assert view.last_velocity is not None
-    assert view.last_velocity[1] != 0.0
+    assert view.last_velocity.y != 0.0
 
 
 def test_aggressive_dodges_projectiles() -> None:

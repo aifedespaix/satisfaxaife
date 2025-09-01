@@ -5,13 +5,14 @@ from math import atan2, pi, sqrt
 from typing import TYPE_CHECKING, cast
 
 import pymunk
-
 from app.core.types import Color, Damage, EntityId, Vec2
 from app.weapons.base import WeaponEffect, WorldView
 from app.world.physics import PhysicsWorld
+from pymunk import Vec2 as Vec2d
 
 if TYPE_CHECKING:
     import pygame
+
     from app.audio.weapons import WeaponAudio
     from app.render.renderer import Renderer
 
@@ -40,7 +41,7 @@ class Projectile(WeaponEffect):
     trail_width: int = 2
     acceleration: float = 0.0
     bounces: int = 0
-    last_velocity: Vec2 = (0.0, 0.0)
+    last_velocity: Vec2d = field(default_factory=lambda: Vec2d(0.0, 0.0))
 
     @classmethod
     def spawn(
@@ -62,7 +63,8 @@ class Projectile(WeaponEffect):
         moment = pymunk.moment_for_circle(1.0, 0, radius)
         body = pymunk.Body(1.0, moment)
         body.position = position
-        body.velocity = velocity
+        velocity_vec = Vec2d(*velocity)
+        body.velocity = velocity_vec
         shape = pymunk.Circle(body, radius)
         shape.elasticity = 1.0
         shape.friction = 0.0
@@ -81,7 +83,7 @@ class Projectile(WeaponEffect):
             spin=spin,
             trail_color=trail_color,
             acceleration=acceleration,
-            last_velocity=(float(velocity[0]), float(velocity[1])),
+            last_velocity=Vec2d(velocity_vec.x, velocity_vec.y),
         )
         world.register_projectile(projectile)
         return projectile
@@ -91,9 +93,9 @@ class Projectile(WeaponEffect):
         self.ttl -= dt
         vx = float(self.body.velocity.x)
         vy = float(self.body.velocity.y)
-        if vx * self.last_velocity[0] < 0 or vy * self.last_velocity[1] < 0:
+        if vx * self.last_velocity.x < 0 or vy * self.last_velocity.y < 0:
             self.bounces += 1
-        self.last_velocity = (vx, vy)
+        self.last_velocity = Vec2d(vx, vy)
         if self.acceleration != 0.0:
             speed = sqrt(vx * vx + vy * vy)
             if speed > 0.0:
@@ -152,10 +154,7 @@ class Projectile(WeaponEffect):
         self.ttl = self.max_ttl
         self.angle = atan2(dy, dx) + pi / 2
         self.bounces = 0
-        self.last_velocity = (
-            float(self.body.velocity.x),
-            float(self.body.velocity.y),
-        )
+        self.last_velocity = Vec2d(self.body.velocity.x, self.body.velocity.y)
 
     def draw(self, renderer: Renderer, view: WorldView) -> None:
         pos = (float(self.body.position.x), float(self.body.position.y))
