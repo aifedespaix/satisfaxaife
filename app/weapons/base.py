@@ -135,6 +135,25 @@ class Weapon:
         self._fire(owner, view, direction)
         self._timer = self.cooldown
 
+    def parry(self, owner: EntityId, view: WorldView) -> None:
+        """Attempt to block incoming attacks.
+
+        Parameters
+        ----------
+        owner:
+            Entity identifier owning the weapon.
+        view:
+            Read-only access to the game state.
+
+        Notes
+        -----
+        Subclasses may override to spawn defensive effects or modify state.
+        The default implementation performs no action, making the method
+        optional for offensive-only weapons.
+        """
+
+        return None
+
     def _fire(self, owner: EntityId, view: WorldView, direction: Vec2) -> None:
         """Execute the weapon's effect. Subclasses must override."""
         raise NotImplementedError

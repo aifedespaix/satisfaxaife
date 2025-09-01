@@ -25,7 +25,7 @@ from app.world.entities import Ball  # noqa: E402
 from app.world.physics import PhysicsWorld  # noqa: E402
 
 if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
-    from app.ai.policy import SimplePolicy
+    from app.ai.stateful_policy import StatefulPolicy
     from app.audio import AudioEngine
     from app.render.renderer import Renderer
     from app.weapons.base import Weapon
@@ -65,7 +65,7 @@ def test_deal_damage_triggers_hit_sound(monkeypatch: Any) -> None:
     world = PhysicsWorld()
     ball = Ball.spawn(world, (0.0, 0.0))
     weapon = cast("Weapon", object())
-    policy = cast("SimplePolicy", object())
+    policy = cast("StatefulPolicy", object())
     dummy_engine = DummyEngine()
     engine = cast("AudioEngine", dummy_engine)
     audio = BallAudio(engine=engine)

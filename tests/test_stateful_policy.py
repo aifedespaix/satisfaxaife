@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-
-from app.ai.stateful_policy import StatefulPolicy, State
+from app.ai.stateful_policy import State, StatefulPolicy
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.weapons.base import WeaponEffect, WorldView
 
@@ -74,7 +73,7 @@ def test_attack_then_dodge() -> None:
     projectile = ProjectileInfo(owner=enemy, position=(50.0, 0.0), velocity=(-80.0, 0.0))
     view.projectiles = [projectile]
     policy.decide(me, view, 600.0)
-    assert policy.state is State.DODGE
+    assert policy.state == State.DODGE  # type: ignore[comparison-overlap]
 
 
 def test_parry_reduces_damage() -> None:
@@ -94,6 +93,6 @@ def test_retreat_on_low_health() -> None:
     enemy = EntityId(2)
     view = DummyView(me, enemy, (0.0, 0.0), (100.0, 0.0), health_me=0.1)
     policy = StatefulPolicy("aggressive")
-    accel, _, _ = policy.decide(me, view, 600.0)
+    accel, _, _, _ = policy.decide(me, view, 600.0)
     assert policy.state is State.RETREAT
     assert accel[0] < 0

@@ -87,9 +87,10 @@ def test_policy_angle_has_vertical_component() -> None:
     enemy = EntityId(2)
     view = DummyView(me, enemy, (0.0, 0.0), (50.0, 0.0))
     policy = SimplePolicy("aggressive")
-    accel, face, fire = policy.decide(me, view, 600.0)
+    accel, face, fire, parry = policy.decide(me, view, 600.0)
     assert fire is True
     assert face[1] != 0.0
+    assert parry is False
     weapon = Shuriken()
     weapon.trigger(me, view, face)
     assert view.last_velocity is not None

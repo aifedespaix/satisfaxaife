@@ -1,18 +1,19 @@
-from __future__ import annotations
 """Stateful AI policy with attack, dodge, parry and retreat states."""
+
+from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal
 
-from app.core.types import Damage, EntityId, Vec2
-from app.weapons.base import WorldView
 from app.ai.policy import (
     SimplePolicy,
     _lead_target,
     _projectile_dodge,
 )
+from app.core.types import Damage, EntityId, Vec2
+from app.weapons.base import WorldView
 
 
 class State(Enum):
@@ -40,8 +41,8 @@ class StatefulPolicy(SimplePolicy):
 
     def decide(
         self, me: EntityId, view: WorldView, projectile_speed: float | None = None
-    ) -> tuple[Vec2, Vec2, bool]:
-        """Return acceleration, facing vector and fire decision."""
+    ) -> tuple[Vec2, Vec2, bool, bool]:
+        """Return acceleration, facing vector, fire and parry decisions."""
 
         enemy = view.get_enemy(me)
         assert enemy is not None
@@ -77,23 +78,27 @@ class StatefulPolicy(SimplePolicy):
             accel, fire = self._attack(
                 style, me, view, my_pos, direction, dist, face, cos_thresh, projectile_speed
             )
+            parry = False
         elif self.state == State.DODGE:
             accel, fire = self._dodge(me, view, my_pos, direction)
+            parry = False
         elif self.state == State.PARRY:
             accel, fire = self._parry(direction)
+            parry = True
         else:  # retreat
             # Fire decision still follows attack logic
             _, fire = self._attack(
                 style, me, view, my_pos, direction, dist, face, cos_thresh, projectile_speed
             )
             accel = (-direction[0] * 400.0, -direction[1] * 400.0)
+            parry = False
 
         if abs(dy) <= 1e-6:
             offset_face = (direction[0], self.vertical_offset)
             norm = math.hypot(*offset_face) or 1.0
             face = (offset_face[0] / norm, offset_face[1] / norm)
 
-        return accel, face, fire
+        return accel, face, fire, parry
 
     # State handlers -----------------------------------------------------
     def _attack(

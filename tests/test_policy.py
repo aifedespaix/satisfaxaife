@@ -90,33 +90,37 @@ class DummyView(WorldView):
 def test_kiter_moves_away() -> None:
     view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (50.0, 0.0))
     policy = SimplePolicy("kiter")
-    accel, face, fire = policy.decide(EntityId(1), view, 600.0)
+    accel, face, fire, parry = policy.decide(EntityId(1), view, 600.0)
     assert accel[0] < 0  # moves left, away from enemy
     assert fire is True
+    assert parry is False
 
 
 def test_kiter_closes_distance_when_out_of_range() -> None:
     view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (600.0, 0.0))
     policy = SimplePolicy("kiter")
-    accel, _, fire = policy.decide(EntityId(1), view, 600.0)
+    accel, _, fire, parry = policy.decide(EntityId(1), view, 600.0)
     assert accel[0] > 0  # moves right, toward enemy
     assert fire is False
+    assert parry is False
 
 
 def test_evader_always_moves_away() -> None:
     view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (600.0, 0.0))
     policy = SimplePolicy("evader")
-    accel, _, fire = policy.decide(EntityId(1), view, 600.0)
+    accel, _, fire, parry = policy.decide(EntityId(1), view, 600.0)
     assert accel[0] < 0  # continues to flee
     assert fire is False
+    assert parry is False
 
 
 def test_evader_fires_when_far_enough() -> None:
     view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (800.0, 0.0))
     policy = SimplePolicy("evader")
-    accel, _, fire = policy.decide(EntityId(1), view, 600.0)
+    accel, _, fire, parry = policy.decide(EntityId(1), view, 600.0)
     assert accel[0] < 0  # still moving away
     assert fire is True
+    assert parry is False
 
 
 def test_kiter_leads_moving_target() -> None:
@@ -128,26 +132,29 @@ def test_kiter_leads_moving_target() -> None:
         vel_enemy=(100.0, 0.0),
     )
     policy = SimplePolicy("kiter")
-    _, face, _ = policy.decide(EntityId(1), view, 300.0)
+    _, face, _, parry = policy.decide(EntityId(1), view, 300.0)
     assert face[0] > 0  # aims ahead of the moving target
+    assert parry is False
 
 
 @pytest.mark.parametrize("style", ["aggressive", "kiter", "evader"])
 def test_retreats_on_low_health(style: Literal["aggressive", "kiter", "evader"]) -> None:
     view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (50.0, 0.0), health_me=0.1)
     policy = SimplePolicy(style)
-    accel, face, fire = policy.decide(EntityId(1), view, 600.0)
+    accel, face, fire, parry = policy.decide(EntityId(1), view, 600.0)
     assert accel[0] < 0  # retreats from enemy
     assert face == (1.0, 0.0)  # still faces enemy
     assert fire is True
+    assert parry is False
 
 
 @pytest.mark.parametrize("style", ["aggressive", "kiter", "evader"])
 def test_low_health_fire_requires_range(style: Literal["aggressive", "kiter", "evader"]) -> None:
     view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (600.0, 0.0), health_me=0.1)
     policy = SimplePolicy(style)
-    _, _, fire = policy.decide(EntityId(1), view, 600.0)
+    _, _, fire, parry = policy.decide(EntityId(1), view, 600.0)
     assert fire is False
+    assert parry is False
 
 
 @pytest.mark.parametrize("style", ["aggressive", "kiter", "evader"])
@@ -161,9 +168,10 @@ def test_both_low_health_engage(style: Literal["aggressive", "kiter", "evader"])
         health_enemy=0.1,
     )
     policy = SimplePolicy(style)
-    accel, _, fire = policy.decide(EntityId(1), view, 600.0)
+    accel, _, fire, parry = policy.decide(EntityId(1), view, 600.0)
     assert accel[0] > 0  # moves toward enemy
     assert fire is True
+    assert parry is False
 
 
 def test_horizontal_alignment_has_vertical_component() -> None:
@@ -172,9 +180,10 @@ def test_horizontal_alignment_has_vertical_component() -> None:
     view = DummyView(me, enemy, (0.0, 0.0), (50.0, 0.0))
     policy = SimplePolicy("aggressive")
     weapon = Shuriken()
-    accel, face, fire = policy.decide(me, view, 600.0)
+    accel, face, fire, parry = policy.decide(me, view, 600.0)
     assert fire is True
     assert face[1] != 0.0
+    assert parry is False
     weapon.trigger(me, view, face)
     assert view.last_velocity is not None
     assert view.last_velocity[1] != 0.0
@@ -196,8 +205,9 @@ def test_aggressive_dodges_projectiles() -> None:
         me, enemy, (0.0, 0.0), (100.0, 0.0), proj_pos=(40.0, 0.0), proj_vel=(-100.0, 0.0)
     )
     policy = SimplePolicy("aggressive")
-    accel, _, _ = policy.decide(me, view, 600.0)
+    accel, _, _, parry = policy.decide(me, view, 600.0)
     assert accel[1] < 0  # dodges downward
+    assert parry is False
 
 
 def test_dodge_considers_multiple_projectiles() -> None:
@@ -217,9 +227,10 @@ def test_dodge_considers_multiple_projectiles() -> None:
     ]
     view = ViewWithProjectiles(me, enemy, (0.0, 0.0), (100.0, 0.0), projs=projectiles)
     policy = SimplePolicy("aggressive", dodge_smoothing=1.0)
-    accel, _, _ = policy.decide(me, view, 600.0)
+    accel, _, _, parry = policy.decide(me, view, 600.0)
     assert accel[0] > 0  # influenced by the top projectile
     assert accel[1] < 0  # still avoids the right projectile
+    assert parry is False
 
 
 def test_dodge_vector_is_smoothed() -> None:
@@ -238,11 +249,11 @@ def test_dodge_vector_is_smoothed() -> None:
         me, enemy, (0.0, 0.0), (100.0, 0.0), proj_pos=(40.0, 0.0), proj_vel=(-100.0, 0.0)
     )
     policy = SimplePolicy("aggressive", dodge_smoothing=0.5)
-    first, _, _ = policy.decide(me, view, 600.0)
+    first, _, _, _ = policy.decide(me, view, 600.0)
 
     view.proj_pos = (-40.0, 0.0)
     view.proj_vel = (100.0, 0.0)
-    second, _, _ = policy.decide(me, view, 600.0)
+    second, _, _, _ = policy.decide(me, view, 600.0)
 
     assert first[1] < 0  # initial dodge downward
     assert second[1] > -0.1  # smoothing prevents immediate flip upward
@@ -264,8 +275,9 @@ def test_evader_dodges_projectiles() -> None:
         me, enemy, (0.0, 0.0), (100.0, 0.0), proj_pos=(40.0, 0.0), proj_vel=(-100.0, 0.0)
     )
     policy = SimplePolicy("evader")
-    accel, _, _ = policy.decide(me, view, 600.0)
+    accel, _, _, parry = policy.decide(me, view, 600.0)
     assert accel[1] < 0  # dodges downward
+    assert parry is False
 
 
 def test_policy_for_bazooka_is_evader() -> None:
@@ -283,5 +295,6 @@ def test_policy_for_knife_prioritises_dodging() -> None:
 def test_shuriken_policy_fires_at_any_distance() -> None:
     view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (1000.0, 0.0))
     policy = policy_for_weapon("shuriken")
-    _, _, fire = policy.decide(EntityId(1), view, 600.0)
+    _, _, fire, parry = policy.decide(EntityId(1), view, 600.0)
     assert fire is True
+    assert parry is False

@@ -10,6 +10,7 @@ from . import weapon_registry
 from .assets import load_weapon_sprite
 from .base import Weapon, WorldView
 from .effects import OrbitingSprite
+from .parry import ParryEffect
 
 
 class Katana(Weapon):
@@ -44,6 +45,10 @@ class Katana(Weapon):
             self.audio.start_idle()
             self._initialized = True
         super().update(owner, view, dt)
+
+    def parry(self, owner: EntityId, view: WorldView) -> None:  # noqa: D401
+        effect = ParryEffect(owner=owner, radius=80.0, duration=0.15)
+        view.spawn_effect(effect)
 
 
 weapon_registry.register("katana", Katana)
