@@ -23,6 +23,7 @@ from app.weapons.base import Weapon, WeaponEffect, WorldView
 from app.world.entities import Ball
 from app.world.physics import PhysicsWorld
 from app.world.projectiles import Projectile
+from pymunk import Vec2 as Vec2d
 
 logger = logging.getLogger(__name__)
 
@@ -291,16 +292,16 @@ class GameController:
             if dash_dir is not None:
                 p.dash.start(dash_dir, now)
             p.dash.update(now)
-            velocity = p.ball.body.velocity
-            p.ball.body.velocity = (
-                float(velocity.x) + accel[0] * settings.dt,
-                float(velocity.y) + accel[1] * settings.dt,
+            new_velocity = p.ball.body.velocity + Vec2d(
+                accel[0] * settings.dt,
+                accel[1] * settings.dt,
             )
             if p.dash.is_dashing:
-                p.ball.body.velocity = (
+                new_velocity = Vec2d(
                     p.dash.direction[0] * p.dash.speed,
                     p.dash.direction[1] * p.dash.speed,
                 )
+            p.ball.body.velocity = new_velocity
             p.weapon.step(settings.dt)
             p.weapon.update(p.eid, self.view, settings.dt)
             if parry:

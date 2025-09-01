@@ -77,6 +77,9 @@ class Vec2:
     def __mul__(self, scalar: float) -> Vec2:
         return Vec2(self.x * scalar, self.y * scalar)
 
+    def __add__(self, other: Vec2) -> Vec2:
+        return Vec2(self.x + other.x, self.y + other.y)
+
 
 class Body:
     """Simple rigid body supporting position and velocity."""
