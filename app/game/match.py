@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.ai.policy import policy_for_weapon
+from app.ai.stateful_policy import policy_for_weapon
 from app.audio import BallAudio, get_default_engine
 from app.core.config import settings
 from app.game.controller import (
