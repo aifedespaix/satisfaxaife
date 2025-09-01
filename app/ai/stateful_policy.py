@@ -44,7 +44,11 @@ class StatefulPolicy(SimplePolicy):
     def decide(
         self, me: EntityId, view: WorldView, projectile_speed: float | None = None
     ) -> tuple[Vec2, Vec2, bool, bool]:
-        """Return acceleration, facing vector, fire and parry decisions."""
+        """Return acceleration, facing vector, fire and parry decisions.
+
+        The facing orientation includes a small randomised vertical offset,
+        making the result dependent on the policy's pseudo-random generator.
+        """
 
         enemy = view.get_enemy(me)
         assert enemy is not None
@@ -96,7 +100,8 @@ class StatefulPolicy(SimplePolicy):
             parry = False
 
         if abs(dy) <= 1e-6:
-            offset_face = (direction[0], self.vertical_offset)
+            offset = self.vertical_offset + self.rng.uniform(-0.05, 0.05)
+            offset_face = (direction[0], offset)
             norm = math.hypot(*offset_face) or 1.0
             face = (offset_face[0] / norm, offset_face[1] / norm)
 
