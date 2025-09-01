@@ -17,9 +17,12 @@ if TYPE_CHECKING:  # pragma: no cover - hints only
 class IntroRenderer:
     """Render the pre-match introduction with slide, glow and fade effects.
 
-    Final positions after the slide-in are cached so they can be reused during
-    the ``WEAPONS_IN``, ``HOLD`` and ``FADE_OUT`` phases. Use :meth:`reset` when
-    starting a new introduction sequence to clear this cache.
+    Animations for positions, opacity and scale are driven by the external
+    :class:`~app.core.animation.Timeline` used by
+    :class:`~app.intro.intro_manager.IntroManager`. Final positions after the
+    slide-in are cached so they can be reused during the ``WEAPONS_IN``, ``HOLD``
+    and ``FADE_OUT`` phases. Use :meth:`reset` when starting a new introduction
+    sequence to clear this cache.
     """
 
     WEAPON_WIDTH_RATIO: float = 0.4
