@@ -24,6 +24,7 @@ if TYPE_CHECKING:  # pragma: no cover - hints only
 
 
 FIGHT_SOUND: str = "assets/fight.ogg"
+WEAPON_PULSE_AMPLITUDE: float = 0.05
 
 
 class IntroState(Enum):
@@ -180,7 +181,7 @@ class IntroManager:
         if self._state is IntroState.LOGO_IN:
             return self.config.micro_bounce(t)
         if self._state is IntroState.WEAPONS_IN:
-            return self.config.pulse(t)
+            return 1.0 + self.config.pulse(t) * WEAPON_PULSE_AMPLITUDE
         if self._state is IntroState.HOLD:
             return 1.0
         if self._state is IntroState.FADE_OUT:

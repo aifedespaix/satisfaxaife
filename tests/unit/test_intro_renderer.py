@@ -289,6 +289,40 @@ def test_weapon_animation_reaches_ball(monkeypatch: pytest.MonkeyPatch) -> None:
     pygame.quit()
 
 
+def test_weapons_in_starts_from_logo_in_final(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pygame.init()
+    config = IntroConfig(
+        font_path=Path("assets/fonts/FightKickDemoRegular.ttf"),
+        logo_path=Path("assets/vs.png"),
+        weapon_a_path=Path("assets/ball-a.png"),
+        weapon_b_path=Path("assets/ball-b.png"),
+    )
+    assets = IntroAssets.load(config)
+    renderer = IntroRenderer(200, 100, config=config, assets=assets)
+    surface = pygame.Surface((200, 100), flags=pygame.SRCALPHA)
+    calls: list[tuple[float, float]] = []
+
+    original_rotozoom = pygame.transform.rotozoom
+
+    def tracking_rotozoom(
+        img: _pygame.Surface, angle: float, scale: float
+    ) -> _pygame.Surface:
+        calls.append((angle, scale))
+        return original_rotozoom(img, angle, scale)
+
+    monkeypatch.setattr(pygame.transform, "rotozoom", tracking_rotozoom)
+
+    renderer.draw(surface, ("A", "B"), 1.0, IntroState.LOGO_IN)
+    logo_calls = calls.copy()
+    calls.clear()
+    renderer.draw(surface, ("A", "B"), 1.0, IntroState.WEAPONS_IN)
+
+    assert calls == logo_calls
+    pygame.quit()
+
+
 def test_weapons_in_uses_cache_and_progress(monkeypatch: pytest.MonkeyPatch) -> None:
     pygame.init()
     renderer = IntroRenderer(200, 100)
