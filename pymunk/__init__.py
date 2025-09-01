@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Minimal stub of the :mod:`pymunk` API used in tests.
 
 This stub provides lightweight implementations of the classes required by
@@ -8,10 +6,12 @@ features exercised by the repository's tests.  The real Pymunk package
 should be used for any production code.
 """
 
-# mypy: ignore-errors
+from __future__ import annotations
 
+from collections.abc import Iterable, Iterator, Sequence
+
+# mypy: ignore-errors
 from dataclasses import dataclass
-from typing import Iterable, Iterator, Sequence
 
 
 @dataclass(slots=True)
@@ -50,6 +50,25 @@ class Vec2:
     def __iter__(self) -> Iterator[float]:
         yield self.x
         yield self.y
+
+    def __getitem__(self, index: int) -> float:
+        """Return a coordinate by ``index``.
+
+        Parameters
+        ----------
+        index:
+            ``0`` for ``x`` and ``1`` for ``y``.
+
+        Raises
+        ------
+        IndexError
+            If ``index`` is not ``0`` or ``1``.
+        """
+        if index == 0:
+            return self.x
+        if index == 1:
+            return self.y
+        raise IndexError("Vec2 index out of range")
 
     def normalized(self) -> Vec2:
         norm = (self.x * self.x + self.y * self.y) ** 0.5 or 1.0
