@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import math
+import random
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal
-
-import random
 
 from app.ai.policy import (
     SimplePolicy,
@@ -175,9 +174,7 @@ class StatefulPolicy(SimplePolicy):
         return damage
 
 
-def policy_for_weapon(
-    weapon_name: str, rng: random.Random | None = None
-) -> StatefulPolicy:
+def policy_for_weapon(weapon_name: str, rng: random.Random | None = None) -> StatefulPolicy:
     """Return a :class:`StatefulPolicy` tuned for ``weapon_name``.
 
     Parameters
