@@ -72,7 +72,7 @@ def test_postprocessed_slowmo(tmp_path: Path) -> None:
     video_dur = _stream_duration(out, "v")
     audio_dur = _stream_duration(out, "a")
     assert abs(video_dur - audio_dur) < 0.1
-    intro_config = IntroConfig(hold=1.0, fade_out=0.25)
+    intro_config = IntroConfig()
     intro_duration = (
         intro_config.logo_in + intro_config.weapons_in + intro_config.hold + intro_config.fade_out
     )

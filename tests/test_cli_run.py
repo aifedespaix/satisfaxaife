@@ -209,5 +209,7 @@ def test_intro_weapons_option(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     assert config is not None
     assert config.weapon_a_path == left
     assert config.weapon_b_path == right
+    assert config.logo_in == 0.0
+    assert config.weapons_in == 0.0
     assert config.hold == 1.0
     assert config.fade_out == 0.25

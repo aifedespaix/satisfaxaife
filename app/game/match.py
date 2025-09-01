@@ -68,7 +68,7 @@ def create_controller(
         ),
     ]
 
-    intro_config = intro_config or IntroConfig(hold=1.0, fade_out=0.25)
+    intro_config = intro_config or IntroConfig()
     weapons_dir = Path(__file__).resolve().parents[2] / "assets" / "weapons"
     weapon_a_path = weapons_dir / weapon_a / "weapon.png"
     weapon_b_path = weapons_dir / weapon_b / "weapon.png"
