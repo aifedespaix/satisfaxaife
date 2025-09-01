@@ -6,7 +6,7 @@ from typing import Protocol
 
 import pygame
 
-from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
+from app.core.types import Color, Damage, EntityId, ProjectileInfo, Vec2
 from app.render.renderer import Renderer
 
 
@@ -48,6 +48,7 @@ class WorldView(Protocol):
         ttl: float,
         sprite: pygame.Surface | None = None,
         spin: float = 0.0,
+        trail_color: Color | None = None,
     ) -> WeaponEffect:
         """Spawn a projectile owned by *owner* and register it."""
 

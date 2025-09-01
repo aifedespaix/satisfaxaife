@@ -79,6 +79,7 @@ def test_shuriken_audio_events() -> None:
             ttl: float,
             sprite: object | None = None,
             spin: float = 0.0,
+            trail_color: tuple[int, int, int] | None = None,
         ) -> WeaponEffect:
             proj = Projectile.spawn(
                 self.world,
@@ -91,6 +92,7 @@ def test_shuriken_audio_events() -> None:
                 ttl,
                 sprite,
                 spin,
+                trail_color,
             )
             self.projectile = proj
             return proj
