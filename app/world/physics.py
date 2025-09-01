@@ -44,12 +44,17 @@ class PhysicsWorld:
         self.space.add(*segments)
 
     def _register_handlers(self) -> None:
+        """Register collision callbacks for projectiles hitting balls."""
+
         from .entities import BALL_COLLISION_TYPE
         from .projectiles import PROJECTILE_COLLISION_TYPE
 
-        handler = self.space.add_collision_handler(
-            PROJECTILE_COLLISION_TYPE, BALL_COLLISION_TYPE
-        )
+        if hasattr(self.space, "add_collision_handler"):
+            handler = self.space.add_collision_handler(
+                PROJECTILE_COLLISION_TYPE, BALL_COLLISION_TYPE
+            )
+        else:
+            handler = self.space.collision_handler(PROJECTILE_COLLISION_TYPE, BALL_COLLISION_TYPE)
         handler.begin = self._handle_projectile_hit
 
     def register_ball(self, ball: Ball) -> None:
@@ -61,9 +66,7 @@ class PhysicsWorld:
     def unregister_projectile(self, projectile: Projectile) -> None:
         self._projectiles.pop(projectile.shape, None)
 
-    def set_projectile_removed_callback(
-        self, callback: Callable[[Projectile], None]
-    ) -> None:
+    def set_projectile_removed_callback(self, callback: Callable[[Projectile], None]) -> None:
         self._on_projectile_removed = callback
 
     def set_context(self, view: WorldView, timestamp: float) -> None:
