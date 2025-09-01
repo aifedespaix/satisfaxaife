@@ -90,6 +90,7 @@ class Renderer:
                 assets_dir / "ball-b.png"
             ).convert_alpha(),
         }
+        self._scaled_ball_sprites: dict[tuple[Color, int], pygame.Surface] = {}
 
     def clear(self) -> None:
         """Clear frame, update impacts and draw arena background."""
@@ -209,10 +210,16 @@ class Renderer:
         sprite = self._ball_sprites.get(team_color)
         if sprite is not None:
             diameter = radius * 2
-            if sprite.get_width() != diameter:
-                sprite = pygame.transform.smoothscale(sprite, (diameter, diameter))
-            rect = sprite.get_rect(center=self._offset(pos))
-            self.surface.blit(sprite, rect)
+            key = (team_color, diameter)
+            cached = self._scaled_ball_sprites.get(key)
+            if cached is None:
+                if sprite.get_width() != diameter:
+                    cached = pygame.transform.smoothscale(sprite, (diameter, diameter))
+                else:
+                    cached = sprite
+                self._scaled_ball_sprites[key] = cached
+            rect = cached.get_rect(center=self._offset(pos))
+            self.surface.blit(cached, rect)
         else:
             pygame.draw.circle(self.surface, color, self._offset(pos), radius)
             pygame.draw.circle(self.surface, team_color, self._offset(pos), radius + 3, width=3)
