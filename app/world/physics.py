@@ -1,15 +1,13 @@
-from __future__ import annotations
+# app/world/physics.py
 
+from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
-
 import pymunk
-
 from app.core.config import settings
 
 if TYPE_CHECKING:
     from app.weapons.base import WorldView
-
     from .entities import Ball
     from .projectiles import Projectile
 
@@ -26,7 +24,10 @@ class PhysicsWorld:
         self._view: WorldView | None = None
         self._timestamp: float = 0.0
         self._add_bounds()
-        self._register_handlers()
+
+        # NOTE: certains environnements Pymunk n'exposent pas les handlers.
+        # On passe en détection manuelle robuste (voir _process_collisions()).
+        # self._register_handlers()  # ← on n’en a plus besoin
 
     def _add_bounds(self) -> None:
         thickness = float(settings.wall_thickness)
@@ -43,19 +44,17 @@ class PhysicsWorld:
             segment.friction = 0.0
         self.space.add(*segments)
 
-    def _register_handlers(self) -> None:
-        """Register collision callbacks for projectiles hitting balls."""
-
-        from .entities import BALL_COLLISION_TYPE
-        from .projectiles import PROJECTILE_COLLISION_TYPE
-
-        handler = self.space.add_collision_handler(PROJECTILE_COLLISION_TYPE, BALL_COLLISION_TYPE)
-        handler.begin = self._handle_projectile_hit
+    # ── Enregistrement entités ────────────────────────────────────────────────
 
     def register_ball(self, ball: Ball) -> None:
+        # Optionnel: tu peux poser un collision_type si tu le réutilises ailleurs
+        # ball.shape.collision_type = 1
         self._balls[ball.shape] = ball
 
     def register_projectile(self, projectile: Projectile) -> None:
+        # On rend les projectiles "sensor" pour éviter tout push/ricochet physique.
+        projectile.shape.sensor = True
+        # projectile.shape.collision_type = 2  # optionnel si tu gardes des handlers ailleurs
         self._projectiles[projectile.shape] = projectile
 
     def unregister_projectile(self, projectile: Projectile) -> None:
@@ -69,44 +68,43 @@ class PhysicsWorld:
         self._view = view
         self._timestamp = timestamp
 
-    def _handle_projectile_hit(
-        self, arbiter: pymunk.Arbiter, _space: pymunk.Space, _data: object
-    ) -> bool:
-        proj_shape, ball_shape = arbiter.shapes
-        projectile = self._projectiles.get(proj_shape)
-        ball = self._balls.get(ball_shape)
-        if projectile is None or ball is None or self._view is None:
-            return True
-        keep = projectile.on_hit(self._view, ball.eid, self._timestamp)
-        if not keep:
-            projectile.destroy()
-            if self._on_projectile_removed is not None:
-                self._on_projectile_removed(projectile)
-        return False
+    # ── Détection manuelle des collisions ─────────────────────────────────────
+
+    def _process_collisions(self) -> None:
+        """Détecte et traite les impacts projectile↔ball sans utiliser les handlers Pymunk."""
+        if self._view is None:
+            return
+
+        # On itère sur une copie pour tolérer la suppression de projectiles pendant la boucle.
+        for proj_shape, projectile in list(self._projectiles.items()):
+            # Skip si déjà détruit côté gameplay
+            if getattr(projectile, "destroyed", False):
+                continue
+
+            for ball_shape, ball in self._balls.items():
+                # Test robuste de collision: renvoie un ContactPointSet
+                cps = proj_shape.shapes_collide(ball_shape)
+                # Impact s'il y a au moins un point de contact
+                if cps.points:
+                    keep = projectile.on_hit(self._view, ball.eid, self._timestamp)
+
+                    if not keep:
+                        # Détruit et notifie
+                        projectile.destroy()
+                        if self._on_projectile_removed is not None:
+                            self._on_projectile_removed(projectile)
+                        # On arrête d’examiner ce projectile (il n’existe plus)
+                        break
+
+    # ── Simulation ────────────────────────────────────────────────────────────
 
     def step(self, dt: float, substeps: int = 1) -> None:
-        """Advance the physics simulation.
-
-        Parameters
-        ----------
-        dt:
-            Total delta time for this update in seconds.
-        substeps:
-            Number of internal substeps used to integrate ``dt``. A value of
-            one performs a single step, while higher values subdivide ``dt`` to
-            reduce tunneling when entities move at high speed. Must be at least
-            one.
-
-        Raises
-        ------
-        ValueError
-            If ``substeps`` is less than one.
-        """
-
+        """Advance the physics simulation."""
         if substeps < 1:
-            msg = "substeps must be >= 1"
-            raise ValueError(msg)
+            raise ValueError("substeps must be >= 1")
 
         sub_dt = dt / float(substeps)
         for _ in range(substeps):
             self.space.step(sub_dt)
+            # Juste après la résolution physique, on détecte les hits côté gameplay.
+            self._process_collisions()
