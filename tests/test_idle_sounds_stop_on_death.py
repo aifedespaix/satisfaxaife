@@ -40,7 +40,7 @@ class KillerWeapon(Weapon):
         if not self._done:
             enemy = view.get_enemy(owner)
             if enemy is not None:
-                view.deal_damage(enemy, self.damage, timestamp=0.0)
+                view.deal_damage(enemy, self.damage, timestamp=0.5)
                 self._done = True
         super().update(owner, view, dt)
 
@@ -66,8 +66,8 @@ class DummyRecorder(Recorder):
         self.audio = audio
 
 
-def test_winner_idle_sound_stops_on_victory() -> None:
-    """Ensure the winner's idle sound stops when the match ends."""
+def test_idle_sounds_stop_on_death() -> None:
+    """Idle loops for both players stop immediately when a death occurs."""
 
     reset_default_engine()
     engine = get_default_engine()
@@ -84,12 +84,9 @@ def test_winner_idle_sound_stops_on_victory() -> None:
     controller = create_controller("killer_test", "passive_test", recorder, renderer, max_seconds=1)
     controller.run()
 
-    assert audio_a.stopped_at is not None
-    assert controller.death_ts is not None
-    assert audio_a.stopped_at == pytest.approx(controller.death_ts)
-    intro_duration = controller.intro_manager._duration  # type: ignore[attr-defined]
-    assert audio_a.stopped_at >= intro_duration
-    assert audio_b.stopped_at is not None
+    assert audio_a.stopped_at == pytest.approx(0.5)
+    assert audio_b.stopped_at == pytest.approx(0.5)
+    assert audio_a.stopped_at == audio_b.stopped_at
 
     weapon_registry._factories.pop("killer_test")
     weapon_registry._factories.pop("passive_test")
