@@ -76,6 +76,10 @@ def test_sequences_differ_with_seed() -> None:
     assert _collect_faces(1) != _collect_faces(2)
 
 
+def test_sequence_reproducible_with_same_seed() -> None:
+    assert _collect_faces(3) == _collect_faces(3)
+
+
 def _collect_dodges(seed: int) -> list[Vec2]:
     rng = random.Random(seed)
     policy = StatefulPolicy("aggressive", rng=rng)
