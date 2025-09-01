@@ -5,6 +5,7 @@ from typing import cast
 from app.audio.weapons import WeaponAudio
 from app.core.types import Damage, EntityId, Vec2
 from app.weapons.base import WeaponEffect, WorldView
+from app.weapons.bazooka import Bazooka
 from app.weapons.katana import Katana
 from app.weapons.knife import Knife
 from app.weapons.shuriken import Shuriken
@@ -26,6 +27,51 @@ class StubAudio:
 
     def on_touch(self, timestamp: float | None = None) -> None:  # noqa: D401
         self.touched = True
+
+
+class ProjectileView:
+    """Test view that records spawned projectiles."""
+
+    def __init__(self) -> None:
+        self.world = PhysicsWorld()
+        self.projectile: Projectile | None = None
+
+    def get_position(self, eid: EntityId) -> Vec2:  # noqa: D401
+        return (0.0, 0.0)
+
+    def spawn_projectile(
+        self,
+        owner: EntityId,
+        position: Vec2,
+        velocity: Vec2,
+        *,
+        radius: float,
+        damage: Damage,
+        knockback: float,
+        ttl: float,
+        sprite: object | None = None,
+        spin: float = 0.0,
+    ) -> WeaponEffect:
+        proj = Projectile.spawn(
+            self.world,
+            owner,
+            position,
+            velocity,
+            radius,
+            damage,
+            knockback,
+            ttl,
+            sprite,
+            spin,
+        )
+        self.projectile = proj
+        return proj
+
+    def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:  # noqa: D401
+        pass
+
+    def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:  # noqa: D401
+        pass
 
 
 def test_katana_audio_events() -> None:
@@ -90,51 +136,24 @@ def test_shuriken_audio_events() -> None:
     stub_audio = StubAudio()
     shuriken.audio = cast(WeaponAudio, stub_audio)
 
-    class View:
-        def __init__(self) -> None:
-            self.world = PhysicsWorld()
-            self.projectile: Projectile | None = None
-
-        def get_position(self, eid: EntityId) -> Vec2:  # noqa: D401
-            return (0.0, 0.0)
-
-        def spawn_projectile(
-            self,
-            owner: EntityId,
-            position: Vec2,
-            velocity: Vec2,
-            *,
-            radius: float,
-            damage: Damage,
-            knockback: float,
-            ttl: float,
-            sprite: object | None = None,
-            spin: float = 0.0,
-        ) -> WeaponEffect:
-            proj = Projectile.spawn(
-                self.world,
-                owner,
-                position,
-                velocity,
-                radius,
-                damage,
-                knockback,
-                ttl,
-                sprite,
-                spin,
-            )
-            self.projectile = proj
-            return proj
-
-        def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:  # noqa: D401
-            pass
-
-        def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:  # noqa: D401
-            pass
-
-    view_obj = View()
+    view_obj = ProjectileView()
     view = cast(WorldView, view_obj)
     shuriken._fire(EntityId(1), view, (1.0, 0.0))
+    assert stub_audio.thrown
+    projectile = view_obj.projectile
+    assert projectile is not None
+    projectile.on_hit(view, EntityId(2), timestamp=0.0)
+    assert stub_audio.touched
+
+
+def test_bazooka_audio_events() -> None:
+    bazooka = Bazooka()
+    stub_audio = StubAudio()
+    bazooka.audio = cast(WeaponAudio, stub_audio)
+
+    view_obj = ProjectileView()
+    view = cast(WorldView, view_obj)
+    bazooka._fire(EntityId(1), view, (1.0, 0.0))
     assert stub_audio.thrown
     projectile = view_obj.projectile
     assert projectile is not None

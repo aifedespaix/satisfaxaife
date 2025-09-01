@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import math
 
+from app.audio.weapons import WeaponAudio
 from app.core.types import Damage, EntityId, Vec2
-from app.world.entities import DEFAULT_BALL_RADIUS
 from app.render.sprites import load_sprite
+from app.world.entities import DEFAULT_BALL_RADIUS
+from app.world.projectiles import Projectile
 
 from . import weapon_registry
 from .assets import load_weapon_sprite
@@ -25,8 +27,11 @@ class Bazooka(Weapon):
         self.missile_radius = DEFAULT_BALL_RADIUS / 2.0
         missile_size = self.missile_radius * 2.0
         self._missile_sprite = load_sprite("weapons/bazooka/missile.png", max_dim=missile_size)
+        self.audio = WeaponAudio("throw", "bazooka")
 
     def _fire(self, owner: EntityId, view: WorldView, direction: Vec2) -> None:  # noqa: D401
+        self.audio.on_throw()
+        angle = math.atan2(direction[1], direction[0]) + math.pi / 2
         velocity = (direction[0] * self.speed, direction[1] * self.speed)
         position = view.get_position(owner)
         proj = view.spawn_projectile(
@@ -39,7 +44,9 @@ class Bazooka(Weapon):
             ttl=1.5,
             sprite=self._missile_sprite,
         )
-        proj.angle = math.atan2(direction[1], direction[0]) + math.pi / 2
+        if isinstance(proj, Projectile):
+            proj.audio = self.audio
+            proj.angle = angle
 
     def update(self, owner: EntityId, view: WorldView, dt: float) -> None:  # noqa: D401
         if self._effect is None:
