@@ -4,8 +4,11 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import pymunk
+from pymunk import __version__ as _pymunk_version
 
 from app.core.config import settings
+
+PYMUNK_VERSION = tuple(int(x) for x in _pymunk_version.split(".")[:2])
 
 if TYPE_CHECKING:
     from app.weapons.base import WorldView
@@ -26,6 +29,12 @@ class PhysicsWorld:
         self._view: WorldView | None = None
         self._timestamp: float = 0.0
         self._add_bounds()
+        if PYMUNK_VERSION < (7, 0):
+            msg = (
+                "PhysicsWorld requires pymunk >= 7.0, found "
+                f"{pymunk.__version__}. Please upgrade pymunk."
+            )
+            raise RuntimeError(msg)
         self._register_handlers()
 
     def _add_bounds(self) -> None:
@@ -49,9 +58,14 @@ class PhysicsWorld:
         from .entities import BALL_COLLISION_TYPE
         from .projectiles import PROJECTILE_COLLISION_TYPE
 
-        handler = self.space.add_collision_handler(
-            PROJECTILE_COLLISION_TYPE, BALL_COLLISION_TYPE
-        )
+        if hasattr(self.space, "add_collision_handler"):
+            handler = self.space.add_collision_handler(
+                PROJECTILE_COLLISION_TYPE, BALL_COLLISION_TYPE
+            )
+        else:
+            handler = self.space.collision_handler(
+                PROJECTILE_COLLISION_TYPE, BALL_COLLISION_TYPE
+            )
         handler.begin = self._handle_projectile_hit
 
     def register_ball(self, ball: Ball) -> None:
