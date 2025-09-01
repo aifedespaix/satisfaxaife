@@ -72,7 +72,7 @@ def test_compute_alpha_custom_fade() -> None:
     assert renderer.compute_alpha(0.25, IntroState.LOGO_IN) == int(0.25 * 255)
 
 
-def test_draw_glow_passes(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_blit_elements_glow_passes(monkeypatch: pytest.MonkeyPatch) -> None:
     pygame.init()
     renderer = IntroRenderer(200, 100)
     surface = pygame.Surface((200, 100), flags=pygame.SRCALPHA)
@@ -93,9 +93,13 @@ def test_draw_glow_passes(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(pygame.Surface, "blit", counting_blit)
 
-    renderer.draw(surface, ("A", "B"), 1.0, IntroState.HOLD)
-
     left, right, center = renderer.compute_positions(1.0)
+    elements = renderer._prepare_elements(("A", "B"), 1.0, left, right, center)
+    angle, scale = renderer._compute_transform(1.0)
+    renderer._blit_elements(
+        surface, elements, angle, scale, 255, IntroState.HOLD, 1.0
+    )
+
     expected_centers: list[tuple[int, int]] = []
     for base in (left, right, center):
         bx, by = int(base[0]), int(base[1])
@@ -114,7 +118,7 @@ def test_draw_glow_passes(monkeypatch: pytest.MonkeyPatch) -> None:
     assert set(expected_centers).issubset(set(blits))
 
 
-def test_draw_overlay_only_logo_in(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_blit_elements_overlay_only_logo_in(monkeypatch: pytest.MonkeyPatch) -> None:
     pygame.init()
     renderer = IntroRenderer(200, 100)
     surface = pygame.Surface((200, 100), flags=pygame.SRCALPHA)
@@ -134,11 +138,18 @@ def test_draw_overlay_only_logo_in(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(pygame.Surface, "blit", tracking_blit)
 
-    renderer.draw(surface, ("A", "B"), 0.5, IntroState.LOGO_IN)
+    left, right, center = renderer.compute_positions(0.5)
+    elements = renderer._prepare_elements(("A", "B"), 0.5, left, right, center)
+    angle, scale = renderer._compute_transform(0.5)
+    renderer._blit_elements(
+        surface, elements, angle, scale, 255, IntroState.LOGO_IN, 0.5
+    )
     assert (0, 0) in calls
 
     calls.clear()
-    renderer.draw(surface, ("A", "B"), 0.5, IntroState.WEAPONS_IN)
+    renderer._blit_elements(
+        surface, elements, angle, scale, 255, IntroState.WEAPONS_IN, 0.5
+    )
     assert (0, 0) not in calls
     pygame.quit()
 
@@ -208,7 +219,7 @@ def test_draw_with_assets(monkeypatch: pytest.MonkeyPatch) -> None:
     pygame.quit()
 
 
-def test_fade_out_interpolates_to_hud(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_apply_fade_out_interpolates_to_hud(monkeypatch: pytest.MonkeyPatch) -> None:
     pygame.init()
     renderer = IntroRenderer(200, 100)
     surface = pygame.Surface((200, 100), flags=pygame.SRCALPHA)
@@ -222,70 +233,58 @@ def test_fade_out_interpolates_to_hud(monkeypatch: pytest.MonkeyPatch) -> None:
     labels = ("A", "B")
     label_a_rect, label_b_rect, logo_rect, _ = hud.compute_layout(surface, labels)
     targets = (logo_rect, label_a_rect, label_b_rect)
-    blits: list[tuple[int, int]] = []
 
-    original_blit = pygame.Surface.blit
+    left, right, center = renderer.compute_positions(1.0)
+    elements = renderer._prepare_elements(labels, 1.0, left, right, center)
+    angle, _ = renderer._compute_transform(1.0)
 
-    def tracking_blit(
-        self: _pygame.Surface,
-        source: _pygame.Surface,
-        dest: _pygame.Rect | tuple[int, int],
-        *args: object,
-        **kwargs: object,
-    ) -> _pygame.Rect:
-        center = dest.center if hasattr(dest, "center") else dest
-        blits.append((int(center[0]), int(center[1])))
-        return original_blit(self, source, dest, *args, **kwargs)
+    mid_elements, _ = renderer._apply_fade_out(
+        [e for e in elements], angle, 0.5, targets, None, left, right, center
+    )
+    end_elements, _ = renderer._apply_fade_out(
+        [e for e in elements], angle, 0.0, targets, None, left, right, center
+    )
 
-    monkeypatch.setattr(pygame.Surface, "blit", tracking_blit)
-
-    renderer.draw(surface, labels, 0.5, IntroState.FADE_OUT, targets)
-    left_start, right_start, center_start = renderer.compute_positions(1.0)
-    ordered_starts = (center_start, left_start, right_start)
+    ordered_starts = (center, left, right)
     expected_mid = [
         (int((s[0] + t.centerx) / 2), int((s[1] + t.centery) / 2))
         for s, t in zip(ordered_starts, targets, strict=False)
     ]
-    for center in expected_mid:
-        assert center in blits
+    for idx, center_pos in enumerate(expected_mid, start=0):
+        ex_x, ex_y = center_pos
+        pos = mid_elements[idx][1]
+        assert int(pos[0]) == ex_x
+        assert int(pos[1]) == ex_y
 
-    blits.clear()
-    renderer.draw(surface, labels, 0.0, IntroState.FADE_OUT, targets)
     expected_final = [t.center for t in targets]
-    for center in expected_final:
-        assert center in blits
+    for idx, center_pos in enumerate(expected_final, start=0):
+        ex_x, ex_y = center_pos
+        pos = end_elements[idx][1]
+        assert int(pos[0]) == ex_x
+        assert int(pos[1]) == ex_y
     pygame.quit()
 
 
-def test_weapon_animation_reaches_ball(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_apply_fade_out_weapon_animation(monkeypatch: pytest.MonkeyPatch) -> None:
     pygame.init()
     config = IntroConfig()
     assets = IntroAssets.load(config)
     renderer = IntroRenderer(200, 100, config=config, assets=assets)
-    surface = pygame.Surface((200, 100), flags=pygame.SRCALPHA)
-    blits: list[tuple[int, int]] = []
-
-    original_blit = pygame.Surface.blit
-
-    def tracking_blit(
-        self: _pygame.Surface,
-        source: _pygame.Surface,
-        dest: _pygame.Rect | tuple[int, int],
-        *args: object,
-        **kwargs: object,
-    ) -> _pygame.Rect:
-        center = dest.center if hasattr(dest, "center") else dest
-        blits.append((int(center[0]), int(center[1])))
-        return original_blit(self, source, dest, *args, **kwargs)
-
-    monkeypatch.setattr(pygame.Surface, "blit", tracking_blit)
-
     ball_positions = ((10.0, 20.0), (190.0, 80.0))
-    renderer.draw(surface, ("A", "B"), 0.0, IntroState.FADE_OUT, None, ball_positions)
 
-    expected = [(int(x), int(y)) for x, y in ball_positions]
-    for center in expected:
-        assert center in blits
+    left, right, center = renderer.compute_positions(1.0)
+    elements = renderer._prepare_elements(("A", "B"), 1.0, left, right, center)
+    angle, _ = renderer._compute_transform(1.0)
+
+    elements, _ = renderer._apply_fade_out(
+        elements, angle, 0.0, None, ball_positions, left, right, center
+    )
+
+    for i in range(2):
+        pos = elements[i][1]
+        ex_x, ex_y = ball_positions[i]
+        assert int(pos[0]) == int(ex_x)
+        assert int(pos[1]) == int(ex_y)
     pygame.quit()
 
 
@@ -391,63 +390,26 @@ def test_cached_positions_and_reset(monkeypatch: pytest.MonkeyPatch) -> None:
     pygame.quit()
 
 
-def test_hold_float_oscillates_without_drift(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_apply_hold_effect_oscillates(monkeypatch: pytest.MonkeyPatch) -> None:
     pygame.init()
     config = IntroConfig(hold_float_amplitude=5.0, hold_float_frequency=2.0)
     renderer = IntroRenderer(200, 100, config=config)
-    surface = pygame.Surface((200, 100), flags=pygame.SRCALPHA)
 
-    # Prepare a single element positioned at the centre to simplify tracking.
+    surf = pygame.Surface((10, 10), flags=pygame.SRCALPHA)
     _, _, center = renderer.compute_positions(1.0)
-
-    def fake_prepare(
-        labels: tuple[str, str],
-        prog: float,
-        left: tuple[float, float],
-        right: tuple[float, float],
-        center_pos: tuple[float, float],
-    ) -> list[tuple[_pygame.Surface, tuple[float, float]]]:
-        surf = pygame.Surface((10, 10), flags=pygame.SRCALPHA)
-        return [(surf, center_pos)]
-
-    monkeypatch.setattr(renderer, "_prepare_elements", fake_prepare)
-
-    angles: list[float] = []
-    positions: list[float] = []
-
-    original_rotozoom = pygame.transform.rotozoom
-
-    def tracking_rotozoom(img: _pygame.Surface, angle: float, scale: float) -> _pygame.Surface:
-        angles.append(angle)
-        return original_rotozoom(img, angle, scale)
-
-    monkeypatch.setattr(pygame.transform, "rotozoom", tracking_rotozoom)
-
-    blits: list[tuple[int, int]] = []
-    original_blit = pygame.Surface.blit
-
-    def tracking_blit(
-        self: _pygame.Surface,
-        source: _pygame.Surface,
-        dest: _pygame.Rect | tuple[int, int],
-        *args: object,
-        **kwargs: object,
-    ) -> _pygame.Rect:
-        center_dest = dest.center if hasattr(dest, "center") else dest
-        blits.append((int(center_dest[0]), int(center_dest[1])))
-        return original_blit(self, source, dest, *args, **kwargs)
-
-    monkeypatch.setattr(pygame.Surface, "blit", tracking_blit)
+    base_elements = [(surf, center)]
+    base_angle, _ = renderer._compute_transform(1.0)
 
     import math
     import statistics
 
     times = [i * 0.1 for i in range(int(2 * math.pi / 0.1))]
+    angles: list[float] = []
+    positions: list[float] = []
     for t in times:
-        renderer.draw(surface, ("A", "B"), 1.0, IntroState.HOLD, None, None, t)
-        positions.append(blits[-1][1])
-
-    base_angle, _ = renderer._compute_transform(1.0)
+        elems, angle = renderer._apply_hold_effect(base_elements, base_angle, t)
+        angles.append(angle)
+        positions.append(elems[0][1][1])
 
     mean_pos = statistics.fmean(positions)
     mean_angle = statistics.fmean(angles)

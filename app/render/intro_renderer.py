@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING
 
-import math
 import pygame
 
 from app.core.types import Vec2
@@ -226,7 +226,126 @@ class IntroRenderer:
             (self.font.render(labels[1], True, (255, 255, 255)), right_pos),
         ]
 
-    def draw(  # noqa: C901
+    def _compute_state_positions(
+        self, progress: float, state: IntroState
+    ) -> tuple[Vec2, Vec2, Vec2]:
+        """Return element positions for ``progress`` and ``state``.
+
+        This method handles caching of the final positions reached at the end
+        of ``LOGO_IN`` so that subsequent phases can reuse them without
+        recalculating. ``progress`` is still forwarded so weapon sprites can
+        rotate and scale correctly even when positions remain static.
+        """
+
+        from app.intro.intro_manager import IntroState as _IntroState
+
+        if state is _IntroState.LOGO_IN:
+            left_pos, right_pos, center_pos = self.compute_positions(progress)
+            if progress >= 1.0:
+                self._final_positions = (left_pos, right_pos, center_pos)
+                self._base_progress = progress
+            return left_pos, right_pos, center_pos
+
+        if state is _IntroState.WEAPONS_IN:
+            if self._final_positions is None:
+                self._final_positions = self.compute_positions(1.0)
+            return self._final_positions
+
+        if state in (_IntroState.HOLD, _IntroState.FADE_OUT):
+            if self._final_positions is None:
+                self._final_positions = self.compute_positions(1.0)
+            return self._final_positions
+
+        return self.compute_positions(progress)
+
+    def _apply_hold_effect(
+        self,
+        elements: list[tuple[pygame.Surface, Vec2]],
+        angle: float,
+        elapsed: float,
+    ) -> tuple[list[tuple[pygame.Surface, Vec2]], float]:
+        """Return elements and angle adjusted for ``HOLD``.
+
+        A gentle floating offset is applied to both the element positions and
+        the rotation angle. The offset is stored so that the ``FADE_OUT`` phase
+        can begin from the same visual state.
+        """
+
+        offset = self._hold_offset(elapsed)
+        adjusted = [(img, (pos[0], pos[1] + offset)) for img, pos in elements]
+        self._fade_start_offset = offset
+        return adjusted, angle + offset
+
+    def _apply_fade_out(
+        self,
+        elements: list[tuple[pygame.Surface, Vec2]],
+        angle: float,
+        progress: float,
+        targets: tuple[pygame.Rect, pygame.Rect, pygame.Rect] | None,
+        ball_positions: tuple[Vec2, Vec2] | None,
+        left_pos: Vec2,
+        right_pos: Vec2,
+        center_pos: Vec2,
+    ) -> tuple[list[tuple[pygame.Surface, Vec2]], float]:
+        """Return elements and angle adjusted for ``FADE_OUT`` effects."""
+
+        offset = self._fade_start_offset
+        elements = [(img, (pos[0], pos[1] + offset)) for img, pos in elements]
+        angle += offset
+
+        if targets is not None:
+            self._interpolate_to_targets(
+                elements,
+                (
+                    (center_pos[0], center_pos[1] + offset),
+                    (left_pos[0], left_pos[1] + offset),
+                    (right_pos[0], right_pos[1] + offset),
+                ),
+                targets,
+                progress,
+            )
+
+        if ball_positions is not None:
+            self._equip_weapons(elements, ball_positions, progress)
+
+        return elements, angle
+
+    def _blit_elements(
+        self,
+        surface: pygame.Surface,
+        elements: list[tuple[pygame.Surface, Vec2]],
+        angle: float,
+        scale_factor: float,
+        alpha: int,
+        state: IntroState,
+        progress: float,
+    ) -> None:
+        """Blit all intro elements with glow, shadow and overlay."""
+
+        from app.intro.intro_manager import IntroState as _IntroState
+
+        for img, pos in elements:
+            if self.assets is None:
+                img = pygame.transform.rotozoom(img, angle, scale_factor)
+            img.set_alpha(alpha)
+            shadow = img.copy()
+            shadow.fill((0, 0, 0, 180), special_flags=pygame.BLEND_RGBA_MULT)
+            surface.blit(shadow, shadow.get_rect(center=(pos[0] + 4, pos[1] + 4)))
+            for dx, dy in ((-2, 0), (2, 0), (0, -2), (0, 2)):
+                glow = img.copy()
+                glow.set_alpha(min(alpha, 128))
+                surface.blit(glow, glow.get_rect(center=(pos[0] + dx, pos[1] + dy)))
+            surface.blit(img, img.get_rect(center=pos))
+
+        if state is _IntroState.LOGO_IN:
+            fade_alpha = int((1.0 - progress) * 255)
+            if fade_alpha > 0:
+                overlay = pygame.Surface((self.width, self.height))
+                overlay.fill((0, 0, 0))
+                overlay.set_alpha(fade_alpha)
+                surface.blit(overlay, (0, 0))
+
+    def draw(
         self,
         surface: pygame.Surface,
         labels: tuple[str, str],
@@ -270,68 +389,24 @@ class IntroRenderer:
         """
         from app.intro.intro_manager import IntroState as _IntroState
 
-        if state is _IntroState.LOGO_IN:
-            left_pos, right_pos, center_pos = self.compute_positions(progress)
-            if progress >= 1.0:
-                self._final_positions = (left_pos, right_pos, center_pos)
-                self._base_progress = progress
-        elif state is _IntroState.WEAPONS_IN:
-            if self._final_positions is None:
-                self._final_positions = self.compute_positions(1.0)
-            left_pos, right_pos, center_pos = self._final_positions
-        elif state in (_IntroState.HOLD, _IntroState.FADE_OUT):
-            if self._final_positions is None:
-                self._final_positions = self.compute_positions(1.0)
-            left_pos, right_pos, center_pos = self._final_positions
-        else:
-            left_pos, right_pos, center_pos = self.compute_positions(progress)
+        left_pos, right_pos, center_pos = self._compute_state_positions(progress, state)
         alpha = self.compute_alpha(progress, state)
         elements = self._prepare_elements(labels, progress, left_pos, right_pos, center_pos)
         angle, scale_factor = self._compute_transform(progress)
 
         if state is _IntroState.HOLD:
-            offset = self._hold_offset(elapsed)
-            angle += offset
-            elements = [(img, (pos[0], pos[1] + offset)) for img, pos in elements]
-            self._fade_start_offset = offset
+            elements, angle = self._apply_hold_effect(elements, angle, elapsed)
 
         if state is _IntroState.FADE_OUT:
-            offset = self._fade_start_offset
-            angle += offset
-            elements = [(img, (pos[0], pos[1] + offset)) for img, pos in elements]
-            if targets is not None:
-                self._interpolate_to_targets(
-                    elements,
-                    (
-                        (center_pos[0], center_pos[1] + offset),
-                        (left_pos[0], left_pos[1] + offset),
-                        (right_pos[0], right_pos[1] + offset),
-                    ),
-                    targets,
-                    progress,
-                )
-            if ball_positions is not None:
-                self._equip_weapons(elements, ball_positions, progress)
+            elements, angle = self._apply_fade_out(
+                elements,
+                angle,
+                progress,
+                targets,
+                ball_positions,
+                left_pos,
+                right_pos,
+                center_pos,
+            )
 
-        for img, pos in elements:
-            if self.assets is None:
-                img = pygame.transform.rotozoom(img, angle, scale_factor)
-            img.set_alpha(alpha)
-            shadow = img.copy()
-            shadow.fill((0, 0, 0, 180), special_flags=pygame.BLEND_RGBA_MULT)
-            surface.blit(shadow, shadow.get_rect(center=(pos[0] + 4, pos[1] + 4)))
-            for dx, dy in ((-2, 0), (2, 0), (0, -2), (0, 2)):
-                glow = img.copy()
-                glow.set_alpha(min(alpha, 128))
-                surface.blit(glow, glow.get_rect(center=(pos[0] + dx, pos[1] + dy)))
-            surface.blit(img, img.get_rect(center=pos))
-
-        fade_alpha = 0
-        if state is _IntroState.LOGO_IN:
-            fade_alpha = int((1.0 - progress) * 255)
-
-        if fade_alpha > 0:
-            overlay = pygame.Surface((self.width, self.height))
-            overlay.fill((0, 0, 0))
-            overlay.set_alpha(fade_alpha)
-            surface.blit(overlay, (0, 0))
+        self._blit_elements(surface, elements, angle, scale_factor, alpha, state, progress)
