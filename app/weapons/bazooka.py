@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from typing import cast
 
 from app.audio.weapons import WeaponAudio
 from app.core.types import Damage, EntityId, Vec2
@@ -34,15 +35,19 @@ class Bazooka(Weapon):
         angle = math.atan2(direction[1], direction[0]) + math.pi / 2
         velocity = (direction[0] * self.speed, direction[1] * self.speed)
         position = view.get_position(owner)
-        proj = view.spawn_projectile(
-            owner,
-            position,
-            velocity,
-            radius=self.missile_radius,
-            damage=self.damage,
-            knockback=200.0,
-            ttl=1.5,
-            sprite=self._missile_sprite,
+        proj = cast(
+            Projectile,
+            view.spawn_projectile(
+                owner,
+                position,
+                velocity,
+                radius=self.missile_radius,
+                damage=self.damage,
+                knockback=200.0,
+                ttl=1.5,
+                sprite=self._missile_sprite,
+                trail_color=(255, 200, 50),
+            ),
         )
         if isinstance(proj, Projectile):
             proj.audio = self.audio

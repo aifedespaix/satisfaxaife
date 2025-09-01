@@ -143,7 +143,44 @@ def test_shuriken_audio_events() -> None:
     projectile = view_obj.projectile
     assert projectile is not None
     projectile.on_hit(view, EntityId(2), timestamp=0.0)
-    assert stub_audio.touched
+    assert stub_audio.touched*
+    class View:
+        def __init__(self) -> None:
+            self.world = PhysicsWorld()
+            self.projectile: Projectile | None = None
+
+        def get_position(self, eid: EntityId) -> Vec2:  # noqa: D401
+            return (0.0, 0.0)
+
+        def spawn_projectile(
+            self,
+            owner: EntityId,
+            position: Vec2,
+            velocity: Vec2,
+            *,
+            radius: float,
+            damage: Damage,
+            knockback: float,
+            ttl: float,
+            sprite: object | None = None,
+            spin: float = 0.0,
+            trail_color: tuple[int, int, int] | None = None,
+        ) -> WeaponEffect:
+            proj = Projectile.spawn(
+                self.world,
+                owner,
+                position,
+                velocity,
+                radius,
+                damage,
+                knockback,
+                ttl,
+                sprite,
+                spin,
+                trail_color,
+            )
+            self.projectile = proj
+            return proj
 
 
 def test_bazooka_audio_events() -> None:
