@@ -291,11 +291,10 @@ class GameController:
             if dash_dir is not None:
                 p.dash.start(dash_dir, now)
             p.dash.update(now)
-            vx = float(p.ball.body.velocity.x)
-            vy = float(p.ball.body.velocity.y)
+            velocity = p.ball.body.velocity
             p.ball.body.velocity = (
-                vx + accel[0] * settings.dt,
-                vy + accel[1] * settings.dt,
+                float(velocity.x) + accel[0] * settings.dt,
+                float(velocity.y) + accel[1] * settings.dt,
             )
             if p.dash.is_dashing:
                 p.ball.body.velocity = (
@@ -358,9 +357,9 @@ class GameController:
             )
             radius = int(p.ball.shape.radius)
             self.renderer.draw_ball(pos, radius, settings.ball_color, p.color)
-            vx, vy = p.ball.body.velocity
-            speed = sqrt(vx * vx + vy * vy)
-            gaze = (vx / speed, vy / speed) if speed else p.face
+            velocity = p.ball.body.velocity
+            speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y)
+            gaze = (velocity.x / speed, velocity.y / speed) if speed else p.face
             if settings.show_eyes:
                 self.renderer.draw_eyes(pos, gaze, radius, p.color)
         self.renderer.draw_impacts()
