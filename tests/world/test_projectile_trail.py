@@ -1,4 +1,5 @@
 from collections import deque
+from typing import Any
 
 import pygame
 
@@ -10,16 +11,16 @@ from app.world.projectiles import Projectile
 class RecordingDeque(deque[Vec2]):
     """Deque that records ``pop`` and ``popleft`` calls."""
 
-    def __init__(self, *args, **kwargs) -> None:  # pragma: no cover - simple init
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # pragma: no cover - simple init
         super().__init__(*args, **kwargs)
         self.pop_calls = 0
         self.popleft_calls = 0
 
-    def pop(self) -> Vec2:  # type: ignore[override]
+    def pop(self, index: int = -1) -> Vec2:
         self.pop_calls += 1
         return super().pop()
 
-    def popleft(self) -> Vec2:  # type: ignore[override]
+    def popleft(self) -> Vec2:
         self.popleft_calls += 1
         return super().popleft()
 
@@ -48,4 +49,3 @@ def test_trail_is_bounded_without_manual_shifting() -> None:
     assert list(projectile.trail)[-1] == (9.0, 0.0)
     assert recording_trail.pop_calls == 0
     assert recording_trail.popleft_calls == 0
-
