@@ -4,7 +4,6 @@ import itertools
 from dataclasses import dataclass
 
 import pymunk
-
 from app.core.types import Damage, EntityId, Stats, Vec2
 from app.world.physics import PhysicsWorld
 

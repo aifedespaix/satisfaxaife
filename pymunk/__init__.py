@@ -167,6 +167,67 @@ class Segment(Shape):
         return BB(left, bottom, right, top)
 
 
+def _reflect_velocity(velocity: Vec2, normal: Vec2, elasticity: float) -> Vec2:
+    """Return ``velocity`` reflected around ``normal`` with ``elasticity``.
+
+    The component of the velocity along ``normal`` is reversed and scaled by
+    ``elasticity`` while the tangential component is preserved.  This mimics
+    Pymunk's energy conserving, frictionless bounces against static segments.
+    """
+
+    vn = velocity.x * normal.x + velocity.y * normal.y
+    if vn >= 0:
+        # Already moving away from the wall; no change.
+        return velocity
+    scale = (1.0 + elasticity) * vn
+    return Vec2(velocity.x - scale * normal.x, velocity.y - scale * normal.y)
+
+
+def _resolve_circle_segment(circle: Circle, segment: Segment, prev: Vec2) -> None:
+    """Clamp ``circle`` against ``segment`` and apply bounce when crossing.
+
+    Parameters
+    ----------
+    circle:
+        The dynamic shape to test.
+    segment:
+        Boundary segment.
+    prev:
+        Previous position of the circle's body before integration.
+    """
+
+    pos = circle.body.position
+    radius = float(circle.radius)
+    elasticity = circle.elasticity * segment.elasticity
+
+    if segment.a[0] == segment.b[0]:
+        # Vertical wall at x = segment.a[0]
+        wall_x = segment.a[0]
+        if prev.x >= wall_x and pos.x - radius < wall_x:
+            circle.body.position = Vec2(wall_x + radius, pos.y)
+            circle.body.velocity = _reflect_velocity(
+                circle.body.velocity, Vec2(1.0, 0.0), elasticity
+            )
+        elif prev.x <= wall_x and pos.x + radius > wall_x:
+            circle.body.position = Vec2(wall_x - radius, pos.y)
+            circle.body.velocity = _reflect_velocity(
+                circle.body.velocity, Vec2(-1.0, 0.0), elasticity
+            )
+    elif segment.a[1] == segment.b[1]:
+        # Horizontal wall at y = segment.a[1]
+        wall_y = segment.a[1]
+        if prev.y >= wall_y and pos.y - radius < wall_y:
+            circle.body.position = Vec2(pos.x, wall_y + radius)
+            circle.body.velocity = _reflect_velocity(
+                circle.body.velocity, Vec2(0.0, 1.0), elasticity
+            )
+        elif prev.y <= wall_y and pos.y + radius > wall_y:
+            circle.body.position = Vec2(pos.x, wall_y - radius)
+            circle.body.velocity = _reflect_velocity(
+                circle.body.velocity, Vec2(0.0, -1.0), elasticity
+            )
+
+
 def moment_for_circle(mass: float, inner_radius: float, radius: float) -> float:  # noqa: D401 - placeholder
     """Return a placeholder moment for a circle."""
     return 0.0
@@ -196,8 +257,16 @@ class Space:
                 self._shapes.remove(obj)
 
     def step(self, dt: float) -> None:
+        segments = [s for s in self._shapes if isinstance(s, Segment)]
+        circles = {s.body: s for s in self._shapes if isinstance(s, Circle)}
         for body in self._bodies:
+            prev = Vec2(body.position.x, body.position.y)
             body.position = (
                 body.position.x + body.velocity.x * dt,
                 body.position.y + body.velocity.y * dt,
             )
+            circle = circles.get(body)
+            if circle is None:
+                continue
+            for segment in segments:
+                _resolve_circle_segment(circle, segment, prev)
