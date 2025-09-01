@@ -13,6 +13,8 @@ from app.weapons import weapon_registry
 from app.weapons.base import Weapon, WeaponEffect, WorldView
 from app.weapons.katana import Katana
 from app.weapons.shuriken import Shuriken
+from app.weapons.knife import Knife
+from app.weapons.bazooka import Bazooka
 
 
 @dataclass
@@ -20,6 +22,9 @@ class DummyView(WorldView):
     enemy: EntityId
     enemy_pos: Vec2
     damage_values: list[float] = field(default_factory=list)
+    speed_bonus: dict[EntityId, float] = field(default_factory=dict)
+    effects: list[WeaponEffect] = field(default_factory=list)
+    projectiles: list[dict[str, object]] = field(default_factory=list)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
         return self.enemy
@@ -40,9 +45,18 @@ class DummyView(WorldView):
         return
 
     def spawn_effect(self, effect: WeaponEffect) -> None:  # noqa: D401
-        return
+        self.effects.append(effect)
 
-    def spawn_projectile(self, *args: object, **kwargs: object) -> WeaponEffect:  # noqa: D401
+    def spawn_projectile(self, owner: EntityId, position: Vec2, velocity: Vec2, radius: float, damage: Damage, knockback: float, ttl: float, sprite: object | None = None, spin: float = 0.0) -> WeaponEffect:  # noqa: D401,E501
+        self.projectiles.append({
+            "owner": owner,
+            "position": position,
+            "velocity": velocity,
+            "radius": radius,
+            "damage": damage,
+            "ttl": ttl,
+        })
+
         class _Dummy(WeaponEffect):
             owner: EntityId = EntityId(0)
 
@@ -66,14 +80,39 @@ class DummyView(WorldView):
     def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # noqa: D401
         return []
 
+    def add_speed_bonus(self, eid: EntityId, bonus: float) -> None:  # noqa: D401
+        self.speed_bonus[eid] = self.speed_bonus.get(eid, 0.0) + bonus
+
 
 def test_weapon_speed_attribute() -> None:
     """Weapons expose their projectile speed on the base class."""
     katana = Katana()
     shuriken = Shuriken()
 
-    assert katana.speed == 0.0
+    assert katana.speed == 5.0
     assert shuriken.speed == 600.0
+
+
+def test_knife_applies_speed_bonus() -> None:
+    view = DummyView(enemy=EntityId(2), enemy_pos=(0.0, 0.0))
+    knife = Knife()
+    knife.update(EntityId(1), view, 0.0)
+    assert view.speed_bonus[EntityId(1)] == knife.player_speed_bonus
+    assert len(view.effects) == 1
+
+
+def test_bazooka_fires_missile() -> None:
+    view = DummyView(enemy=EntityId(2), enemy_pos=(100.0, 0.0))
+    bazooka = Bazooka()
+    bazooka.update(EntityId(1), view, 0.0)
+    assert len(view.projectiles) == 1
+    projectile = view.projectiles[0]
+    vx, vy = projectile["velocity"]
+    assert vx == pytest.approx(bazooka.speed)
+    assert vy == pytest.approx(0.0)
+    assert projectile["radius"] == bazooka.missile_radius
+    effect = view.effects[0]
+    assert effect.collides(view, (0.0, 0.0), 1.0) is False
 
 
 class SpyWeapon(Weapon):

@@ -31,6 +31,9 @@ class WorldView(Protocol):
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:
         """Apply an impulse to the entity's body."""
 
+    def add_speed_bonus(self, eid: EntityId, bonus: float) -> None:
+        """Increase ``eid``'s maximum speed by ``bonus`` units."""
+
     def spawn_effect(self, effect: WeaponEffect) -> None:
         """Register a new weapon effect to be processed by the match."""
 
