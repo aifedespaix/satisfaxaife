@@ -11,6 +11,7 @@ import typer
 from app.audio import reset_default_engine
 from app.audio.env import temporary_sdl_audio_driver
 from app.core.config import settings
+from app.core.images import sanitize_images as sanitize_directory_images
 from app.game.controller import MatchTimeout
 from app.game.match import create_controller
 from app.intro.config import IntroConfig, set_intro_weapons
@@ -158,6 +159,23 @@ def batch(
                 typer.echo(f"Saved video to {final_path}")
             finally:
                 reset_default_engine()
+
+
+@app.command("sanitize-images")  # type: ignore[misc]
+def sanitize_images_command(
+    directory: Annotated[
+        Path,
+        typer.Argument(
+            file_okay=False,
+            dir_okay=True,
+            exists=True,
+            help="Directory containing image assets",
+        ),
+    ] = Path("assets"),
+) -> None:
+    """Validate and repair image files in ``directory``."""
+    sanitized = sanitize_directory_images(directory)
+    typer.echo(f"Sanitized {len(sanitized)} image(s) in {directory}")
 
 
 if __name__ == "__main__":  # pragma: no cover
