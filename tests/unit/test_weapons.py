@@ -101,6 +101,12 @@ def test_knife_applies_speed_bonus() -> None:
     assert len(view.effects) == 1
 
 
+def test_knife_damage_value() -> None:
+    """Knife base damage should reflect its lighter attack power."""
+    knife = Knife()
+    assert knife.damage.amount == 8
+
+
 def test_bazooka_fires_missile() -> None:
     view = DummyView(enemy=EntityId(2), enemy_pos=(100.0, 0.0))
     bazooka = Bazooka()

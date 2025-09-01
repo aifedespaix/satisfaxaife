@@ -17,7 +17,7 @@ class Knife(Weapon):
     player_speed_bonus: float = 80.0
 
     def __init__(self) -> None:
-        super().__init__(name="knife", cooldown=0.0, damage=Damage(14), speed=8.0)
+        super().__init__(name="knife", cooldown=0.0, damage=Damage(8), speed=8.0)
         blade_height = DEFAULT_BALL_RADIUS * 2.0
         self._sprite = pygame.transform.rotate(
             load_weapon_sprite("knife", max_dim=blade_height),
