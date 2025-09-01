@@ -70,6 +70,8 @@ class Display:
     _is_fullscreen: bool = field(init=False, default=False)
     _flags: int = field(init=False, default=0)
     _window: _pygame.Surface = field(init=False)
+    _cached_win_size: Size | None = field(init=False, default=None)
+    _scaled_surface: _pygame.Surface | None = field(init=False, default=None)
 
     def __post_init__(self) -> None:
         if pygame is None:  # pragma: no cover - defensive
@@ -110,17 +112,32 @@ class Display:
         self._is_fullscreen = not self._is_fullscreen
 
     def present(self, surface: pygame.Surface) -> None:
-        """Scale *surface* to the window while preserving aspect ratio."""
+        """Scale *surface* to the window while preserving aspect ratio.
+
+        The expensive ``smoothscale`` operation is only performed when the window
+        size changes. Subsequent calls reuse the last scaled surface if the
+        dimensions remain constant.
+        """
         if pygame is None:  # pragma: no cover
             return
         window = pygame.display.get_surface()
         if window is None:
             return
         win_size = window.get_size()
-        scale = calculate_scale(win_size, self.target_size)
-        scaled_size = (int(self.target_width * scale), int(self.target_height * scale))
-        scaled_surface = pygame.transform.smoothscale(surface, scaled_size)
+        if self._scaled_surface is None or self._cached_win_size != win_size:
+            scale = calculate_scale(win_size, self.target_size)
+            scaled_size = (
+                int(self.target_width * scale),
+                int(self.target_height * scale),
+            )
+            self._scaled_surface = pygame.transform.smoothscale(surface, scaled_size)
+            self._cached_win_size = win_size
         window.fill((0, 0, 0))
-        offset = ((win_size[0] - scaled_size[0]) // 2, (win_size[1] - scaled_size[1]) // 2)
-        window.blit(scaled_surface, offset)
+        assert self._scaled_surface is not None  # for type checkers
+        scaled_size = self._scaled_surface.get_size()
+        offset = (
+            (win_size[0] - scaled_size[0]) // 2,
+            (win_size[1] - scaled_size[1]) // 2,
+        )
+        window.blit(self._scaled_surface, offset)
         pygame.display.flip()
