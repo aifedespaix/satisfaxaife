@@ -36,6 +36,9 @@ class DummyView(WorldView):
     def spawn_effect(self, effect: WeaponEffect) -> None:
         return None
 
+    def add_speed_bonus(self, eid: EntityId, bonus: float) -> None:  # noqa: D401
+        return None
+
     def spawn_projectile(
         self,
         owner: EntityId,

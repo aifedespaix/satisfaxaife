@@ -106,6 +106,12 @@ class _MatchView(WorldView):
                 p.ball.body.apply_impulse_at_local_point((vx, vy))
                 return
 
+    def add_speed_bonus(self, eid: EntityId, bonus: float) -> None:
+        for p in self.players:
+            if p.eid == eid:
+                p.ball.stats.max_speed += bonus
+                return
+
     def spawn_effect(self, effect: WeaponEffect) -> None:
         self.effects.append(effect)
 
