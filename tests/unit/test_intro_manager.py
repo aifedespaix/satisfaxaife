@@ -15,7 +15,12 @@ class StubEngine:
         self.played: list[tuple[str, float | None]] = []
 
     def play_variation(
-        self, path: str, volume: float | None = None, timestamp: float | None = None
+        self,
+        path: str,
+        volume: float | None = None,
+        timestamp: float | None = None,
+        *,
+        cooldown_ms: int | None = None,
     ) -> None:
         self.played.append((path, timestamp))
 

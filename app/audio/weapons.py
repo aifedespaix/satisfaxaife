@@ -121,10 +121,15 @@ class WeaponAudio:
     # Events
     # ------------------------------------------------------------------
     def on_throw(self, timestamp: float | None = None) -> None:
-        """Play the throw sound for throwable weapons."""
+        """Play the throw sound for throwable weapons.
+
+        The underlying :class:`~app.audio.engine.AudioEngine` is instructed to
+        bypass its cooldown mechanism so that simultaneous throws always
+        trigger an audible cue.
+        """
         if self._throw_path is None:
             raise RuntimeError("This weapon type cannot throw")
-        self._engine.play_variation(self._throw_path, timestamp=timestamp)
+        self._engine.play_variation(self._throw_path, timestamp=timestamp, cooldown_ms=0)
 
     def on_touch(self, timestamp: float | None = None) -> None:
         """Play the touch/hit sound for any weapon."""

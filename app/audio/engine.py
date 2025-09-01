@@ -110,6 +110,8 @@ class AudioEngine:
         path: str,
         volume: float | None = None,
         timestamp: float | None = None,
+        *,
+        cooldown_ms: int | None = None,
     ) -> pygame.mixer.Channel | None:
         """Play ``path`` with a random pitch variation.
 
@@ -124,15 +126,22 @@ class AudioEngine:
             used when capturing; otherwise the current ``time.perf_counter`` is
             applied.
 
+        cooldown_ms:
+            Optional cooldown in milliseconds between plays of the same sound.
+            Passing ``0`` disables the cooldown entirely. Defaults to
+            :attr:`COOLDOWN_MS`.
+
         Returns
         -------
         pygame.mixer.Channel | None
             Playback handle, or ``None`` if skipped due to cooldown.
         """
+        if cooldown_ms is None:
+            cooldown_ms = self.COOLDOWN_MS
         now = time.perf_counter()
         with self._lock:
             last = self._last_play.get(path)
-            if last is not None and (now - last) * 1000 < self.COOLDOWN_MS:
+            if cooldown_ms > 0 and last is not None and (now - last) * 1000 < cooldown_ms:
                 return None
             variations = self._ensure_variations(path)
             sound, array = random.choice(variations)

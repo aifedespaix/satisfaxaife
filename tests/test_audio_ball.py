@@ -22,7 +22,12 @@ class StubAudioEngine:
         self.timestamps: list[float | None] = []
 
     def play_variation(
-        self, path: str, volume: float | None = None, timestamp: float | None = None
+        self,
+        path: str,
+        volume: float | None = None,
+        timestamp: float | None = None,
+        *,
+        cooldown_ms: int | None = None,
     ) -> object:  # noqa: D401
         self.played.append(path)
         self.timestamps.append(timestamp)

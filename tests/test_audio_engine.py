@@ -20,6 +20,15 @@ def test_cache_and_cooldown() -> None:
     engine.shutdown()
 
 
+def test_play_variation_no_cooldown() -> None:
+    engine = AudioEngine()
+    path = "assets/weapons/katana/touch.ogg"
+    handle1 = engine.play_variation(path, cooldown_ms=0)
+    handle2 = engine.play_variation(path, cooldown_ms=0)
+    assert handle1 is not None and handle2 is not None
+    engine.shutdown()
+
+
 def test_capture_mixdown() -> None:
     engine = AudioEngine()
     engine.start_capture()
