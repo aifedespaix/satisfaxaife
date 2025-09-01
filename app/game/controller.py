@@ -104,7 +104,7 @@ class _MatchView(WorldView):
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:
         for p in self.players:
             if p.eid == eid:
-                p.ball.body.apply_impulse_at_local_point((vx, vy))
+                p.ball.body.apply_impulse_at_local_point((vx, vy))  # type: ignore[attr-defined]
                 return
 
     def add_speed_bonus(self, eid: EntityId, bonus: float) -> None:
@@ -273,9 +273,10 @@ class GameController:
                 continue
             accel, face, fire, parry = p.policy.decide(p.eid, self.view, p.weapon.speed)
             p.face = face
+            current_velocity = p.ball.body.velocity
             p.ball.body.velocity = (
-                p.ball.body.velocity[0] + accel[0] * settings.dt,
-                p.ball.body.velocity[1] + accel[1] * settings.dt,
+                current_velocity.x + accel[0] * settings.dt,
+                current_velocity.y + accel[1] * settings.dt,
             )
             p.weapon.step(settings.dt)
             p.weapon.update(p.eid, self.view, settings.dt)

@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from app.ai.policy import SimplePolicy
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.weapons.base import WeaponEffect, WorldView
+from pymunk import Vec2 as PMVec2
 
 
 @dataclass
@@ -16,7 +17,7 @@ class DummyView(WorldView):
     pos_enemy: Vec2
     vel_me: Vec2 = (0.0, 0.0)
     vel_enemy: Vec2 = (0.0, 0.0)
-    last_velocity: Vec2 | None = field(default=None, init=False)
+    last_velocity: PMVec2 | None = field(default=None, init=False)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
         return self.enemy
@@ -56,7 +57,7 @@ class DummyView(WorldView):
         trail_color: tuple[int, int, int] | None = None,
         acceleration: float = 0.0,
     ) -> WeaponEffect:  # noqa: D401
-        self.last_velocity = velocity
+        self.last_velocity = PMVec2(*velocity)
 
         class _Dummy(WeaponEffect):
             owner: EntityId = owner
