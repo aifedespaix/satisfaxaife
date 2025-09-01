@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass, field
+from itertools import pairwise
 from math import atan2, pi, sqrt
 from typing import TYPE_CHECKING, cast
 
@@ -37,7 +39,7 @@ class Projectile(WeaponEffect):
     spin: float = 0.0
     audio: WeaponAudio | None = None
     trail_color: Color | None = None
-    trail: list[Vec2] = field(default_factory=list)
+    trail: deque[Vec2] = field(default_factory=lambda: deque(maxlen=8))
     trail_width: int = 2
     acceleration: float = 0.0
     bounces: int = 0
@@ -111,8 +113,6 @@ class Projectile(WeaponEffect):
         if self.trail_color is not None:
             pos = (float(self.body.position.x), float(self.body.position.y))
             self.trail.append(pos)
-            if len(self.trail) > 8:
-                self.trail.pop(0)
         return self.ttl > 0 or self.bounces < 2
 
     def collides(self, view: WorldView, position: Vec2, radius: float) -> bool:
@@ -158,7 +158,7 @@ class Projectile(WeaponEffect):
         pos = (float(self.body.position.x), float(self.body.position.y))
         if self.trail_color is not None and len(self.trail) > 1:
             denom = len(self.trail) - 1
-            for i, (a, b) in enumerate(zip(self.trail, self.trail[1:], strict=False)):
+            for i, (a, b) in enumerate(pairwise(self.trail)):
                 t = (i + 1) / denom
                 color = cast(Color, tuple(int(c * t) for c in self.trail_color))
                 renderer.draw_line(a, b, color, self.trail_width)
