@@ -106,6 +106,22 @@ class Body:
         x, y = value
         self._velocity = Vec2(float(x), float(y))
 
+    def apply_impulse_at_local_point(self, impulse: Iterable[float]) -> None:
+        """Add an instantaneous velocity change in local coordinates.
+
+        Parameters
+        ----------
+        impulse:
+            Two-component impulse vector. The stub treats this vector as a
+            direct change in velocity and ignores mass or rotational effects,
+            mirroring :meth:`pymunk.Body.apply_impulse_at_local_point`.
+        """
+        vx, vy = impulse
+        self._velocity = Vec2(
+            self._velocity.x + float(vx),
+            self._velocity.y + float(vy),
+        )
+
 
 class Shape:
     """Base collision shape."""
