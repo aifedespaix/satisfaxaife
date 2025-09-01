@@ -103,6 +103,22 @@ def test_kiter_closes_distance_when_out_of_range() -> None:
     assert fire is False
 
 
+def test_evader_always_moves_away() -> None:
+    view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (600.0, 0.0))
+    policy = SimplePolicy("evader")
+    accel, _, fire = policy.decide(EntityId(1), view, 600.0)
+    assert accel[0] < 0  # continues to flee
+    assert fire is False
+
+
+def test_evader_fires_when_far_enough() -> None:
+    view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (800.0, 0.0))
+    policy = SimplePolicy("evader")
+    accel, _, fire = policy.decide(EntityId(1), view, 600.0)
+    assert accel[0] < 0  # still moving away
+    assert fire is True
+
+
 def test_kiter_leads_moving_target() -> None:
     view = DummyView(
         EntityId(1),
@@ -116,8 +132,8 @@ def test_kiter_leads_moving_target() -> None:
     assert face[0] > 0  # aims ahead of the moving target
 
 
-@pytest.mark.parametrize("style", ["aggressive", "kiter"])
-def test_retreats_on_low_health(style: Literal["aggressive", "kiter"]) -> None:
+@pytest.mark.parametrize("style", ["aggressive", "kiter", "evader"])
+def test_retreats_on_low_health(style: Literal["aggressive", "kiter", "evader"]) -> None:
     view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (50.0, 0.0), health_me=0.1)
     policy = SimplePolicy(style)
     accel, face, fire = policy.decide(EntityId(1), view, 600.0)
@@ -126,8 +142,8 @@ def test_retreats_on_low_health(style: Literal["aggressive", "kiter"]) -> None:
     assert fire is True
 
 
-@pytest.mark.parametrize("style", ["aggressive", "kiter"])
-def test_low_health_fire_requires_range(style: Literal["aggressive", "kiter"]) -> None:
+@pytest.mark.parametrize("style", ["aggressive", "kiter", "evader"])
+def test_low_health_fire_requires_range(style: Literal["aggressive", "kiter", "evader"]) -> None:
     view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (600.0, 0.0), health_me=0.1)
     policy = SimplePolicy(style)
     _, _, fire = policy.decide(EntityId(1), view, 600.0)
@@ -168,10 +184,30 @@ def test_aggressive_dodges_projectiles() -> None:
     assert accel[1] < 0  # dodges downward
 
 
-def test_policy_for_bazooka_is_kiter() -> None:
+def test_evader_dodges_projectiles() -> None:
+    me = EntityId(1)
+    enemy = EntityId(2)
+
+    @dataclass
+    class ViewWithProjectile(DummyView):
+        proj_pos: Vec2 = (0.0, 0.0)
+        proj_vel: Vec2 = (0.0, 0.0)
+
+        def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # noqa: D401
+            return [ProjectileInfo(owner=enemy, position=self.proj_pos, velocity=self.proj_vel)]
+
+    view = ViewWithProjectile(
+        me, enemy, (0.0, 0.0), (100.0, 0.0), proj_pos=(40.0, 0.0), proj_vel=(-100.0, 0.0)
+    )
+    policy = SimplePolicy("evader")
+    accel, _, _ = policy.decide(me, view, 600.0)
+    assert accel[1] < 0  # dodges downward
+
+
+def test_policy_for_bazooka_is_evader() -> None:
     policy = policy_for_weapon("bazooka")
-    assert policy.style == "kiter"
-    assert policy.desired_dist_factor > 0.5
+    assert policy.style == "evader"
+    assert policy.desired_dist_factor > 1.0
 
 
 def test_policy_for_knife_prioritises_dodging() -> None:
