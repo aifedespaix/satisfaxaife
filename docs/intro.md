@@ -8,6 +8,7 @@ Ce document décrit l'architecture de l'animation d'introduction avant chaque ma
 - Machine à états gérant les phases : `LOGO_IN`, `WEAPONS_IN`, `HOLD`, `FADE_OUT`, `DONE`.
 - Méthodes `start`, `update(dt, events)`, `draw(surface, labels)` et `is_finished` orchestrent la séquence.
 - Permet de passer l'intro via la touche de saut (Échap par défaut) quand `allow_skip=True`.
+- Joue `versus.ogg` au lancement et `fight.ogg` lors du passage à la phase `FADE_OUT`.
 
 ## IntroRenderer
 
