@@ -91,11 +91,14 @@ def test_intro_manager_fight_sound() -> None:
     manager.start()
     for _ in range(3):
         manager.update(0.1)
-    assert len(stub.played) == 1
-    path, timestamp = stub.played[0]
-    assert path.endswith("fight.ogg")
+    assert len(stub.played) == 2
+    start_path, start_ts = stub.played[0]
+    assert start_path.endswith("versus.ogg")
+    assert start_ts == pytest.approx(0.0)
+    fight_path, fight_ts = stub.played[1]
+    assert fight_path.endswith("fight.ogg")
     expected = config.logo_in + config.weapons_in + config.hold
-    assert timestamp == pytest.approx(expected)
+    assert fight_ts == pytest.approx(expected)
 
 
 def test_start_resets_renderer() -> None:

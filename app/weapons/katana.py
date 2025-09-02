@@ -46,6 +46,7 @@ class Katana(Weapon):
                 radius=60.0,
                 angle=0.0,
                 speed=self.speed,
+                thickness=self._sprite.get_width() / 2.0,
                 knockback=220.0,
                 audio=self.audio,
             )

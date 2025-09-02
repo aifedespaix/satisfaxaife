@@ -21,6 +21,7 @@ if TYPE_CHECKING:  # pragma: no cover - hints only
     from app.audio import AudioEngine
 
 
+VERSUS_SOUND: str = "assets/versus.ogg"
 FIGHT_SOUND: str = "assets/fight.ogg"
 WEAPON_PULSE_AMPLITUDE: float = 0.05
 
@@ -70,10 +71,7 @@ class IntroManager:
         self._timeline: Timeline | None = None
         self._elapsed = 0.0
         self._duration = (
-            self.config.logo_in
-            + self.config.weapons_in
-            + self.config.hold
-            + self.config.fade_out
+            self.config.logo_in + self.config.weapons_in + self.config.hold + self.config.fade_out
         )
         self._targets: tuple[pygame.Rect, pygame.Rect, pygame.Rect] | None = None
 
@@ -99,6 +97,12 @@ class IntroManager:
         self._state_index = 0
         self._elapsed = 0.0
         self._targets = None
+        engine = self._engine
+        if engine is None:
+            from app.audio import get_default_engine
+
+            engine = get_default_engine()
+        engine.play_variation(VERSUS_SOUND, timestamp=0.0)
         self._renderer.reset()
         self._timeline = Timeline()
         self._timeline.add(Animation(0.0, 1.0, self.config.logo_in))
