@@ -6,7 +6,10 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import pymunk
+from app.ai.policy import _lead_target
 from app.core.config import settings
+from app.core.types import EntityId
+from pymunk import Vec2 as Vec2d
 
 from .spatial_index import SpatialIndex
 
@@ -160,33 +163,108 @@ class PhysicsWorld:
                 _resolve_ball_collision(ball, other)
             processed.add(shape)
 
+    def _retarget_after_swap(
+        self, projectile: Projectile, new_owner: EntityId, view: WorldView
+    ) -> None:
+        """Assign ``new_owner`` and aim the projectile at their enemy.
+
+        The projectile is redirected using an anticipatory targeting function
+        that accounts for the enemy's current velocity. If the owner has no
+        enemy, the projectile simply reverses direction.
+        """
+
+        enemy = view.get_enemy(new_owner)
+        if enemy is not None:
+            shooter_pos = (float(projectile.body.position.x), float(projectile.body.position.y))
+            enemy_pos = view.get_position(enemy)
+            enemy_vel = view.get_velocity(enemy)
+            vx, vy = projectile.body.velocity
+            speed = float((vx * vx + vy * vy) ** 0.5)
+            dir_x, dir_y = _lead_target(shooter_pos, enemy_pos, enemy_vel, speed)
+            target = (shooter_pos[0] + dir_x, shooter_pos[1] + dir_y)
+            projectile.retarget(target, new_owner)
+        else:
+            vx, vy = projectile.body.velocity
+            projectile.body.velocity = (-vx, -vy)
+            projectile.owner = new_owner
+            projectile.ttl = projectile.max_ttl
+            projectile.last_velocity = Vec2d(projectile.body.velocity.x, projectile.body.velocity.y)
+
+    def _handle_projectile_projectile(
+        self,
+        projectile: Projectile,
+        proj_shape: pymunk.Shape,
+        candidate: pymunk.Shape,
+        processed: set[pymunk.Shape],
+        view: WorldView,
+    ) -> bool:
+        """Return ``True`` if a projectile↔projectile collision was handled."""
+        other_proj = self._projectiles.get(candidate)
+        if (
+            other_proj is None
+            or candidate in processed
+            or candidate is proj_shape
+            or getattr(other_proj, "destroyed", False)
+            or not _shapes_hit(proj_shape, candidate)
+        ):
+            return False
+
+        owner_a, owner_b = projectile.owner, other_proj.owner
+        self._retarget_after_swap(projectile, owner_b, view)
+        self._retarget_after_swap(other_proj, owner_a, view)
+        if projectile.audio is not None:
+            projectile.audio.on_touch(self._timestamp)
+        if other_proj.audio is not None:
+            other_proj.audio.on_touch(self._timestamp)
+        processed.add(proj_shape)
+        processed.add(candidate)
+        return True
+
+    def _handle_projectile_ball(
+        self,
+        projectile: Projectile,
+        proj_shape: pymunk.Shape,
+        candidate: pymunk.Shape,
+        view: WorldView,
+    ) -> bool:
+        """Return ``True`` if a projectile hit a ball and was removed."""
+        ball = self._balls.get(candidate)
+        if ball is None or not _shapes_hit(proj_shape, candidate):
+            return False
+        if ball.eid == projectile.owner:
+            # Skip self-collisions so a deflected projectile cannot immediately
+            # hit its new owner.
+            return False
+        keep = projectile.on_hit(view, ball.eid, self._timestamp)
+        if not keep:
+            projectile.destroy()
+            cb = self._on_projectile_removed
+            if cb is not None:
+                cb(projectile)
+            return True
+        return False
+
     def _process_projectile_collisions(self) -> None:
-        """Détecte et traite les impacts projectile↔ball sans handlers Pymunk,
-        en évitant le bug d'assert de ContactPointSet quand count==0."""
-        if self._view is None:
+        """Process projectile↔ball and projectile↔projectile overlaps."""
+        view = self._view
+        if view is None:
             return
+
+        processed: set[pymunk.Shape] = set()
 
         for proj_shape, projectile in list(self._projectiles.items()):
             if getattr(projectile, "destroyed", False):
                 continue
 
             for candidate in self._index.query(proj_shape):
-                ball = self._balls.get(candidate)
-                if ball is None or not _shapes_hit(proj_shape, candidate):
-                    continue
+                if self._handle_projectile_projectile(
+                    projectile, proj_shape, candidate, processed, view
+                ):
+                    break
+                if self._handle_projectile_ball(projectile, proj_shape, candidate, view):
+                    break
 
-                if ball.eid == projectile.owner:
-                    # Skip self-collisions so a deflected projectile cannot
-                    # immediately hit its new owner.
-                    continue
-
-                keep = projectile.on_hit(self._view, ball.eid, self._timestamp)
-                if not keep:
-                    projectile.destroy()
-                    cb = self._on_projectile_removed
-                    if cb is not None:
-                        cb(projectile)
-                    break  # projectile supprimé → passe au suivant
+            processed.add(proj_shape)
 
     # ── Simulation ────────────────────────────────────────────────────────────
 
