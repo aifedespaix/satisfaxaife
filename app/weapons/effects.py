@@ -14,7 +14,6 @@ from app.world.projectiles import Projectile
 
 from .base import WeaponEffect, WorldView
 
-HIT_COOLDOWN: float = 0.5
 
 @dataclass(slots=True)
 class HeldSprite(WeaponEffect):
@@ -86,17 +85,11 @@ class OrbitingSprite(WeaponEffect):
     trail: list[Vec2] = field(default_factory=list)
     trail_len: int = 8
     audio: WeaponAudio | None = None
-    hit_cooldowns: dict[EntityId, float] = field(default_factory=dict)
+    hit_angles: dict[EntityId, float] = field(default_factory=dict)
 
     def step(self, dt: float) -> bool:  # noqa: D401
-        """Advance rotation and update per-target hit cooldowns."""
+        """Advance rotation."""
         self.angle = float(np.float32(self.angle + self.speed * dt) % np.float32(tau))
-        for target in list(self.hit_cooldowns):
-            remaining = self.hit_cooldowns[target] - dt
-            if remaining <= 0.0:
-                del self.hit_cooldowns[target]
-            else:
-                self.hit_cooldowns[target] = remaining
         return True
 
     def _position(self, view: WorldView) -> Vec2:
@@ -111,11 +104,16 @@ class OrbitingSprite(WeaponEffect):
         hit_rad = max(self.sprite.get_width(), self.sprite.get_height()) / 2
         return bool(dx * dx + dy * dy <= (hit_rad + radius) ** 2)
 
+    @staticmethod
+    def _angle_distance(a: float, b: float) -> float:
+        """Return the smallest absolute distance between angles ``a`` and ``b``."""
+        return abs((a - b + math.pi) % tau - math.pi)
+
     def on_hit(self, view: WorldView, target: EntityId, timestamp: float) -> bool:  # noqa: D401
-        """Apply damage to ``target`` if its cooldown expired."""
-        if target in self.hit_cooldowns:
+        """Apply damage if the blade rotated at least half a turn since the last hit."""
+        last_angle = self.hit_angles.get(target)
+        if last_angle is not None and self._angle_distance(self.angle, last_angle) < math.pi:
             return True
-        """Apply damage and knock back ``target`` at ``timestamp``."""
         view.deal_damage(target, self.damage, timestamp)
         blade_pos = self._position(view)
         target_pos = view.get_position(target)
@@ -125,7 +123,7 @@ class OrbitingSprite(WeaponEffect):
         view.apply_impulse(target, dx / norm * self.knockback, dy / norm * self.knockback)
         if self.audio is not None:
             self.audio.on_touch(timestamp)
-        self.hit_cooldowns[target] = HIT_COOLDOWN
+        self.hit_angles[target] = self.angle
         return True
 
     def deflect_projectile(self, view: WorldView, projectile: Projectile, timestamp: float) -> None:
