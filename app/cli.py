@@ -12,6 +12,7 @@ from app.audio import reset_default_engine
 from app.audio.env import temporary_sdl_audio_driver
 from app.core.config import settings
 from app.core.images import sanitize_images as sanitize_directory_images
+from app.core.registry import UnknownWeaponError
 from app.game.controller import MatchTimeout
 from app.game.match import create_controller
 from app.intro.config import IntroConfig, set_intro_weapons
@@ -176,17 +177,21 @@ def run(
             recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
             renderer = Renderer(settings.width, settings.height)
 
-        controller = create_controller(
-            weapon_a,
-            weapon_b,
-            recorder,
-            renderer,
-            max_seconds=max_seconds_val,
-            ai_transition_seconds=ai_transition_seconds,
-            display=display,
-            intro_config=intro_config,
-            rng=rng,
-        )
+        try:
+            controller = create_controller(
+                weapon_a,
+                weapon_b,
+                recorder,
+                renderer,
+                max_seconds=max_seconds_val,
+                ai_transition_seconds=ai_transition_seconds,
+                display=display,
+                intro_config=intro_config,
+                rng=rng,
+            )
+        except UnknownWeaponError as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(code=1) from None
         try:
             winner = controller.run()
         except MatchTimeout as exc:
@@ -237,13 +242,17 @@ def batch(
             recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
             renderer = Renderer(settings.width, settings.height)
 
-            controller = create_controller(
-                weapon_a,
-                weapon_b,
-                recorder,
-                renderer,
-                rng=rng,
-            )
+            try:
+                controller = create_controller(
+                    weapon_a,
+                    weapon_b,
+                    recorder,
+                    renderer,
+                    rng=rng,
+                )
+            except UnknownWeaponError as exc:
+                typer.echo(str(exc), err=True)
+                raise typer.Exit(code=1) from None
             try:
                 winner = controller.run()
             except MatchTimeout as exc:

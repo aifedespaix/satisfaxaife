@@ -1,9 +1,19 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Generic, TypeVar
 
 T = TypeVar("T")
+
+
+class UnknownWeaponError(KeyError):
+    """Raised when a weapon name is not registered."""
+
+    def __init__(self, name: str, available: Sequence[str]) -> None:
+        self.name = name
+        self.available = sorted(available)
+        options = ", ".join(self.available) or "<none>"
+        super().__init__(f"Unknown weapon '{name}'. Available weapons: {options}")
 
 
 class Registry(Generic[T]):
@@ -19,7 +29,11 @@ class Registry(Generic[T]):
         self._factories[name] = factory
 
     def create(self, name: str) -> T:
-        return self._factories[name]()
+        try:
+            factory = self._factories[name]
+        except KeyError as exc:  # pragma: no cover - defensive branch
+            raise UnknownWeaponError(name, self.names()) from exc
+        return factory()
 
     def factory(self, name: str) -> Callable[[], T]:
         """Return the registered factory for ``name``.

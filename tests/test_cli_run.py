@@ -18,6 +18,7 @@ from app.audio import reset_default_engine
 from app.audio.engine import AudioEngine
 from app.cli import app
 from app.core.config import settings
+from app.core.registry import UnknownWeaponError
 from app.intro.config import IntroConfig
 from app.render.intro_renderer import IntroRenderer
 from app.render.renderer import Renderer
@@ -217,3 +218,34 @@ def test_intro_weapons_option(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     assert config.weapons_in == 0.0
     assert config.hold == 1.0
     assert config.fade_out == 0.25
+
+
+def test_run_unknown_weapon_shows_available(monkeypatch: MonkeyPatch) -> None:
+    """CLI surfaces available weapon names when an unknown one is provided."""
+    monkeypatch.setattr(cli_module, "Recorder", NullRecorder)
+
+    available = ["katana", "shuriken"]
+
+    def fake_create_controller(*args: object, **kwargs: object) -> object:  # noqa: ARG001
+        raise UnknownWeaponError("laser", available)
+
+    from app.game import match as match_module
+
+    monkeypatch.setattr(match_module, "create_controller", fake_create_controller)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--weapon-a",
+            "laser",
+            "--weapon-b",
+            "shuriken",
+        ],
+    )
+    assert result.exit_code != 0
+    stderr = result.stderr or ""
+    assert "Unknown weapon 'laser'" in stderr
+    for name in available:
+        assert name in stderr
