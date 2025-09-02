@@ -5,6 +5,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from enum import Enum
 from math import sqrt
+from pathlib import Path
 
 import numpy as np
 import pygame
@@ -27,6 +28,8 @@ from pymunk import Vec2 as Vec2d
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+
+DASH_SOUND_PATH = Path("assets/dash.ogg").as_posix()
 
 
 @dataclass(slots=True)
@@ -306,7 +309,10 @@ class GameController:
             dash_dir = p.policy.dash_direction(p.eid, self.view, now, p.dash.can_dash)
             p.face = face
             if dash_dir is not None:
+                was_dashing = p.dash.is_dashing
                 p.dash.start(dash_dir, now)
+                if not was_dashing and p.dash.is_dashing:
+                    self.engine.play_variation(DASH_SOUND_PATH, timestamp=now)
             p.dash.update(now)
             new_velocity = p.ball.body.velocity + Vec2d(
                 accel[0] * settings.dt,
