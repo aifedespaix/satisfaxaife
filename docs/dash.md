@@ -1,7 +1,7 @@
 # Dash
 
-Le _dash_ est une impulsion latérale brève conférant une invulnérabilité
-momentanée.
+Le _dash_ est une impulsion latérale brève. Les collisions et dégâts
+continuent de s'appliquer normalement pendant toute sa durée.
 
 ## Paramètres par défaut
 
@@ -19,5 +19,6 @@ momentanée.
 
 ## Effet visuel
 
-Pendant un dash, la balle laisse une traînée accentuée pour signaler
-l'action au joueur.
+Pendant un dash, la balle génère une animation de traînée explosive : des
+clones semi-transparents ("ghosts") suivent sa trajectoire et
+disparaissent en quelques images, rendant l'action nette et éphémère.

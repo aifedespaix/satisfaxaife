@@ -95,8 +95,6 @@ class _MatchView(WorldView):
         """Apply ``damage`` to ``eid`` at ``timestamp``."""
         for p in self.players:
             if p.eid == eid and p.alive:
-                if p.dash.is_dashing or timestamp < p.dash.invulnerable_until:
-                    return
                 pos = self.get_position(eid)
                 p.alive = not p.ball.take_damage(damage)
                 if p.alive:

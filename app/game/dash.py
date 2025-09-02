@@ -5,9 +5,6 @@ from dataclasses import dataclass, field
 
 from app.core.types import Damage, Vec2
 
-INVULNERABILITY_BUFFER = 1.0 / 60.0
-"""Extra time in seconds after dash end before collisions resume."""
-
 
 @dataclass(slots=True)
 class Dash:
@@ -18,7 +15,6 @@ class Dash:
     cooldown: float = 3.0
     is_dashing: bool = False
     cooldown_end: float = 0.0
-    invulnerable_until: float = 0.0
     damage: Damage = field(default_factory=lambda: Damage(5.0))
     knockback: float = 400.0
     has_hit: bool = False
@@ -40,7 +36,6 @@ class Dash:
         self._direction = (direction[0] / norm, direction[1] / norm)
         self._dash_end = now + self.duration
         self.cooldown_end = now + self.cooldown
-        self.invulnerable_until = self._dash_end + INVULNERABILITY_BUFFER
         self.has_hit = False
 
     def update(self, now: float) -> None:

@@ -111,8 +111,9 @@ Exemple : **Katana VS Shuriken**, seed = 42 :
 v```
 
 Pendant le match, pressez `Maj gauche` pour déclencher un *dash* offrant une
-brève invulnérabilité. L'IA l'utilise automatiquement lorsque un projectile est
-prévu à moins de `0,3 s`.
+impulsion rapide. Les collisions et dégâts restent actifs pendant toute sa
+durée, mais une traînée de clones évanescents rend l'action spectaculaire. L'IA
+utilise le dash automatiquement lorsqu'un projectile est prévu à moins de `0,3 s`.
 
 📌 **Résultat :**
 Une vidéo **1080×1920, 60 FPS, .mp4**, prête pour TikTok, enregistrée dans
