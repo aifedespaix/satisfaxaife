@@ -7,20 +7,22 @@ import random
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from app.ai.policy import (
     SimplePolicy,
     _attack_range,
-    _lead_target,
     _nearest_projectile,
     _new_rng,
     _projectile_dodge,
 )
 from app.core.config import settings
+from app.core.targeting import _lead_target
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
-from app.weapons.base import RangeType, WorldView
 from app.weapons.utils import range_type_for
+
+if TYPE_CHECKING:
+    from app.weapons.base import RangeType, WorldView
 
 
 class State(Enum):
