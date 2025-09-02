@@ -7,13 +7,22 @@ T = TypeVar("T")
 
 
 class UnknownWeaponError(KeyError):
-    """Raised when a weapon name is not registered."""
+    """Raised when a weapon name is not registered.
+
+    The message also hints that some weapons rely on optional dependencies and
+    shows how to inspect the original import error.
+    """
 
     def __init__(self, name: str, available: Sequence[str]) -> None:
         self.name = name
         self.available = sorted(available)
         options = ", ".join(self.available) or "<none>"
-        super().__init__(f"Unknown weapon '{name}'. Available weapons: {options}")
+        hint = (
+            f"Unknown weapon '{name}'. Available weapons: {options}. "
+            "Note: some weapons require optional dependencies. "
+            f"Run `python -m app.weapons.{name}` to view the import error."
+        )
+        super().__init__(hint)
 
 
 class Registry(Generic[T]):
@@ -47,9 +56,17 @@ class Registry(Generic[T]):
         -------
         Callable[[], T]
             The factory function associated with ``name``.
+
+        Raises
+        ------
+        UnknownWeaponError
+            If ``name`` is not associated with a registered factory.
         """
 
-        return self._factories[name]
+        try:
+            return self._factories[name]
+        except KeyError as exc:  # pragma: no cover - defensive branch
+            raise UnknownWeaponError(name, self.names()) from exc
 
     def names(self) -> list[str]:
         return sorted(self._factories)
