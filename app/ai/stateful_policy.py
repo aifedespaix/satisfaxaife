@@ -170,7 +170,7 @@ class StatefulPolicy(SimplePolicy):
         """
 
         if self.range_type != "contact":
-            return super().dash_direction(me, view, now, can_dash)
+            return super(StatefulPolicy, self).dash_direction(me, view, now, can_dash)  # noqa: UP008
         if not can_dash(now):
             return None
 
@@ -190,7 +190,7 @@ class StatefulPolicy(SimplePolicy):
             return direction
 
         # Defensive mode --------------------------------------------------
-        super_dir = super().dash_direction(me, view, now, can_dash)
+        super_dir = super(StatefulPolicy, self).dash_direction(me, view, now, can_dash)  # noqa: UP008
         projectile_threat = super_dir is not None
         if dist > 150.0 and not projectile_threat:
             return None
