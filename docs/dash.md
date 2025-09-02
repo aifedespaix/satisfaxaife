@@ -1,7 +1,8 @@
 # Dash
 
-Le _dash_ est une impulsion latérale brève. Les collisions et dégâts
-continuent de s'appliquer normalement pendant toute sa durée.
+Le _dash_ est une impulsion latérale brève. Les collisions infligent des
+dégâts proportionnels à la vitesse au moment de l'impact et une attaque
+portée pendant un dash devient un **coup critique**.
 
 ## Paramètres par défaut
 

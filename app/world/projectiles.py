@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, cast
 import pymunk
 from app.core.types import Color, Damage, EntityId, Vec2
 from app.weapons.base import WeaponEffect, WorldView
+from app.weapons.utils import critical_multiplier
 from app.world.physics import PhysicsWorld
 from pymunk import Vec2 as Vec2d
 
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
     import pygame
 
     from app.audio.weapons import WeaponAudio
-    from app.render.renderer import Renderer
+from app.render.renderer import Renderer
 
 PROJECTILE_COLLISION_TYPE: int = 2
 """Pymunk collision type value for projectile shapes."""
@@ -129,7 +130,8 @@ class Projectile(WeaponEffect):
             # Returning ``True`` keeps the projectile alive without side effects.
             return True
 
-        view.deal_damage(target, self.damage, timestamp)
+        mult = critical_multiplier(view, self.owner)
+        view.deal_damage(target, Damage(self.damage.amount * mult), timestamp)
         if self.audio is not None:
             self.audio.on_touch(timestamp)
         target_pos = view.get_position(target)

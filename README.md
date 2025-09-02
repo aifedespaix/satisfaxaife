@@ -21,7 +21,8 @@ Image de prévisualisation à venir.
 - 🖥️ **Mode affichage** sans enregistrement grâce à l'option `--display`.
  - 🔄 **Reproductibilité totale** grâce aux seeds (mêmes combats → mêmes résultats).
  - 🛡️ **Esquives dépendantes de la seed** : chaque seed produit un biais d'évitement unique mais reproductible.
-- 🌀 **Dash** d'esquive avec invulnérabilité temporaire et 3 s de recharge.
+- 🌀 **Dash** d'esquive infligeant des dégâts proportionnels à la vitesse,
+  coup critique si une attaque touche pendant l'action et 3 s de recharge.
 - 🧩 **Architecture plug-in** : ajout d'armes, IA ou effets visuels sans toucher au moteur.
 - 🔊 **Effets sonores** intégrés dans la piste audio.
 - 📦 **Batch mode** : génération de **N vidéos** en une seule commande.

@@ -13,6 +13,7 @@ from app.render.renderer import Renderer
 from app.world.projectiles import Projectile
 
 from .base import WeaponEffect, WorldView
+from .utils import critical_multiplier
 
 
 @dataclass(slots=True)
@@ -114,7 +115,8 @@ class OrbitingSprite(WeaponEffect):
         last_angle = self.hit_angles.get(target)
         if last_angle is not None and self._angle_distance(self.angle, last_angle) < math.pi:
             return True
-        view.deal_damage(target, self.damage, timestamp)
+        mult = critical_multiplier(view, self.owner)
+        view.deal_damage(target, Damage(self.damage.amount * mult), timestamp)
         blade_pos = self._position(view)
         target_pos = view.get_position(target)
         dx = target_pos[0] - blade_pos[0]
