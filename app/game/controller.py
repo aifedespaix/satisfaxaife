@@ -110,10 +110,25 @@ class _MatchView(WorldView):
                 return
 
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:
+        """Apply a physics impulse to ``eid``'s body.
+
+        Parameters
+        ----------
+        eid:
+            Identifier of the target entity.
+        vx, vy:
+            Components of the impulse vector.
+
+        Raises
+        ------
+        KeyError
+            If no player with ``eid`` exists.
+        """
         for p in self.players:
             if p.eid == eid:
-                p.ball.body.apply_impulse_at_local_point((vx, vy))  # type: ignore[attr-defined]
+                p.ball.body.apply_impulse_at_local_point((vx, vy))
                 return
+        raise KeyError(eid)
 
     def add_speed_bonus(self, eid: EntityId, bonus: float) -> None:
         for p in self.players:

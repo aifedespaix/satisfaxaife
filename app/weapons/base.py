@@ -31,7 +31,13 @@ class WorldView(Protocol):
         """Apply ``damage`` to ``eid`` at the given ``timestamp``."""
 
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:
-        """Apply an impulse to the entity's body."""
+        """Apply an impulse to the entity's body.
+
+        Raises
+        ------
+        KeyError
+            If ``eid`` does not reference a known entity.
+        """
 
     def add_speed_bonus(self, eid: EntityId, bonus: float) -> None:
         """Increase ``eid``'s maximum speed by ``bonus`` units."""
