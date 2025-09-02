@@ -66,3 +66,48 @@ def test_run_reads_config_yaml(monkeypatch: Any) -> None:
     assert captured["weapon_b"] == "shuriken"
     assert captured["max_seconds"] == 42
     assert captured["ai_transition_seconds"] == 30
+
+
+def test_run_uses_default_ai_transition_seconds(monkeypatch: Any) -> None:
+    """CLI falls back to default ``ai_transition_seconds`` when absent."""
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(cli_module, "Recorder", NullRecorder)
+
+    def fake_create_controller(
+        weapon_a: str,
+        weapon_b: str,
+        recorder: Any,
+        renderer: Any,
+        *,
+        max_seconds: int = 120,
+        ai_transition_seconds: int = 20,
+        display: bool = False,
+        intro_config: Any = None,
+        rng: Any = None,
+    ) -> Any:
+        captured["ai_transition_seconds"] = ai_transition_seconds
+
+        class _C:
+            def run(self) -> str:
+                return weapon_a
+
+        return _C()
+
+    from app.game import match as match_module
+
+    monkeypatch.setattr(match_module, "create_controller", fake_create_controller)
+
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        Path("config.yml").write_text(
+            "\n".join([
+                "weapon_a: knife",
+                "weapon_b: shuriken",
+                "seed: 1234",
+            ]),
+            encoding="utf-8",
+        )
+        result = runner.invoke(app, ["run"])
+    assert result.exit_code == 0
+    assert captured["ai_transition_seconds"] == 20

@@ -21,6 +21,6 @@ def range_type_for(name: str) -> RangeType:
     """
 
     factory = weapon_registry.factory(name)
-    range_type: RangeType = getattr(factory, "range_type", "contact")  # type: ignore[assignment]
+    range_type: RangeType = getattr(factory, "range_type", "contact")
     return range_type
 
