@@ -37,11 +37,33 @@ def create_controller(
     renderer: Renderer | None = None,
     *,
     max_seconds: int = 120,
+    ai_transition_seconds: int = 20,
     display: bool = False,
     intro_config: IntroConfig | None = None,
     rng: random.Random | None = None,
 ) -> GameController:
-    """Construct a :class:`GameController` with default components."""
+    """Construct a :class:`GameController` with default components.
+
+    Parameters
+    ----------
+    weapon_a, weapon_b:
+        Names of the weapons used by the two players.
+    recorder:
+        Recorder responsible for writing frames to disk.
+    renderer:
+        Optional renderer. When ``None`` a new instance is created.
+    max_seconds:
+        Maximum duration of the match before raising :class:`MatchTimeout`.
+    ai_transition_seconds:
+        Delay before the AI switches to its advanced behaviour.
+    display:
+        Whether to render to the screen instead of recording frames.
+    intro_config:
+        Intro sequence configuration. Defaults to :class:`IntroConfig()`.
+    rng:
+        Random number generator controlling AI behaviour. When ``None``, a new
+        instance derived from a random seed is used.
+    """
     engine = get_default_engine()
     world = PhysicsWorld()
     renderer = renderer or Renderer(settings.width, settings.height, display=display)
@@ -91,6 +113,7 @@ def create_controller(
         recorder,
         intro,
         max_seconds=max_seconds,
+        ai_transition_seconds=ai_transition_seconds,
         display=display,
     )
 

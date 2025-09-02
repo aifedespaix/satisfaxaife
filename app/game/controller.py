@@ -205,7 +205,35 @@ class GameController:
         *,
         max_seconds: int = 120,
         display: bool = False,
+        ai_transition_seconds: int = 20,
     ) -> None:
+        """Initialise the controller.
+
+        Parameters
+        ----------
+        weapon_a, weapon_b:
+            Names of the weapons used by the two players.
+        players:
+            Active players taking part in the match.
+        world:
+            Physics world where the simulation occurs.
+        renderer:
+            Renderer used to draw frames.
+        hud:
+            Heads-up display renderer.
+        engine:
+            Audio engine responsible for playing sounds.
+        recorder:
+            Recorder receiving rendered frames.
+        intro_manager:
+            Manager for the intro sequence shown before the match.
+        max_seconds:
+            Maximum match duration.
+        display:
+            When ``True`` render to the screen instead of recording.
+        ai_transition_seconds:
+            Delay before switching to advanced AI behaviour.
+        """
         self.weapon_a = weapon_a
         self.weapon_b = weapon_b
         self.players = players
@@ -217,6 +245,7 @@ class GameController:
         self.intro_manager = intro_manager
         self.max_seconds = max_seconds
         self.display = display
+        self.ai_transition_seconds = ai_transition_seconds
 
         self.effects: list[WeaponEffect] = []
         self.view = _MatchView(players, self.effects, world, renderer, engine)
