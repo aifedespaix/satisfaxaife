@@ -6,7 +6,7 @@ import math
 import random
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Literal
+from typing import Callable, Literal
 
 from app.ai.policy import (
     SimplePolicy,
@@ -51,6 +51,7 @@ class StatefulPolicy(SimplePolicy):
     transition_time: float = 0.0
     parry_window: float = 0.15
     _incoming_time: float = field(default=float("inf"), init=False)
+    range_type: RangeType = "contact"
 
     def decide(  # type: ignore[override]
         self,
@@ -147,6 +148,45 @@ class StatefulPolicy(SimplePolicy):
             face = (offset_face[0] / norm, offset_face[1] / norm)
 
         return accel, face, fire, parry
+
+    def dash_direction(
+        self,
+        me: EntityId,
+        view: WorldView,
+        now: float,
+        can_dash: Callable[[float], bool],
+    ) -> Vec2 | None:
+        """Return a dash vector based on mode and weapon range.
+
+        Contact weapons dash toward the enemy in offensive mode. In defensive
+        mode, or for distant weapons, the dash moves away from the enemy while
+        still considering projectile avoidance.
+        """
+        if not can_dash(now):
+            return None
+
+        mode = Mode.DEFENSIVE if now < self.transition_time else Mode.OFFENSIVE
+        enemy = view.get_enemy(me)
+        if enemy is None:
+            return None
+
+        my_pos = view.get_position(me)
+        enemy_pos = view.get_position(enemy)
+        dx = enemy_pos[0] - my_pos[0]
+        dy = enemy_pos[1] - my_pos[1]
+        dist = math.hypot(dx, dy)
+        to_enemy = (dx / dist, dy / dist) if dist else (1.0, 0.0)
+
+        if self.range_type == "contact" and mode is Mode.OFFENSIVE:
+            return to_enemy
+
+        away_enemy = (-to_enemy[0], -to_enemy[1])
+        proj_dash = super().dash_direction(me, view, now, can_dash)
+        if proj_dash is None:
+            return away_enemy
+        combined = (away_enemy[0] + proj_dash[0], away_enemy[1] + proj_dash[1])
+        norm = math.hypot(*combined) or 1.0
+        return (combined[0] / norm, combined[1] / norm)
 
     # State handlers -----------------------------------------------------
     def _attack(
@@ -246,13 +286,18 @@ def policy_for_weapon(
     enemy_range: RangeType = range_type_for(enemy_weapon_name)
 
     if my_range == "distant":
-        style = "evader" if enemy_range == "contact" else "kiter"
+        style: Literal["aggressive", "kiter", "evader"] = (
+            "evader" if enemy_range == "contact" else "kiter"
+        )
         fire_factor = 0.0 if style == "evader" else float("inf")
         return StatefulPolicy(
             style,
             transition_time=transition_time,
             fire_range_factor=fire_factor,
             rng=rng,
+            range_type=my_range,
         )
 
-    return StatefulPolicy("aggressive", transition_time=transition_time, rng=rng)
+    return StatefulPolicy(
+        "aggressive", transition_time=transition_time, rng=rng, range_type=my_range
+    )

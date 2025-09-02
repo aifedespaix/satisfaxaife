@@ -30,6 +30,8 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 DASH_SOUND_PATH = Path("assets/dash.ogg").as_posix()
+DASH_DAMAGE = Damage(5.0)
+DASH_IMPULSE = 300.0
 
 
 @dataclass(slots=True)
@@ -308,6 +310,7 @@ class GameController:
             self._update_effects(current_time)
             self.world.set_context(self.view, current_time)
             self.world.step(settings.dt, settings.physics_substeps)
+            self._handle_dash_collisions(current_time)
             self._render_frame()
             self._capture_frame()
 
@@ -389,6 +392,37 @@ class GameController:
                 reflector(self.view, eff, current_time)
                 return True
         return False
+
+    def _handle_dash_collisions(self, current_time: float) -> None:
+        """Deal damage and knockback when a dash hits an opponent."""
+        if len(self.players) < 2:
+            return
+        player_a, player_b = self.players[0], self.players[1]
+        if not (player_a.alive and player_b.alive):
+            return
+        pa = player_a.ball.body.position
+        pb = player_b.ball.body.position
+        dx = pa.x - pb.x
+        dy = pa.y - pb.y
+        radii = float(player_a.ball.shape.radius + player_b.ball.shape.radius)
+        if dx * dx + dy * dy > radii * radii:
+            return
+        if player_a.dash.is_dashing and not player_a.dash.has_hit:
+            self.view.deal_damage(player_b.eid, DASH_DAMAGE, current_time)
+            self.view.apply_impulse(
+                player_b.eid,
+                player_a.dash.direction[0] * DASH_IMPULSE,
+                player_a.dash.direction[1] * DASH_IMPULSE,
+            )
+            player_a.dash.has_hit = True
+        if player_b.dash.is_dashing and not player_b.dash.has_hit:
+            self.view.deal_damage(player_a.eid, DASH_DAMAGE, current_time)
+            self.view.apply_impulse(
+                player_a.eid,
+                player_b.dash.direction[0] * DASH_IMPULSE,
+                player_b.dash.direction[1] * DASH_IMPULSE,
+            )
+            player_b.dash.has_hit = True
 
     def _on_projectile_removed(self, projectile: Projectile) -> None:
         """Remove ``projectile`` from the active effects list."""

@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from typing import Any, cast
+
 import pytest
 
+from app.audio.balls import BallAudio
+from app.audio.engine import AudioEngine
 from app.core.config import settings
 from app.core.types import Damage
+from app.game.controller import DASH_DAMAGE, GameController, Player
 from app.game.dash import Dash
 from app.render.renderer import Renderer
 from app.world.entities import Ball
@@ -73,3 +78,62 @@ def test_dash_trail_amplified() -> None:
     dash_len = len(renderer_dash._get_state(team_color).trail)
 
     assert dash_len > normal_len
+
+
+def test_dash_collision_deals_damage_and_pushes() -> None:
+    world = PhysicsWorld()
+    ball_a = Ball.spawn(world, (0.0, 0.0))
+    ball_b = Ball.spawn(world, (60.0, 0.0))
+
+    class DummyRenderer:
+        def add_impact(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401
+            return None
+
+        def trigger_blink(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401
+            return None
+
+        def trigger_hit_flash(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401
+            return None
+
+    class DummyEngine:
+        def play_variation(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401
+            return None
+
+    renderer = cast(Renderer, DummyRenderer())
+    engine = cast(AudioEngine, DummyEngine())
+    players = [
+        Player(
+            ball_a.eid,
+            ball_a,
+            cast(Any, object()),
+            cast(Any, object()),
+            (1.0, 0.0),
+            (0, 0, 0),
+            BallAudio(engine=engine),
+        ),
+        Player(
+            ball_b.eid,
+            ball_b,
+            cast(Any, object()),
+            cast(Any, object()),
+            (-1.0, 0.0),
+            (0, 0, 0),
+            BallAudio(engine=engine),
+        ),
+    ]
+    controller = GameController(
+        "katana",
+        "katana",
+        players,
+        world,
+        renderer,
+        cast(Any, object()),
+        engine,
+        cast(Any, object()),
+        cast(Any, object()),
+    )
+    now = 0.0
+    players[0].dash.start((1.0, 0.0), now)
+    controller._handle_dash_collisions(now)
+    assert players[1].ball.health == players[1].ball.stats.max_health - DASH_DAMAGE.amount
+    assert players[1].ball.body.velocity.x > 0.0

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from app.ai.stateful_policy import State, StatefulPolicy
+from app.ai.stateful_policy import State, StatefulPolicy, policy_for_weapon
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.weapons.base import WeaponEffect, WorldView
 
@@ -107,3 +107,14 @@ def test_mode_transition() -> None:
     assert accel[0] < 0  # defensive: keep distance
     accel, _, _, _ = policy.decide(me, view, 1.5, 600.0)
     assert accel[0] > 0  # offensive: close in
+
+
+def test_melee_dash_modes() -> None:
+    me = EntityId(1)
+    enemy = EntityId(2)
+    view = DummyView(me, enemy, (0.0, 0.0), (100.0, 0.0))
+    policy = policy_for_weapon("katana", "bazooka", transition_time=1.0)
+    defensive = policy.dash_direction(me, view, 0.5, lambda _: True)
+    assert defensive is not None and defensive[0] < 0
+    offensive = policy.dash_direction(me, view, 1.5, lambda _: True)
+    assert offensive is not None and offensive[0] > 0

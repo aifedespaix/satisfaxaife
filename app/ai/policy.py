@@ -88,7 +88,7 @@ def _projectile_dodge(me: EntityId, view: WorldView, position: Vec2, direction: 
             continue
         cx = rx + vx * t
         cy = ry + vy * t
-        if cx * cx + cy * cy > 200.0 ** 2:
+        if cx * cx + cy * cy > 200.0**2:
             continue
         dist = math.hypot(cx, cy)
         if dist <= 1e-6:
@@ -207,7 +207,7 @@ class SimplePolicy:
                 continue
             hit_x = rx + vx * t
             hit_y = ry + vy * t
-            if hit_x * hit_x + hit_y * hit_y > 200.0 ** 2:
+            if hit_x * hit_x + hit_y * hit_y > 200.0**2:
                 continue
             return _projectile_dodge(me, view, position, (1.0, 0.0))
         return None
@@ -233,7 +233,10 @@ class SimplePolicy:
         )
         norm = math.hypot(*combined) or 1.0
         accel = (combined[0] / norm * 400.0, combined[1] / norm * 400.0)
-        fire = dist <= self.fire_range and direction[0] * face[0] + direction[1] * face[1] >= cos_thresh
+        fire = (
+            dist <= self.fire_range
+            and direction[0] * face[0] + direction[1] * face[1] >= cos_thresh
+        )
         return accel, fire
 
     def _evader(
@@ -333,7 +336,9 @@ def policy_for_weapon(
     enemy_range: RangeType = range_type_for(enemy_weapon_name)
 
     if my_range == "distant":
-        style = "evader" if enemy_range == "contact" else "kiter"
+        style: Literal["aggressive", "kiter", "evader"] = (
+            "evader" if enemy_range == "contact" else "kiter"
+        )
         fire_factor = 0.0 if style == "evader" else float("inf")
         return SimplePolicy(style, fire_range_factor=fire_factor, rng=rng)
 
