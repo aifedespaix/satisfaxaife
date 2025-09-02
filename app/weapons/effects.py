@@ -161,3 +161,52 @@ class OrbitingSprite(WeaponEffect):
 
     def destroy(self) -> None:  # noqa: D401
         self.trail.clear()
+
+
+@dataclass(slots=True)
+class GravityWellEffect(WeaponEffect):
+    """Attracts entities toward a center point while dealing damage over time."""
+
+    owner: EntityId
+    position: Vec2
+    radius: float
+    pull_strength: float
+    damage_per_second: float
+    ttl: float
+    _last_hit: dict[EntityId, float] = field(default_factory=dict)
+
+    def step(self, dt: float) -> bool:
+        """Decrease remaining lifetime and report whether the effect persists."""
+        self.ttl -= dt
+        return self.ttl > 0.0
+
+    def collides(self, view: WorldView, position: Vec2, radius: float) -> bool:
+        """Return True if the circle at ``position`` intersects the well."""
+        dx = self.position[0] - position[0]
+        dy = self.position[1] - position[1]
+        return dx * dx + dy * dy <= (self.radius + radius) ** 2
+
+    def on_hit(self, view: WorldView, target: EntityId, timestamp: float) -> bool:
+        """Pull ``target`` toward the center and apply continuous damage."""
+        target_pos = view.get_position(target)
+        dx = self.position[0] - target_pos[0]
+        dy = self.position[1] - target_pos[1]
+        distance = math.hypot(dx, dy) or 1.0
+        nx = dx / distance
+        ny = dy / distance
+        view.apply_impulse(target, nx * self.pull_strength, ny * self.pull_strength)
+
+        last = self._last_hit.get(target, timestamp)
+        delta = timestamp - last
+        if delta > 0.0:
+            view.deal_damage(target, Damage(self.damage_per_second * delta), timestamp)
+        self._last_hit[target] = timestamp
+        return True
+
+    def draw(self, renderer: Renderer, view: WorldView) -> None:
+        """Render the gravitational field as a simple circle."""
+        pygame.draw.circle(renderer.surface, (80, 80, 80), self.position, int(self.radius), 1)
+
+    def destroy(self) -> None:
+        """Clear cached hit timestamps."""
+        self._last_hit.clear()

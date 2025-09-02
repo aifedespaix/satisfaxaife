@@ -26,3 +26,17 @@ def load_weapon_sprite(
     """
     path = f"weapons/{name}/weapon.png"
     return load_sprite(path, scale=scale, max_dim=max_dim)
+
+
+def load_gravity_well_sprite() -> pygame.Surface:
+    """Load the gravity well sprite or return a placeholder surface.
+
+    The actual sprite asset is expected to live under
+    ``assets/weapons/gravity_well/weapon.png`` but may not yet be available.
+    Until the asset is provided a transparent placeholder surface is used so
+    tests and development can proceed without missing file errors.
+    """
+    try:
+        return load_weapon_sprite("gravity_well")
+    except FileNotFoundError:
+        return pygame.Surface((1, 1), pygame.SRCALPHA)
