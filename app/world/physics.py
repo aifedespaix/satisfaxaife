@@ -48,6 +48,42 @@ def _shapes_hit(proj_shape: pymunk.Shape, ball_shape: pymunk.Shape) -> bool:
         return False
 
 
+def _resolve_ball_collision(ball_a: Ball, ball_b: Ball) -> None:
+    """Resolve an overlap between two balls with a perfect elastic bounce."""
+
+    pa = ball_a.body.position
+    pb = ball_b.body.position
+    dx = pb.x - pa.x
+    dy = pb.y - pa.y
+    dist_sq = dx * dx + dy * dy
+    if dist_sq == 0.0:
+        return
+    dist = dist_sq**0.5
+
+    ra = float(ball_a.shape.radius)
+    rb = float(ball_b.shape.radius)
+    overlap = (ra + rb) - dist
+    if overlap <= 0:
+        return
+
+    nx = dx / dist
+    ny = dy / dist
+    shift = overlap / 2.0
+    ball_a.body.position = (pa.x - nx * shift, pa.y - ny * shift)
+    ball_b.body.position = (pb.x + nx * shift, pb.y + ny * shift)
+
+    vax, vay = ball_a.body.velocity
+    vbx, vby = ball_b.body.velocity
+    va_n = vax * nx + vay * ny
+    vb_n = vbx * nx + vby * ny
+    va_t_x = vax - nx * va_n
+    va_t_y = vay - ny * va_n
+    vb_t_x = vbx - nx * vb_n
+    vb_t_y = vby - ny * vb_n
+    ball_a.body.velocity = (va_t_x + nx * vb_n, va_t_y + ny * vb_n)
+    ball_b.body.velocity = (vb_t_x + nx * va_n, vb_t_y + ny * va_n)
+
+
 class PhysicsWorld:
     """Encapsulates the pymunk space and static boundaries."""
 
@@ -110,13 +146,25 @@ class PhysicsWorld:
 
     # ── Détection manuelle des collisions ─────────────────────────────────────
 
-    def _process_collisions(self) -> None:
+    def _process_ball_collisions(self) -> None:
+        """Resolve ball↔ball overlaps that escaped the physics solver."""
+
+        processed: set[pymunk.Shape] = set()
+        for shape, ball in self._balls.items():
+            for candidate in self._index.query(shape):
+                if candidate is shape or candidate in processed:
+                    continue
+                other = self._balls.get(candidate)
+                if other is None or not _shapes_hit(shape, candidate):
+                    continue
+                _resolve_ball_collision(ball, other)
+            processed.add(shape)
+
+    def _process_projectile_collisions(self) -> None:
         """Détecte et traite les impacts projectile↔ball sans handlers Pymunk,
         en évitant le bug d'assert de ContactPointSet quand count==0."""
         if self._view is None:
             return
-
-        self._index.rebuild()
 
         for proj_shape, projectile in list(self._projectiles.items()):
             if getattr(projectile, "destroyed", False):
@@ -150,5 +198,7 @@ class PhysicsWorld:
         sub_dt = dt / float(substeps)
         for _ in range(substeps):
             self.space.step(sub_dt)
-            # Juste après la résolution physique, on détecte les hits côté gameplay.
-            self._process_collisions()
+            self._index.rebuild()
+            # Collision resolution après la simulation physique.
+            self._process_ball_collisions()
+            self._process_projectile_collisions()
