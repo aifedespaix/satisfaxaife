@@ -33,5 +33,7 @@ with suppress(Exception):  # pragma: no cover
     from . import shuriken as _shuriken  # noqa: F401,E402
 with suppress(Exception):  # pragma: no cover
     from . import gravity_well as _gravity_well  # noqa: F401,E402
+with suppress(Exception):  # pragma: no cover
+    from . import resonance_hammer as _resonance_hammer  # noqa: F401,E402
 
 __all__ = ["Weapon", "weapon_registry"]

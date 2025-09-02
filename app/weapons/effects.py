@@ -210,3 +210,56 @@ class GravityWellEffect(WeaponEffect):
     def destroy(self) -> None:
         """Clear cached hit timestamps."""
         self._last_hit.clear()
+
+
+@dataclass(slots=True)
+class ResonanceWaveEffect(WeaponEffect):
+    """Expanding ring that reflects and amplifies on each bounce."""
+
+    owner: EntityId
+    position: Vec2
+    max_radius: float
+    speed: float
+    damage: Damage
+    amplification: float
+    thickness: float = 4.0
+    radius: float = 0.0
+    direction: int = 1
+
+    def step(self, dt: float) -> bool:
+        """Update the wave radius and handle reflections."""
+        self.radius += self.speed * dt * self.direction
+        if self.radius >= self.max_radius:
+            self.radius = self.max_radius
+            self.direction = -1
+            self.damage = Damage(self.damage.amount * self.amplification)
+        elif self.radius <= 0.0 and self.direction < 0:
+            return False
+        return True
+
+    def collides(self, view: WorldView, position: Vec2, radius: float) -> bool:
+        """Return True if the wave intersects a circle at ``position``."""
+        dx = self.position[0] - position[0]
+        dy = self.position[1] - position[1]
+        distance = math.hypot(dx, dy)
+        return abs(distance - self.radius) <= (self.thickness + radius)
+
+    def on_hit(self, view: WorldView, target: EntityId, timestamp: float) -> bool:
+        """Apply amplified damage to ``target``."""
+        mult = critical_multiplier(view, self.owner)
+        view.deal_damage(target, Damage(self.damage.amount * mult), timestamp)
+        return True
+
+    def draw(self, renderer: Renderer, view: WorldView) -> None:
+        """Render the circular wave."""
+        pygame.draw.circle(
+            renderer.surface,
+            (180, 180, 255),
+            self.position,
+            int(self.radius),
+            int(self.thickness),
+        )
+
+    def destroy(self) -> None:
+        """No resources to free."""
+        return None
