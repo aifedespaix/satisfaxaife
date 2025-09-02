@@ -44,7 +44,11 @@ def run(
         False, "--display/--no-display", help="Display simulation instead of recording"
     ),
 ) -> None:
-    """Run a single match and export a video to ``./generated``."""
+    """Run a single match and export a video to ``./generated``.
+
+    If the match exceeds the maximum duration, the partially recorded video is
+    still kept on disk with a ``-timeout`` suffix.
+    """
     random.seed(seed)
     rng = random.Random(seed)
 
@@ -94,9 +98,13 @@ def run(
         try:
             winner = controller.run()
         except MatchTimeout as exc:
-            if not display and recorder.path is not None and recorder.path.exists():
-                recorder.path.unlink()
-            typer.echo(f"Error: {exc}", err=True)
+            if not display and temp_path is not None and temp_path.exists():
+                final_path = temp_path.with_name(f"{temp_path.stem}-timeout{temp_path.suffix}")
+                temp_path.rename(final_path)
+                typer.echo(f"Match timed out: {exc}", err=True)
+                typer.echo(f"Saved video to {final_path}")
+            else:
+                typer.echo(f"Match timed out: {exc}", err=True)
             raise typer.Exit(code=1) from None
 
     if not display and recorder.path is not None and temp_path is not None:
