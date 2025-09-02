@@ -40,3 +40,11 @@ def load_gravity_well_sprite() -> pygame.Surface:
         return load_weapon_sprite("gravity_well")
     except FileNotFoundError:
         return pygame.Surface((1, 1), pygame.SRCALPHA)
+
+
+def load_resonance_hammer_sprite() -> pygame.Surface:
+    """Load the resonance hammer sprite or return a placeholder surface."""
+    try:
+        return load_weapon_sprite("resonance_hammer")
+    except FileNotFoundError:
+        return pygame.Surface((1, 1), pygame.SRCALPHA)
