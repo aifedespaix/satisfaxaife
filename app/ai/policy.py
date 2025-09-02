@@ -6,7 +6,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Literal
 
-from app.core.types import EntityId, Vec2
+from app.core.config import settings
+from app.core.types import EntityId, ProjectileInfo, Vec2
 from app.weapons.base import RangeType, WorldView
 from app.weapons.utils import range_type_for
 
@@ -114,6 +115,39 @@ def _projectile_dodge(me: EntityId, view: WorldView, position: Vec2, direction: 
     return (perp[0] / norm, perp[1] / norm)
 
 
+def _nearest_projectile(me: EntityId, view: WorldView, position: Vec2) -> ProjectileInfo | None:
+    """Return the closest projectile to ``position`` not owned by ``me``."""
+
+    best: ProjectileInfo | None = None
+    best_dist = float("inf")
+    for proj in view.iter_projectiles(excluding=me):
+        px, py = proj.position
+        dist = math.hypot(px - position[0], py - position[1])
+        if dist < best_dist:
+            best_dist = dist
+            best = proj
+    return best
+
+
+def _attack_range(
+    projectile_speed: float | None,
+    fire_range_factor: float,
+    base_range: float,
+) -> float:
+    """Return effective attack range for a weapon.
+
+    ``fire_range_factor`` may be ``0`` or ``inf`` for specific styles. In such
+    cases a reasonable default ``0.8`` multiplier is used to approximate the
+    effective range based on ``projectile_speed``.
+    """
+
+    if projectile_speed and projectile_speed > 0.0:
+        if 0.0 < fire_range_factor < float("inf"):
+            return projectile_speed * fire_range_factor
+        return projectile_speed * 0.8
+    return base_range
+
+
 @dataclass(slots=True)
 class SimplePolicy:
     """Very small deterministic combat policy."""
@@ -150,7 +184,16 @@ class SimplePolicy:
         my_health = view.get_health_ratio(me)
         enemy_health = view.get_health_ratio(enemy)
 
-        face: Vec2 = _lead_target(my_pos, enemy_pos, enemy_vel, projectile_speed or 0.0)
+        atk_range = _attack_range(projectile_speed, self.fire_range_factor, self.fire_range)
+        out_of_range = self.range_type == "distant" and dist > atk_range
+        projectile = _nearest_projectile(me, view, my_pos) if out_of_range else None
+
+        if projectile is not None:
+            target_pos, target_vel = projectile.position, projectile.velocity
+        else:
+            target_pos, target_vel = enemy_pos, enemy_vel
+
+        face: Vec2 = _lead_target(my_pos, target_pos, target_vel, projectile_speed or 0.0)
         cos_thresh = math.cos(math.radians(18))
 
         both_critical = my_health < 0.15 and enemy_health < 0.15
@@ -169,7 +212,13 @@ class SimplePolicy:
         if fleeing:
             accel = (-direction[0] * 400.0, -direction[1] * 400.0)
 
-        if abs(dy) <= 1e-6:
+        if self.range_type == "distant" and dist > settings.width:
+            accel = (direction[0] * 400.0, direction[1] * 400.0)
+
+        if out_of_range:
+            fire = projectile is not None
+
+        if projectile is None and abs(dy) <= 1e-6:
             offset = self.vertical_offset + self.rng.uniform(-0.05, 0.05)
             offset_face = (direction[0], offset)
             norm = math.hypot(*offset_face) or 1.0

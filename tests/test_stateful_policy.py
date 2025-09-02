@@ -201,3 +201,12 @@ def test_policy_for_weapon_range_combinations(
     policy = policy_for_weapon(weapon, enemy, transition_time=0.0)
     assert policy.style == expected_style
     assert policy.fire_range_factor == expected_factor
+
+
+def test_stateful_evader_moves_toward_offscreen_enemy() -> None:
+    me = EntityId(1)
+    enemy = EntityId(2)
+    view = DummyView(me, enemy, (0.0, 0.0), (2000.0, 0.0))
+    policy = StatefulPolicy("evader", transition_time=0.0, range_type="distant")
+    accel, _, _, _ = policy.decide(me, view, 0.0, 600.0)
+    assert accel[0] > 0
