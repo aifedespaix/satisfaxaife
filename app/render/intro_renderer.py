@@ -133,7 +133,9 @@ class IntroRenderer:
         all elements to create a gentle floating effect.
         """
 
-        return math.sin(elapsed * self.config.hold_float_frequency) * self.config.hold_float_amplitude
+        return (
+            math.sin(elapsed * self.config.hold_float_frequency) * self.config.hold_float_amplitude
+        )
 
     def _interpolate_to_targets(
         self,
@@ -214,9 +216,10 @@ class IntroRenderer:
                 text_height = text_surf.get_height()
                 img_y = pos[1] - text_height / 2 - self.IMAGE_TEXT_GAP - img.get_height() / 2
                 weapon_surfaces.append((img, (pos[0], img_y)))
-            logo_img = pygame.transform.rotozoom(
-                self.assets.logo, angle, self.config.logo_scale * scale_factor
-            )
+            # Scale the VS logo from zero to its final size using the eased progress.
+            logo_progress = max(progress, 0.001)
+            logo_scale = self.config.logo_scale * scale_factor * logo_progress
+            logo_img = pygame.transform.rotozoom(self.assets.logo, angle, logo_scale)
             logo_and_text = [(logo_img, center_pos)] + text_surfaces
             return weapon_surfaces + logo_and_text
         if self.font is None:

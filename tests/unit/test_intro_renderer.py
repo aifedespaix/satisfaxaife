@@ -72,6 +72,28 @@ def test_compute_alpha_custom_fade() -> None:
     assert renderer.compute_alpha(0.25, IntroState.LOGO_IN) == int(0.25 * 255)
 
 
+def test_logo_scales_from_zero_to_full(monkeypatch: pytest.MonkeyPatch) -> None:
+    pygame.init()
+    config = IntroConfig()
+    assets = IntroAssets.load(config)
+    renderer = IntroRenderer(200, 100, config=config, assets=assets)
+    surface = pygame.Surface((200, 100), flags=pygame.SRCALPHA)
+    logo_scales: list[float] = []
+    original_rotozoom = pygame.transform.rotozoom
+
+    def tracking_rotozoom(img: _pygame.Surface, angle: float, scale: float) -> _pygame.Surface:
+        if img is assets.logo:
+            logo_scales.append(scale)
+        return original_rotozoom(img, angle, scale)
+
+    monkeypatch.setattr(pygame.transform, "rotozoom", tracking_rotozoom)
+    renderer.draw(surface, ("A", "B"), 0.0, IntroState.LOGO_IN)
+    renderer.draw(surface, ("A", "B"), 1.0, IntroState.LOGO_IN)
+    pygame.quit()
+    assert logo_scales[0] < 0.01
+    assert logo_scales[1] == pytest.approx(renderer.config.logo_scale)
+
+
 def test_blit_elements_glow_passes(monkeypatch: pytest.MonkeyPatch) -> None:
     pygame.init()
     renderer = IntroRenderer(200, 100)
@@ -96,9 +118,7 @@ def test_blit_elements_glow_passes(monkeypatch: pytest.MonkeyPatch) -> None:
     left, right, center = renderer.compute_positions(1.0)
     elements = renderer._prepare_elements(("A", "B"), 1.0, left, right, center)
     angle, scale = renderer._compute_transform(1.0)
-    renderer._blit_elements(
-        surface, elements, angle, scale, 255, IntroState.HOLD, 1.0
-    )
+    renderer._blit_elements(surface, elements, angle, scale, 255, IntroState.HOLD, 1.0)
 
     expected_centers: list[tuple[int, int]] = []
     for base in (left, right, center):
@@ -141,15 +161,11 @@ def test_blit_elements_overlay_only_logo_in(monkeypatch: pytest.MonkeyPatch) -> 
     left, right, center = renderer.compute_positions(0.5)
     elements = renderer._prepare_elements(("A", "B"), 0.5, left, right, center)
     angle, scale = renderer._compute_transform(0.5)
-    renderer._blit_elements(
-        surface, elements, angle, scale, 255, IntroState.LOGO_IN, 0.5
-    )
+    renderer._blit_elements(surface, elements, angle, scale, 255, IntroState.LOGO_IN, 0.5)
     assert (0, 0) in calls
 
     calls.clear()
-    renderer._blit_elements(
-        surface, elements, angle, scale, 255, IntroState.WEAPONS_IN, 0.5
-    )
+    renderer._blit_elements(surface, elements, angle, scale, 255, IntroState.WEAPONS_IN, 0.5)
     assert (0, 0) not in calls
     pygame.quit()
 
@@ -234,9 +250,7 @@ def test_logo_scaled_to_config() -> None:
     elements = renderer._prepare_elements(("A", "B"), 1.0, left, right, center)
     logo_surface = elements[2][0]
     angle, scale_factor = renderer._compute_transform(1.0)
-    expected_logo = pygame.transform.rotozoom(
-        assets.logo, angle, config.logo_scale * scale_factor
-    )
+    expected_logo = pygame.transform.rotozoom(assets.logo, angle, config.logo_scale * scale_factor)
     assert logo_surface.get_size() == expected_logo.get_size()
     pygame.quit()
 
@@ -327,9 +341,7 @@ def test_weapons_in_starts_from_logo_in_final(
 
     original_rotozoom = pygame.transform.rotozoom
 
-    def tracking_rotozoom(
-        img: _pygame.Surface, angle: float, scale: float
-    ) -> _pygame.Surface:
+    def tracking_rotozoom(img: _pygame.Surface, angle: float, scale: float) -> _pygame.Surface:
         calls.append((angle, scale))
         return original_rotozoom(img, angle, scale)
 
