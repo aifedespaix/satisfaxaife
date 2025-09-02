@@ -90,6 +90,7 @@ def test_deflected_projectile_cannot_hit_new_owner() -> None:
 
     projectile.body.position = owner_ball.body.position
 
-    world._process_collisions()
+    world._index.rebuild()
+    world._process_projectile_collisions()
 
     assert view.damage == {}

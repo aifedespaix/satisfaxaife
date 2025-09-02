@@ -51,7 +51,8 @@ def _build_world(count: int) -> PhysicsWorld:
 
 def _run_once(world: PhysicsWorld) -> float:
     start = perf_counter()
-    world._process_collisions()  # noqa: SLF001 - internal benchmark
+    world._index.rebuild()  # noqa: SLF001 - internal benchmark
+    world._process_projectile_collisions()  # noqa: SLF001 - internal benchmark
     return perf_counter() - start
 
 
