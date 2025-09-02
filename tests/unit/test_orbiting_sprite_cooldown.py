@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass, field
 
 import pygame
@@ -57,7 +58,7 @@ class DummyView(WorldView):
         return []
 
 
-def test_orbiting_sprite_respects_cooldown() -> None:
+def test_orbiting_sprite_requires_half_turn_between_hits() -> None:
     pygame.init()
     owner = EntityId(1)
     target = EntityId(2)
@@ -77,9 +78,10 @@ def test_orbiting_sprite_respects_cooldown() -> None:
     effect.on_hit(view, target, timestamp=0.0)
     assert view.damage[target] == 5
 
+    effect.angle = 0.1
     effect.on_hit(view, target, timestamp=0.1)
     assert view.damage[target] == 5
 
-    effect.step(0.5)
-    effect.on_hit(view, target, timestamp=0.6)
+    effect.angle = math.pi
+    effect.on_hit(view, target, timestamp=0.2)
     assert view.damage[target] == 10
