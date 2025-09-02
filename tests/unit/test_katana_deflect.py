@@ -99,3 +99,38 @@ def test_katana_deflects_projectile() -> None:
 
     projectile.on_hit(view, enemy, timestamp=0.1)
     assert view.damage[enemy] == 5
+
+
+def test_katana_does_not_deflect_body_hit() -> None:
+    pygame.init()
+    world = PhysicsWorld()
+    owner = EntityId(1)
+    enemy = EntityId(2)
+    positions = {owner: (0.0, 0.0), enemy: (30.0, 0.0)}
+    enemies = {owner: enemy, enemy: owner}
+    view = DummyView(positions, enemies)
+    sprite = pygame.Surface((20, 20))
+    katana = OrbitingSprite(
+        owner=owner,
+        damage=Damage(0),
+        sprite=sprite,
+        radius=10.0,
+        angle=0.0,
+        speed=0.0,
+    )
+    projectile = Projectile.spawn(
+        world,
+        owner=enemy,
+        position=(0.0, 0.0),
+        velocity=(-100.0, 0.0),
+        radius=1.0,
+        damage=Damage(5),
+        knockback=0.0,
+        ttl=1.0,
+    )
+    projectile.ttl = 0.1
+    pos = (float(projectile.body.position.x), float(projectile.body.position.y))
+    assert not katana.collides(view, pos, float(projectile.shape.radius))
+
+    projectile.on_hit(view, owner, timestamp=0.0)
+    assert view.damage[owner] == 5
