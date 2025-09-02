@@ -63,9 +63,9 @@ class StatefulPolicy(SimplePolicy):
         """Return acceleration, facing vector, fire and parry decisions.
 
         The behaviour switches from defensive to offensive at
-        ``transition_time``. In defensive mode the agent keeps its distance
-        using :meth:`_evader`. Once offensive, the original state machine is
-        employed.
+        ``transition_time``. For non-contact weapons defensive mode keeps
+        distance via :meth:`_evader`. Contact weapons always use the standard
+        attack logic and only dashes react to the tactical mode.
         """
 
         enemy = view.get_enemy(me)
@@ -82,6 +82,8 @@ class StatefulPolicy(SimplePolicy):
         cos_thresh = math.cos(math.radians(18))
 
         mode = Mode.DEFENSIVE if now < self.transition_time else Mode.OFFENSIVE
+        if self.range_type == "contact":
+            mode = Mode.OFFENSIVE
 
         if mode is Mode.DEFENSIVE:
             accel, fire = self._evader(
