@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import pytest
 
+from app.core.config import settings
 from app.core.types import Damage
 from app.game.dash import Dash
+from app.render.renderer import Renderer
 from app.world.entities import Ball
 from app.world.physics import PhysicsWorld
 
@@ -52,3 +54,22 @@ def test_dash_invulnerability_expires() -> None:
     if not (dash.is_dashing or later < dash.invulnerable_until):
         ball.take_damage(damage)
     assert ball.health == ball.stats.max_health - damage.amount
+
+
+def test_dash_trail_amplified() -> None:
+    renderer = Renderer(display=False)
+    team_color = settings.theme.team_a.primary
+    pos_a = (0.0, 0.0)
+    pos_b = (10.0, 0.0)
+    radius = 5
+
+    renderer.draw_ball(pos_a, radius, settings.ball_color, team_color)
+    renderer.draw_ball(pos_b, radius, settings.ball_color, team_color)
+    normal_len = len(renderer._get_state(team_color).trail)
+
+    renderer_dash = Renderer(display=False)
+    renderer_dash.draw_ball(pos_a, radius, settings.ball_color, team_color)
+    renderer_dash.draw_ball(pos_b, radius, settings.ball_color, team_color, is_dashing=True)
+    dash_len = len(renderer_dash._get_state(team_color).trail)
+
+    assert dash_len > normal_len

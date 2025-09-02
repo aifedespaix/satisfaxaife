@@ -94,9 +94,7 @@ class Renderer:
             ).convert_alpha(),
         }
         self._scaled_ball_sprites: dict[tuple[Color, int], pygame.Surface] = {}
-        self._rotation_cache: dict[
-            tuple[pygame.Surface, int], pygame.Surface
-        ] = {}
+        self._rotation_cache: dict[tuple[pygame.Surface, int], pygame.Surface] = {}
 
     def clear(self) -> None:
         """Clear frame, update impacts and draw arena background."""
@@ -211,13 +209,41 @@ class Renderer:
         """
         self._hp_display = [hp_a, hp_b]
 
-    def draw_ball(self, pos: Vec2, radius: int, color: Color, team_color: Color) -> None:
+    def draw_ball(
+        self,
+        pos: Vec2,
+        radius: int,
+        color: Color,
+        team_color: Color,
+        is_dashing: bool = False,
+    ) -> None:
+        """Draw the ball and update its trail.
+
+        Parameters
+        ----------
+        pos:
+            Ball position in world coordinates.
+        radius:
+            Ball radius in pixels.
+        color:
+            Fill color of the ball body.
+        team_color:
+            Outline color identifying the team.
+        is_dashing:
+            Whether the owning player is currently dashing. When ``True`` the
+            trail effect is amplified by adding extra points.
+        """
         state = self._get_state(team_color)
         if state.prev_pos is not None:
             vx = pos[0] - state.prev_pos[0]
             vy = pos[1] - state.prev_pos[1]
             speed = (vx * vx + vy * vy) ** 0.5
-            state.trail.append((pos, min(255.0, speed * 10.0)))
+            alpha = min(255.0, speed * 10.0)
+            state.trail.append((pos, alpha))
+            if is_dashing:
+                # Add extra trail points to emphasize dash movement.
+                for _ in range(2):
+                    state.trail.append((pos, alpha))
         state.prev_pos = pos
         self._draw_trail(state, team_color, radius)
         sprite = self._ball_sprites.get(team_color)

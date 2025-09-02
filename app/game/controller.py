@@ -27,6 +27,8 @@ from pymunk import Vec2 as Vec2d
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+
+
 @dataclass(slots=True)
 class Player:
     eid: EntityId
@@ -371,7 +373,7 @@ class GameController:
                 float(p.ball.body.position.y),
             )
             radius = int(p.ball.shape.radius)
-            self.renderer.draw_ball(pos, radius, settings.ball_color, p.color)
+            self.renderer.draw_ball(pos, radius, settings.ball_color, p.color, p.dash.is_dashing)
             velocity = p.ball.body.velocity
             speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y)
             gaze = (velocity.x / speed, velocity.y / speed) if speed else p.face
