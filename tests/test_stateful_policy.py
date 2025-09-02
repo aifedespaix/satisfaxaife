@@ -140,6 +140,27 @@ def test_transition_time_switches_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     assert called.get("mode") is Mode.OFFENSIVE
 
 
+def test_contact_dash_offensive_in_attack_mode() -> None:
+    me = EntityId(1)
+    enemy = EntityId(2)
+    view = DummyView(me, enemy, (0.0, 0.0), (100.0, 0.0))
+    policy = StatefulPolicy("aggressive", transition_time=0.0, range_type="contact")
+    direction = policy.dash_direction(me, view, 0.0, lambda _now: True)
+    assert direction is not None
+    assert direction[0] > 0
+
+
+def test_contact_dash_defensive_in_defense_mode() -> None:
+    me = EntityId(1)
+    enemy = EntityId(2)
+    projectile = ProjectileInfo(owner=enemy, position=(50.0, 0.0), velocity=(-80.0, 0.0))
+    view = DummyView(me, enemy, (0.0, 0.0), (100.0, 0.0), projectiles=[projectile])
+    policy = StatefulPolicy("aggressive", transition_time=1.0, range_type="contact")
+    direction = policy.dash_direction(me, view, 0.0, lambda _now: True)
+    assert direction is not None
+    assert direction[0] < 0
+
+
 @pytest.mark.parametrize(
     ("weapon", "enemy", "expected_style", "expected_factor"),
     [

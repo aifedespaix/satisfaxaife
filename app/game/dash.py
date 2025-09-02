@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from app.core.types import Vec2
+from app.core.types import Damage, Vec2
 
 INVULNERABILITY_BUFFER = 1.0 / 60.0
 """Extra time in seconds after dash end before collisions resume."""
@@ -19,6 +19,9 @@ class Dash:
     is_dashing: bool = False
     cooldown_end: float = 0.0
     invulnerable_until: float = 0.0
+    damage: Damage = Damage(5.0)
+    knockback: float = 400.0
+    has_hit: bool = False
     _direction: Vec2 = (0.0, 0.0)
     _dash_end: float = 0.0
 
@@ -38,6 +41,7 @@ class Dash:
         self._dash_end = now + self.duration
         self.cooldown_end = now + self.cooldown
         self.invulnerable_until = self._dash_end + INVULNERABILITY_BUFFER
+        self.has_hit = False
 
     def update(self, now: float) -> None:
         """Advance the dash state based on ``now``."""

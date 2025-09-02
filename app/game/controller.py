@@ -360,6 +360,30 @@ class GameController:
             elif fire:
                 p.weapon.trigger(p.eid, self.view, face)
             p.ball.cap_speed()
+            self._resolve_dash_collision(p, now)
+
+    def _resolve_dash_collision(self, p: Player, now: float) -> None:
+        """Resolve dash impacts between ``p`` and opponents."""
+        if not p.dash.is_dashing or p.dash.has_hit:
+            return
+        pa = p.ball.body.position
+        for other in self.players:
+            if other.eid == p.eid or not other.alive:
+                continue
+            pb = other.ball.body.position
+            radii = float(p.ball.shape.radius + other.ball.shape.radius)
+            dx = pb.x - pa.x
+            dy = pb.y - pa.y
+            if dx * dx + dy * dy > radii * radii:
+                continue
+            self.view.apply_impulse(
+                other.eid,
+                p.dash.direction[0] * p.dash.knockback,
+                p.dash.direction[1] * p.dash.knockback,
+            )
+            self.view.deal_damage(other.eid, p.dash.damage, now)
+            p.dash.has_hit = True
+            return
 
     def _update_effects(self, current_time: float) -> None:
         """Advance active effects and resolve collisions."""
