@@ -6,6 +6,7 @@ from pathlib import Path
 from app.ai.stateful_policy import policy_for_weapon
 from app.audio import BallAudio, get_default_engine
 from app.core.config import settings
+from app.core.registry import UnknownWeaponError
 from app.game.controller import (
     GameController,
     MatchTimeout,  # noqa: F401 - re-exported
@@ -75,11 +76,22 @@ def create_controller(
 
     ball_a = Ball.spawn(world, (settings.width * 0.25, settings.height * 0.5))
     ball_b = Ball.spawn(world, (settings.width * 0.75, settings.height * 0.5))
+
+    try:
+        weapon_a_obj = weapon_registry.create(weapon_a)
+    except UnknownWeaponError as exc:
+        raise UnknownWeaponError(exc.name, exc.available) from None
+
+    try:
+        weapon_b_obj = weapon_registry.create(weapon_b)
+    except UnknownWeaponError as exc:
+        raise UnknownWeaponError(exc.name, exc.available) from None
+
     players = [
         Player(
             ball_a.eid,
             ball_a,
-            weapon_registry.create(weapon_a),
+            weapon_a_obj,
             policy_for_weapon(weapon_a, weapon_b, ai_transition_seconds, rng=rng_a),
             (1.0, 0.0),
             settings.theme.team_a.primary,
@@ -88,7 +100,7 @@ def create_controller(
         Player(
             ball_b.eid,
             ball_b,
-            weapon_registry.create(weapon_b),
+            weapon_b_obj,
             policy_for_weapon(weapon_b, weapon_a, ai_transition_seconds, rng=rng_b),
             (-1.0, 0.0),
             settings.theme.team_b.primary,
