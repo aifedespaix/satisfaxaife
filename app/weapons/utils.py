@@ -20,7 +20,7 @@ def range_type_for(name: str) -> RangeType:
 
     Raises
     ------
-    KeyError
+    UnknownWeaponError
         If ``name`` is not associated with a registered weapon.
     """
 
