@@ -105,7 +105,7 @@ def test_mode_transition() -> None:
     me = EntityId(1)
     enemy = EntityId(2)
     view = DummyView(me, enemy, (0.0, 0.0), (100.0, 0.0))
-    policy = StatefulPolicy("aggressive", transition_time=1.0)
+    policy = StatefulPolicy("aggressive", transition_time=1.0, range_type="distant")
     accel, _, _, _ = policy.decide(me, view, 0.5, 600.0)
     assert accel[0] < 0  # defensive: keep distance
     accel, _, _, _ = policy.decide(me, view, 1.5, 600.0)
@@ -117,7 +117,7 @@ def test_transition_time_switches_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     me = EntityId(1)
     enemy = EntityId(2)
     view = DummyView(me, enemy, (0.0, 0.0), (100.0, 0.0))
-    policy = StatefulPolicy("aggressive", transition_time=1.0)
+    policy = StatefulPolicy("aggressive", transition_time=1.0, range_type="distant")
 
     called: dict[str, Mode] = {}
 
@@ -159,6 +159,30 @@ def test_contact_dash_defensive_in_defense_mode() -> None:
     direction = policy.dash_direction(me, view, 0.0, lambda _now: True)
     assert direction is not None
     assert direction[0] < 0
+
+
+def test_contact_weapon_attacks_in_defensive_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Contact weapons ignore defensive mode for regular attacks."""
+    me = EntityId(1)
+    enemy = EntityId(2)
+    view = DummyView(me, enemy, (0.0, 0.0), (100.0, 0.0))
+    policy = StatefulPolicy("aggressive", transition_time=1.0, range_type="contact")
+
+    called: dict[str, str] = {}
+
+    def fake_evader(*args: object, **kwargs: object) -> tuple[Vec2, bool]:
+        called["handler"] = "evader"
+        return (0.0, 0.0), False
+
+    def fake_attack(*args: object, **kwargs: object) -> tuple[Vec2, bool]:
+        called["handler"] = "attack"
+        return (0.0, 0.0), False
+
+    monkeypatch.setattr(policy, "_evader", fake_evader)
+    monkeypatch.setattr(policy, "_attack", fake_attack)
+
+    policy.decide(me, view, 0.5, 600.0)
+    assert called.get("handler") == "attack"
 
 
 @pytest.mark.parametrize(
