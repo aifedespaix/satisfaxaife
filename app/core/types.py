@@ -15,7 +15,7 @@ class Stats:
     max_speed: float
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class Damage:
     """Represents raw damage dealt to an entity."""
 
