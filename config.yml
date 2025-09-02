@@ -1,5 +1,5 @@
-weapon_a: bazooka
-weapon_b: shuriken
+weapon_a: knife
+weapon_b: bazooka
 max_simulation_seconds: 60
 seed: 6666
 ai_transition_seconds: 20
