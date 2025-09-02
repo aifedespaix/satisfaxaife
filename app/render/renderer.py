@@ -22,10 +22,17 @@ _ROTATION_STEP_DEGREES = 5
 class _BallState:
     prev_pos: Vec2 | None = None
     trail: list[tuple[Vec2, float]] = field(default_factory=list)
+    ghosts: list[_Ghost] = field(default_factory=list)
     blink_timer: int = field(default_factory=lambda: random.randint(60, 180))
     blink_progress: int = 0
     hit_flash_timer: float = 0.0
     hit_flash_duration: float = 0.0
+
+
+@dataclass(slots=True)
+class _Ghost:
+    pos: Vec2
+    alpha: float
 
 
 @dataclass(slots=True)
@@ -126,6 +133,17 @@ class Renderer:
 
     def _get_state(self, key: Color) -> _BallState:
         return self._balls.setdefault(key, _BallState())
+
+    def _draw_ghosts(self, state: _BallState, color: Color, radius: int) -> None:
+        updated: list[_Ghost] = []
+        for ghost in state.ghosts:
+            if ghost.alpha <= 10:
+                continue
+            ghost_color = (*color, int(ghost.alpha))
+            pygame.draw.circle(self.surface, ghost_color, self._offset(ghost.pos), radius)
+            ghost.alpha *= 0.5
+            updated.append(ghost)
+        state.ghosts = updated
 
     def _draw_trail(self, state: _BallState, color: Color, radius: int) -> None:
         updated: list[tuple[Vec2, float]] = []
@@ -231,9 +249,12 @@ class Renderer:
             Outline color identifying the team.
         is_dashing:
             Whether the owning player is currently dashing. When ``True`` the
-            trail effect is amplified by adding extra points.
+            trail effect is amplified by adding extra points and ghost clones
+            are generated.
         """
         state = self._get_state(team_color)
+        if is_dashing:
+            state.ghosts.append(_Ghost(pos, 180.0))
         if state.prev_pos is not None:
             vx = pos[0] - state.prev_pos[0]
             vy = pos[1] - state.prev_pos[1]
@@ -245,6 +266,7 @@ class Renderer:
                 for _ in range(2):
                     state.trail.append((pos, alpha))
         state.prev_pos = pos
+        self._draw_ghosts(state, color, radius)
         self._draw_trail(state, team_color, radius)
         sprite = self._ball_sprites.get(team_color)
         if sprite is not None:
