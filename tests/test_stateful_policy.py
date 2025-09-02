@@ -66,13 +66,13 @@ def test_attack_then_dodge() -> None:
     me = EntityId(1)
     enemy = EntityId(2)
     view = DummyView(me, enemy, (0.0, 0.0), (100.0, 0.0))
-    policy = StatefulPolicy("aggressive")
-    policy.decide(me, view, 600.0)
+    policy = StatefulPolicy("aggressive", transition_time=0.0)
+    policy.decide(me, view, 0.0, 600.0)
     assert policy.state is State.ATTACK
 
     projectile = ProjectileInfo(owner=enemy, position=(50.0, 0.0), velocity=(-80.0, 0.0))
     view.projectiles = [projectile]
-    policy.decide(me, view, 600.0)
+    policy.decide(me, view, 0.0, 600.0)
     assert policy.state == State.DODGE  # type: ignore[comparison-overlap]
 
 
@@ -81,8 +81,8 @@ def test_parry_reduces_damage() -> None:
     enemy = EntityId(2)
     projectile = ProjectileInfo(owner=enemy, position=(20.0, 0.0), velocity=(-200.0, 0.0))
     view = DummyView(me, enemy, (0.0, 0.0), (100.0, 0.0), projectiles=[projectile])
-    policy = StatefulPolicy("aggressive")
-    policy.decide(me, view, 600.0)
+    policy = StatefulPolicy("aggressive", transition_time=0.0)
+    policy.decide(me, view, 0.0, 600.0)
     assert policy.state is State.PARRY
     reduced = policy.parry_damage(Damage(10.0))
     assert reduced.amount == 0.0
@@ -92,7 +92,18 @@ def test_retreat_on_low_health() -> None:
     me = EntityId(1)
     enemy = EntityId(2)
     view = DummyView(me, enemy, (0.0, 0.0), (100.0, 0.0), health_me=0.1)
-    policy = StatefulPolicy("aggressive")
-    accel, _, _, _ = policy.decide(me, view, 600.0)
+    policy = StatefulPolicy("aggressive", transition_time=0.0)
+    accel, _, _, _ = policy.decide(me, view, 0.0, 600.0)
     assert policy.state is State.RETREAT
     assert accel[0] < 0
+
+
+def test_mode_transition() -> None:
+    me = EntityId(1)
+    enemy = EntityId(2)
+    view = DummyView(me, enemy, (0.0, 0.0), (100.0, 0.0))
+    policy = StatefulPolicy("aggressive", transition_time=1.0)
+    accel, _, _, _ = policy.decide(me, view, 0.5, 600.0)
+    assert accel[0] < 0  # defensive: keep distance
+    accel, _, _, _ = policy.decide(me, view, 1.5, 600.0)
+    assert accel[0] > 0  # offensive: close in

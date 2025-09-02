@@ -63,11 +63,11 @@ class DummyView(WorldView):
 
 def _collect_faces(seed: int) -> list[Vec2]:
     rng = random.Random(seed)
-    policy = StatefulPolicy("aggressive", rng=rng)
+    policy = StatefulPolicy("aggressive", transition_time=0.0, rng=rng)
     view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (50.0, 0.0))
     faces: list[Vec2] = []
     for _ in range(3):
-        _, face, _, _ = policy.decide(EntityId(1), view, 600.0)
+        _, face, _, _ = policy.decide(EntityId(1), view, 0.0, 600.0)
         faces.append(face)
     return faces
 
@@ -82,14 +82,14 @@ def test_sequence_reproducible_with_same_seed() -> None:
 
 def _collect_dodges(seed: int) -> list[Vec2]:
     rng = random.Random(seed)
-    policy = StatefulPolicy("aggressive", rng=rng)
+    policy = StatefulPolicy("aggressive", transition_time=0.0, rng=rng)
     me = EntityId(1)
     enemy = EntityId(2)
     projectile = ProjectileInfo(owner=enemy, position=(50.0, 0.0), velocity=(-80.0, 0.0))
     view = DummyView(me, enemy, (0.0, 0.0), (100.0, 0.0), projectiles=[projectile])
     accels: list[Vec2] = []
     for _ in range(3):
-        accel, _, _, _ = policy.decide(me, view, 600.0)
+        accel, _, _, _ = policy.decide(me, view, 0.0, 600.0)
         accels.append(accel)
     return accels
 

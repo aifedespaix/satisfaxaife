@@ -56,7 +56,7 @@ class DummyPolicy:
         self._accel = accel
 
     def decide(
-        self, _eid: EntityId, _view: object, _speed: float
+        self, _eid: EntityId, _view: object, _now: float, _speed: float
     ) -> tuple[tuple[float, float], tuple[float, float], bool, bool]:  # pragma: no cover - stub
         return self._accel, (1.0, 0.0), False, False
 
