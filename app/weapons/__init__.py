@@ -48,5 +48,10 @@ try:
     from . import gravity_well as _gravity_well  # noqa: F401,E402
 except Exception as exc:  # pragma: no cover
     logger.warning("Failed to import optional weapon module 'gravity_well': %s", exc)
+    
+try:
+    from . import resonance_hammer as _resonance_hammer  # noqa: F401,E402
+except Exception as exc:  # pragma: no cover
+    logger.warning("Failed to import optional weapon module 'resonance_hammer': %s", exc)
 
 __all__ = ["Weapon", "weapon_registry"]
