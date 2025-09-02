@@ -27,11 +27,49 @@ def _sanitize(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9_-]", "_", name)
 
 
+def _load_run_defaults_from_yaml(path: Path = Path("config.yml")) -> dict[str, str]:
+    """Load simple key/value defaults from a YAML file.
+
+    The parser supports a minimal subset: ``key: value`` per line, comments
+    starting with ``#``, and ignores blank lines. Values are returned as strings
+    and converted by the caller as needed.
+
+    Parameters
+    ----------
+    path: Path
+        Path to the YAML configuration file.
+
+    Returns
+    -------
+    dict[str, str]
+        Mapping of keys to string values.
+    """
+    data: dict[str, str] = {}
+    if not path.exists():
+        return data
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        data[key.strip()] = value.strip()
+    return data
+
+
 @app.command()  # type: ignore[misc]
 def run(
-    seed: int = 0,
-    weapon_a: str = "katana",
-    weapon_b: str = "shuriken",
+    seed: int | None = None,
+    weapon_a: str | None = None,
+    weapon_b: str | None = None,
+    max_seconds: Annotated[
+        int | None,
+        typer.Option(
+            "--max-seconds",
+            help="Override maximum match duration in seconds",
+        ),
+    ] = None,
     intro_weapons: Annotated[
         tuple[str, str] | None,
         typer.Option(
@@ -49,6 +87,25 @@ def run(
     If the match exceeds the maximum duration, the partially recorded video is
     still kept on disk with a ``-timeout`` suffix.
     """
+    # If parameters are not provided, read defaults from config.yml
+    cfg = _load_run_defaults_from_yaml()
+    if weapon_a is None:
+        weapon_a = cfg.get("weapon_a", "katana")
+    if weapon_b is None:
+        weapon_b = cfg.get("weapon_b", "shuriken")
+    if seed is None:
+        seed = int(cfg.get("seed", "0") or 0)
+    if max_seconds is None and "max_simulation_seconds" in cfg:
+        try:
+            max_seconds = int(cfg["max_simulation_seconds"])  # type: ignore[call-overload]
+        except ValueError:
+            max_seconds = None
+
+    # Final fallbacks if config is missing/incomplete
+    weapon_a = weapon_a or "katana"
+    weapon_b = weapon_b or "shuriken"
+    seed = int(seed or 0)
+
     random.seed(seed)
     rng = random.Random(seed)
 
@@ -91,6 +148,7 @@ def run(
             weapon_b,
             recorder,
             renderer,
+            max_seconds=max_seconds or 120,
             display=display,
             intro_config=intro_config,
             rng=rng,

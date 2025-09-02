@@ -1,4 +1,4 @@
 weapon_a: katana
 weapon_b: shuriken
-max_simulation_seconds: 120
+max_simulation_seconds: 12
 seed: 6666
