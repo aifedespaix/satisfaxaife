@@ -11,11 +11,14 @@ from typing import Literal
 
 from app.ai.policy import (
     SimplePolicy,
+    _attack_range,
     _lead_target,
+    _nearest_projectile,
     _new_rng,
     _projectile_dodge,
 )
-from app.core.types import Damage, EntityId, Vec2
+from app.core.config import settings
+from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.weapons.base import RangeType, WorldView
 from app.weapons.utils import range_type_for
 
@@ -53,7 +56,7 @@ class StatefulPolicy(SimplePolicy):
     parry_window: float = 0.15
     _incoming_time: float = field(default=float("inf"), init=False)
 
-    def decide(  # type: ignore[override]
+    def decide(  # type: ignore[override]  # noqa: C901
         self,
         me: EntityId,
         view: WorldView,
@@ -78,7 +81,18 @@ class StatefulPolicy(SimplePolicy):
         dist = math.hypot(dx, dy)
         direction = (dx / dist, dy / dist) if dist else (1.0, 0.0)
 
-        face: Vec2 = _lead_target(my_pos, enemy_pos, enemy_vel, projectile_speed or 0.0)
+        atk_range = _attack_range(projectile_speed, self.fire_range_factor, self.fire_range)
+        out_of_range = self.range_type == "distant" and dist > atk_range
+        projectile: ProjectileInfo | None = (
+            _nearest_projectile(me, view, my_pos) if out_of_range else None
+        )
+
+        if projectile is not None:
+            target_pos, target_vel = projectile.position, projectile.velocity
+        else:
+            target_pos, target_vel = enemy_pos, enemy_vel
+
+        face: Vec2 = _lead_target(my_pos, target_pos, target_vel, projectile_speed or 0.0)
         cos_thresh = math.cos(math.radians(18))
 
         mode = Mode.DEFENSIVE if now < self.transition_time else Mode.OFFENSIVE
@@ -143,7 +157,13 @@ class StatefulPolicy(SimplePolicy):
                 accel = (-direction[0] * 400.0, -direction[1] * 400.0)
                 parry = False
 
-        if abs(dy) <= 1e-6:
+        if self.range_type == "distant" and dist > settings.width:
+            accel = (direction[0] * 400.0, direction[1] * 400.0)
+
+        if out_of_range:
+            fire = projectile is not None
+
+        if projectile is None and abs(dy) <= 1e-6:
             offset = self.vertical_offset + self.rng.uniform(-0.05, 0.05)
             offset_face = (direction[0], offset)
             norm = math.hypot(*offset_face) or 1.0

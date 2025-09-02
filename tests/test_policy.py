@@ -301,9 +301,37 @@ def test_distant_vs_distant_policy_is_kiter() -> None:
     assert policy.style == "kiter"
 
 
-def test_distant_policy_fires_at_any_distance() -> None:
+def test_distant_policy_no_fire_without_projectile() -> None:
     view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (1000.0, 0.0))
     policy = policy_for_weapon("shuriken", "katana")
     _, _, fire, parry = policy.decide(EntityId(1), view, 600.0)
-    assert fire is True
+    assert fire is False
     assert parry is False
+
+
+def test_distant_policy_targets_projectile_when_enemy_far() -> None:
+    me = EntityId(1)
+    enemy = EntityId(2)
+
+    @dataclass
+    class ViewWithProjectile(DummyView):
+        proj: ProjectileInfo = field(
+            default_factory=lambda: ProjectileInfo(EntityId(0), (0.0, 0.0), (0.0, 0.0))
+        )
+
+        def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # noqa: D401
+            return [self.proj]
+
+    projectile = ProjectileInfo(owner=enemy, position=(100.0, 100.0), velocity=(0.0, 0.0))
+    view = ViewWithProjectile(me, enemy, (0.0, 0.0), (500.0, 0.0), proj=projectile)
+    policy = policy_for_weapon("shuriken", "katana")
+    _, face, fire, _ = policy.decide(me, view, 600.0)
+    assert fire is True
+    assert face[0] > 0 and face[1] > 0
+
+
+def test_evader_moves_toward_offscreen_enemy() -> None:
+    view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (2000.0, 0.0))
+    policy = SimplePolicy("evader", range_type="distant")
+    accel, _, _, _ = policy.decide(EntityId(1), view, 600.0)
+    assert accel[0] > 0
