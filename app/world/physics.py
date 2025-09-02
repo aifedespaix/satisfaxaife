@@ -20,6 +20,10 @@ if TYPE_CHECKING:
     from .projectiles import Projectile
 
 
+PROJECTILE_COLLISION_COOLDOWN: float = 1.0
+"""Seconds before the same projectile pair can collide again."""
+
+
 def _bb_intersect(a: pymunk.Shape, b: pymunk.Shape) -> bool:
     return bool(a.bb.intersects(b.bb))
 
@@ -99,6 +103,7 @@ class PhysicsWorld:
         self._on_projectile_removed: Callable[[Projectile], None] | None = None
         self._view: WorldView | None = None
         self._timestamp: float = 0.0
+        self._proj_collision_cooldowns: dict[tuple[pymunk.Shape, pymunk.Shape], float] = {}
         self._add_bounds()
 
         # NOTE: certains environnements Pymunk n'exposent pas les handlers.
@@ -138,6 +143,9 @@ class PhysicsWorld:
     def unregister_projectile(self, projectile: Projectile) -> None:
         self._projectiles.pop(projectile.shape, None)
         self._index.untrack(projectile.shape)
+        to_remove = [key for key in self._proj_collision_cooldowns if projectile.shape in key]
+        for key in to_remove:
+            self._proj_collision_cooldowns.pop(key, None)
 
     def set_projectile_removed_callback(self, callback: Callable[[Projectile], None]) -> None:
         self._on_projectile_removed = callback
@@ -146,6 +154,13 @@ class PhysicsWorld:
         """Provide view and current timestamp for collision callbacks."""
         self._view = view
         self._timestamp = timestamp
+
+    def _cleanup_projectile_cooldowns(self) -> None:
+        """Remove outdated projectile collision cooldown entries."""
+        threshold = self._timestamp - PROJECTILE_COLLISION_COOLDOWN
+        for key, ts in list(self._proj_collision_cooldowns.items()):
+            if ts < threshold or any(shape not in self._projectiles for shape in key):
+                self._proj_collision_cooldowns.pop(key, None)
 
     # ── Détection manuelle des collisions ─────────────────────────────────────
 
@@ -209,6 +224,13 @@ class PhysicsWorld:
         ):
             return False
 
+        key = (proj_shape, candidate) if id(proj_shape) < id(candidate) else (candidate, proj_shape)
+        last = self._proj_collision_cooldowns.get(key)
+        if last is not None and self._timestamp - last < PROJECTILE_COLLISION_COOLDOWN:
+            return False
+
+        self._proj_collision_cooldowns[key] = self._timestamp
+
         owner_a, owner_b = projectile.owner, other_proj.owner
         self._retarget_after_swap(projectile, owner_b, view)
         self._retarget_after_swap(other_proj, owner_a, view)
@@ -249,6 +271,8 @@ class PhysicsWorld:
         view = self._view
         if view is None:
             return
+
+        self._cleanup_projectile_cooldowns()
 
         processed: set[pymunk.Shape] = set()
 
