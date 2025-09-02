@@ -13,6 +13,9 @@ All modules importing this package will automatically discover registered
 weapons.
 """
 
+from __future__ import annotations
+
+import importlib
 import logging
 
 from app.core.registry import Registry
@@ -24,34 +27,19 @@ weapon_registry: Registry[Weapon] = Registry()
 # Import weapon modules to register them
 logger = logging.getLogger(__name__)
 
-try:
-    from . import bazooka as _bazooka  # noqa: F401,E402
-except Exception as exc:  # pragma: no cover - optional weapons may have extra deps
-    logger.warning("Failed to import optional weapon module 'bazooka': %s", exc)
+_OPTIONAL_MODULES: list[str] = [
+    "bazooka",
+    "katana",
+    "knife",
+    "shuriken",
+    "gravity_well",
+    "resonance_hammer",
+]
 
-try:
-    from . import katana as _katana  # noqa: F401,E402
-except Exception as exc:  # pragma: no cover
-    logger.warning("Failed to import optional weapon module 'katana': %s", exc)
-
-try:
-    from . import knife as _knife  # noqa: F401,E402
-except Exception as exc:  # pragma: no cover
-    logger.warning("Failed to import optional weapon module 'knife': %s", exc)
-
-try:
-    from . import shuriken as _shuriken  # noqa: F401,E402
-except Exception as exc:  # pragma: no cover
-    logger.warning("Failed to import optional weapon module 'shuriken': %s", exc)
-
-try:
-    from . import gravity_well as _gravity_well  # noqa: F401,E402
-except Exception as exc:  # pragma: no cover
-    logger.warning("Failed to import optional weapon module 'gravity_well': %s", exc)
-
-try:
-    from . import resonance_hammer as _resonance_hammer  # noqa: F401,E402
-except Exception as exc:  # pragma: no cover
-    logger.warning("Failed to import optional weapon module 'resonance_hammer': %s", exc)
+for _module in _OPTIONAL_MODULES:
+    try:
+        importlib.import_module(f"{__name__}.{_module}")
+    except Exception as exc:  # pragma: no cover - optional weapons may have extra deps
+        logger.warning("Failed to import optional weapon module '%s': %s", _module, exc)
 
 __all__ = ["Weapon", "weapon_registry"]
