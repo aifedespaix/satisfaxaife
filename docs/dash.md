@@ -1,6 +1,6 @@
 # Dash
 
-Le *dash* est une impulsion latérale brève conférant une invulnérabilité
+Le _dash_ est une impulsion latérale brève conférant une invulnérabilité
 momentanée.
 
 ## Paramètres par défaut
@@ -16,3 +16,8 @@ momentanée.
   moins de `0,3` s et que la recharge est terminée.
 - **Audio** : un bref son `dash.ogg` est joué avec des variations de hauteur pour
   éviter la monotonie.
+
+## Effet visuel
+
+Pendant un dash, la balle laisse une traînée accentuée pour signaler
+l'action au joueur.
