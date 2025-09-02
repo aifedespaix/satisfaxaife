@@ -10,6 +10,14 @@ from app.world.entities import Ball
 from app.world.physics import PhysicsWorld
 
 
+def test_dash_unique_damage_instance() -> None:
+    dash_a = Dash()
+    dash_b = Dash()
+    assert dash_a.damage.amount == 5.0
+    assert dash_b.damage.amount == 5.0
+    assert dash_a.damage is not dash_b.damage
+
+
 def test_dash_cooldown_respected() -> None:
     dash = Dash(cooldown=1.0, duration=0.1)
     assert dash.can_dash(0.0)
