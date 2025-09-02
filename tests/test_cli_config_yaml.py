@@ -1,50 +1,68 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from typer.testing import CliRunner
 
 import app.cli as cli_module
 from app.cli import app
+from app.video.recorder import NullRecorder
 
 
-def test_run_reads_config_yaml(monkeypatch) -> None:
+def test_run_reads_config_yaml(monkeypatch: Any) -> None:
     """When no params are given, CLI uses values from config.yml."""
     captured: dict[str, object] = {}
 
     # Avoid invoking ffmpeg by using a null recorder
-    monkeypatch.setattr(cli_module, "Recorder", cli_module.NullRecorder)
+    monkeypatch.setattr(cli_module, "Recorder", NullRecorder)
 
     # Spy on controller creation to capture arguments
     def fake_create_controller(
         weapon_a: str,
         weapon_b: str,
-        recorder,
-        renderer,
+        recorder: Any,
+        renderer: Any,
         *,
         max_seconds: int = 120,
+        ai_transition_seconds: int = 20,
         display: bool = False,
-        intro_config=None,
-        rng=None,
-    ):
+        intro_config: Any = None,
+        rng: Any = None,
+    ) -> Any:
         captured["weapon_a"] = weapon_a
         captured["weapon_b"] = weapon_b
         captured["max_seconds"] = max_seconds
+        captured["ai_transition_seconds"] = ai_transition_seconds
 
         class _C:
-            def run(self):
+            def run(self) -> str:
                 return weapon_a  # arbitrary winner
 
         return _C()
 
     from app.game import match as match_module
+
     monkeypatch.setattr(match_module, "create_controller", fake_create_controller)
 
     runner = CliRunner()
-    result = runner.invoke(app, ["run"])  # no parameters
+    with runner.isolated_filesystem():
+        Path("config.yml").write_text(
+            "\n".join(
+                [
+                    "weapon_a: knife",
+                    "weapon_b: shuriken",
+                    "max_simulation_seconds: 42",
+                    "ai_transition_seconds: 30",
+                    "seed: 1234",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        result = runner.invoke(app, ["run"])  # no parameters
     assert result.exit_code == 0
 
-    # Values in the repository's config.yml
-    assert captured["weapon_a"] == "katana"
+    assert captured["weapon_a"] == "knife"
     assert captured["weapon_b"] == "shuriken"
-    assert captured["max_seconds"] == 120
+    assert captured["max_seconds"] == 42
+    assert captured["ai_transition_seconds"] == 30

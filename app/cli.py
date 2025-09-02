@@ -32,7 +32,9 @@ def _load_run_defaults_from_yaml(path: Path = Path("config.yml")) -> dict[str, s
 
     The parser supports a minimal subset: ``key: value`` per line, comments
     starting with ``#``, and ignores blank lines. Values are returned as strings
-    and converted by the caller as needed.
+    and converted by the caller as needed. Recognised keys include
+    ``weapon_a``, ``weapon_b``, ``seed``, ``max_simulation_seconds`` and
+    ``ai_transition_seconds``.
 
     Parameters
     ----------
@@ -58,6 +60,40 @@ def _load_run_defaults_from_yaml(path: Path = Path("config.yml")) -> dict[str, s
     return data
 
 
+def _resolve_run_parameters(
+    seed: int | None,
+    weapon_a: str | None,
+    weapon_b: str | None,
+    max_seconds: int | None,
+    ai_transition_seconds: int | None,
+) -> tuple[int, str, str, int, int]:
+    """Return CLI parameters with defaults applied from ``config.yml``."""
+    cfg = _load_run_defaults_from_yaml()
+    if weapon_a is None:
+        weapon_a = cfg.get("weapon_a", "katana")
+    if weapon_b is None:
+        weapon_b = cfg.get("weapon_b", "shuriken")
+    if seed is None:
+        seed = int(cfg.get("seed", "0") or 0)
+    if max_seconds is None and "max_simulation_seconds" in cfg:
+        try:
+            max_seconds = int(cfg["max_simulation_seconds"])
+        except ValueError:
+            max_seconds = None
+    if ai_transition_seconds is None and "ai_transition_seconds" in cfg:
+        try:
+            ai_transition_seconds = int(cfg["ai_transition_seconds"])
+        except ValueError:
+            ai_transition_seconds = None
+
+    weapon_a = weapon_a or "katana"
+    weapon_b = weapon_b or "shuriken"
+    seed = int(seed or 0)
+    max_seconds = max_seconds or 120
+    ai_transition_seconds = int(ai_transition_seconds or 20)
+    return seed, weapon_a, weapon_b, max_seconds, ai_transition_seconds
+
+
 @app.command()  # type: ignore[misc]
 def run(
     seed: int | None = None,
@@ -68,6 +104,13 @@ def run(
         typer.Option(
             "--max-seconds",
             help="Override maximum match duration in seconds",
+        ),
+    ] = None,
+    ai_transition_seconds: Annotated[
+        int | None,
+        typer.Option(
+            "--ai-transition-seconds",
+            help="Delay before switching to advanced AI, in seconds",
         ),
     ] = None,
     intro_weapons: Annotated[
@@ -88,23 +131,13 @@ def run(
     still kept on disk with a ``-timeout`` suffix.
     """
     # If parameters are not provided, read defaults from config.yml
-    cfg = _load_run_defaults_from_yaml()
-    if weapon_a is None:
-        weapon_a = cfg.get("weapon_a", "katana")
-    if weapon_b is None:
-        weapon_b = cfg.get("weapon_b", "shuriken")
-    if seed is None:
-        seed = int(cfg.get("seed", "0") or 0)
-    if max_seconds is None and "max_simulation_seconds" in cfg:
-        try:
-            max_seconds = int(cfg["max_simulation_seconds"])  # type: ignore[call-overload]
-        except ValueError:
-            max_seconds = None
-
-    # Final fallbacks if config is missing/incomplete
-    weapon_a = weapon_a or "katana"
-    weapon_b = weapon_b or "shuriken"
-    seed = int(seed or 0)
+    seed, weapon_a, weapon_b, max_seconds_val, ai_transition_seconds = _resolve_run_parameters(
+        seed,
+        weapon_a,
+        weapon_b,
+        max_seconds,
+        ai_transition_seconds,
+    )
 
     random.seed(seed)
     rng = random.Random(seed)
@@ -148,7 +181,8 @@ def run(
             weapon_b,
             recorder,
             renderer,
-            max_seconds=max_seconds or 120,
+            max_seconds=max_seconds_val,
+            ai_transition_seconds=ai_transition_seconds,
             display=display,
             intro_config=intro_config,
             rng=rng,

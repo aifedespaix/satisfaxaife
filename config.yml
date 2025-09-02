@@ -2,3 +2,4 @@ weapon_a: knife
 weapon_b: shuriken
 max_simulation_seconds: 120
 seed: 6666
+ai_transition_seconds: 20
