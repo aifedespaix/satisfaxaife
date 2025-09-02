@@ -29,3 +29,10 @@ def test_knife_sprite_loaded() -> None:
 def test_bazooka_missile_radius() -> None:
     bazooka = Bazooka()
     assert bazooka.missile_radius == DEFAULT_BALL_RADIUS
+
+
+def test_weapon_range_types() -> None:
+    assert Bazooka.range_type == "distant"
+    assert Shuriken.range_type == "distant"
+    assert Katana.range_type == "contact"
+    assert Knife.range_type == "contact"

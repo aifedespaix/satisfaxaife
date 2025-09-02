@@ -12,7 +12,7 @@ from pymunk import Vec2 as Vec2d
 
 from . import weapon_registry
 from .assets import load_weapon_sprite
-from .base import Weapon, WorldView
+from .base import RangeType, Weapon, WorldView
 from .effects import AimedSprite
 
 
@@ -21,9 +21,16 @@ class Bazooka(Weapon):
 
     missile_radius: float
     acceleration: float
+    range_type: RangeType = "distant"
 
     def __init__(self) -> None:
-        super().__init__(name="bazooka", cooldown=0.8, damage=Damage(10), speed=300.0)
+        super().__init__(
+            name="bazooka",
+            cooldown=0.8,
+            damage=Damage(10),
+            speed=300.0,
+            range_type=self.range_type,
+        )
         weapon_size = DEFAULT_BALL_RADIUS * 2.0
         self._sprite = load_weapon_sprite("bazooka", max_dim=weapon_size)
         self._effect: AimedSprite | None = None

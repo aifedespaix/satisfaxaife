@@ -8,7 +8,7 @@ from app.world.entities import DEFAULT_BALL_RADIUS
 
 from . import weapon_registry
 from .assets import load_weapon_sprite
-from .base import Weapon, WorldView
+from .base import RangeType, Weapon, WorldView
 from .effects import OrbitingSprite
 from .parry import ParryEffect
 
@@ -17,9 +17,16 @@ class Knife(Weapon):
     """Fast orbiting blade that grants its wielder extra speed."""
 
     player_speed_bonus: float = 120.0
+    range_type: RangeType = "contact"
 
     def __init__(self) -> None:
-        super().__init__(name="knife", cooldown=0.0, damage=Damage(8), speed=12.0)
+        super().__init__(
+            name="knife",
+            cooldown=0.0,
+            damage=Damage(8),
+            speed=12.0,
+            range_type=self.range_type,
+        )
         blade_height = DEFAULT_BALL_RADIUS * 2.0
         self._sprite = pygame.transform.rotate(
             load_weapon_sprite("knife", max_dim=blade_height),

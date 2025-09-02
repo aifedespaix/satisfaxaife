@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Literal, Protocol
 
 from app.core.types import Color, Damage, EntityId, ProjectileInfo, Vec2
 
@@ -86,6 +86,9 @@ class WeaponEffect(Protocol):
         """Clean up resources when the effect is removed."""
 
 
+RangeType = Literal["contact", "distant"]
+
+
 @dataclass(slots=True)
 class Weapon:
     """Base weapon with a cooldown timer.
@@ -108,6 +111,7 @@ class Weapon:
     cooldown: float
     damage: Damage
     speed: float = 0.0
+    range_type: RangeType = "contact"
     _timer: float = 0.0
 
     def step(self, dt: float) -> None:

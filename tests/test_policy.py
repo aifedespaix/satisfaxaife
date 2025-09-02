@@ -281,21 +281,29 @@ def test_evader_dodges_projectiles() -> None:
     assert parry is False
 
 
-def test_policy_for_bazooka_is_evader() -> None:
-    policy = policy_for_weapon("bazooka")
-    assert policy.style == "evader"
-    assert policy.desired_dist_factor > 1.0
-
-
-def test_policy_for_knife_prioritises_dodging() -> None:
-    policy = policy_for_weapon("knife")
+def test_contact_vs_distant_policy_is_aggressive() -> None:
+    policy = policy_for_weapon("katana", "shuriken")
     assert policy.style == "aggressive"
-    assert policy.dodge_bias > 0.5
 
 
-def test_shuriken_policy_fires_at_any_distance() -> None:
+def test_contact_vs_contact_policy_is_aggressive() -> None:
+    policy = policy_for_weapon("katana", "knife")
+    assert policy.style == "aggressive"
+
+
+def test_distant_vs_contact_policy_is_evader() -> None:
+    policy = policy_for_weapon("shuriken", "knife")
+    assert policy.style == "evader"
+
+
+def test_distant_vs_distant_policy_is_kiter() -> None:
+    policy = policy_for_weapon("bazooka", "shuriken")
+    assert policy.style == "kiter"
+
+
+def test_distant_policy_fires_at_any_distance() -> None:
     view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (1000.0, 0.0))
-    policy = policy_for_weapon("shuriken")
+    policy = policy_for_weapon("shuriken", "katana")
     _, _, fire, parry = policy.decide(EntityId(1), view, 600.0)
     assert fire is True
     assert parry is False
