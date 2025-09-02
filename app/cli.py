@@ -18,7 +18,6 @@ from app.game.match import create_controller
 from app.intro.config import IntroConfig, set_intro_weapons
 from app.render.renderer import Renderer
 from app.video.recorder import NullRecorder, Recorder, RecorderProtocol
-from app.weapons import weapon_registry
 
 app = typer.Typer(help="Génération de vidéos satisfaction (TikTok).")
 
@@ -164,6 +163,9 @@ def run(
         )
 
     with temporary_sdl_audio_driver(driver):
+        from app.weapons import weapon_registry
+
+        weapon_registry.names()
         if display:
             renderer = Renderer(settings.width, settings.height, display=True)
             recorder = NullRecorder()
@@ -226,9 +228,11 @@ def batch(
 ) -> None:
     """Generate multiple match videos with varied seeds and weapons."""
     out_dir.mkdir(parents=True, exist_ok=True)
-    names = weapon_registry.names()
 
     with temporary_sdl_audio_driver("dummy"):
+        from app.weapons import weapon_registry
+
+        names = weapon_registry.names()
         for _ in range(count):
             seed = random.randint(0, 1_000_000)
             weapon_a, weapon_b = random.sample(names, k=2)
