@@ -57,7 +57,7 @@ class DummyWeapon:
 
 class DummyPolicy:
     def decide(
-        self, _eid: EntityId, _view: object, _speed: float
+        self, _eid: EntityId, _view: object, _now: float, _speed: float
     ) -> tuple[tuple[float, float], tuple[float, float], bool, bool]:  # pragma: no cover - stub
         return (0.0, 0.0), (1.0, 0.0), False, False
 

@@ -19,12 +19,19 @@ from app.weapons.base import WorldView
 
 
 class State(Enum):
-    """Possible high-level behaviours for :class:`StatefulPolicy`."""
+    """Internal high-level behaviours for :class:`StatefulPolicy`."""
 
     ATTACK = "attack"
     DODGE = "dodge"
     PARRY = "parry"
     RETREAT = "retreat"
+
+
+class Mode(Enum):
+    """Overall tactical mode of :class:`StatefulPolicy`."""
+
+    DEFENSIVE = "defensive"
+    OFFENSIVE = "offensive"
 
 
 @dataclass(slots=True)
@@ -40,16 +47,23 @@ class StatefulPolicy(SimplePolicy):
     """
 
     state: State = State.ATTACK
+    transition_time: float = 0.0
     parry_window: float = 0.15
     _incoming_time: float = field(default=float("inf"), init=False)
 
-    def decide(
-        self, me: EntityId, view: WorldView, projectile_speed: float | None = None
+    def decide(  # type: ignore[override]
+        self,
+        me: EntityId,
+        view: WorldView,
+        now: float,
+        projectile_speed: float | None = None,
     ) -> tuple[Vec2, Vec2, bool, bool]:
         """Return acceleration, facing vector, fire and parry decisions.
 
-        The facing orientation includes a small randomised vertical offset,
-        making the result dependent on the policy's pseudo-random generator.
+        The behaviour switches from defensive to offensive at
+        ``transition_time``. In defensive mode the agent keeps its distance
+        using :meth:`_evader`. Once offensive, the original state machine is
+        employed.
         """
 
         enemy = view.get_enemy(me)
@@ -61,45 +75,69 @@ class StatefulPolicy(SimplePolicy):
         dy = enemy_pos[1] - my_pos[1]
         dist = math.hypot(dx, dy)
         direction = (dx / dist, dy / dist) if dist else (1.0, 0.0)
-        my_health = view.get_health_ratio(me)
-        enemy_health = view.get_health_ratio(enemy)
 
         face: Vec2 = _lead_target(my_pos, enemy_pos, enemy_vel, projectile_speed or 0.0)
         cos_thresh = math.cos(math.radians(18))
 
-        both_critical = my_health < 0.15 and enemy_health < 0.15
-        if my_health < 0.15 and not both_critical:
-            self.state = State.RETREAT
+        mode = Mode.DEFENSIVE if now < self.transition_time else Mode.OFFENSIVE
+
+        if mode is Mode.DEFENSIVE:
+            accel, fire = self._evader(
+                me, view, my_pos, direction, dist, face, cos_thresh, projectile_speed
+            )
+            parry = False
         else:
-            vel, t_hit = self._incoming_projectile(me, view, my_pos)
-            self._incoming_time = t_hit
-            if vel is not None and t_hit <= self.parry_window:
-                self.state = State.PARRY
-            elif vel is not None:
-                self.state = State.DODGE
+            my_health = view.get_health_ratio(me)
+            enemy_health = view.get_health_ratio(enemy)
+            both_critical = my_health < 0.15 and enemy_health < 0.15
+            if my_health < 0.15 and not both_critical:
+                self.state = State.RETREAT
             else:
-                self.state = State.ATTACK
+                vel, t_hit = self._incoming_projectile(me, view, my_pos)
+                self._incoming_time = t_hit
+                if vel is not None and t_hit <= self.parry_window:
+                    self.state = State.PARRY
+                elif vel is not None:
+                    self.state = State.DODGE
+                else:
+                    self.state = State.ATTACK
 
-        style = "aggressive" if both_critical else self.style
+            style = "aggressive" if both_critical else self.style
 
-        if self.state == State.ATTACK:
-            accel, fire = self._attack(
-                style, me, view, my_pos, direction, dist, face, cos_thresh, projectile_speed
-            )
-            parry = False
-        elif self.state == State.DODGE:
-            accel, fire = self._dodge(me, view, my_pos, direction)
-            parry = False
-        elif self.state == State.PARRY:
-            accel, fire = self._parry(direction)
-            parry = True
-        else:  # retreat
-            # Fire decision still follows attack logic
-            _, fire = self._attack(
-                style, me, view, my_pos, direction, dist, face, cos_thresh, projectile_speed
-            )
-            accel = (-direction[0] * 400.0, -direction[1] * 400.0)
-            parry = False
+            if self.state == State.ATTACK:
+                accel, fire = self._attack(
+                    style,
+                    me,
+                    view,
+                    my_pos,
+                    direction,
+                    dist,
+                    face,
+                    cos_thresh,
+                    projectile_speed,
+                )
+                parry = False
+            elif self.state == State.DODGE:
+                accel, fire = self._dodge(me, view, my_pos, direction)
+                parry = False
+            elif self.state == State.PARRY:
+                accel, fire = self._parry(direction)
+                parry = True
+            else:  # retreat
+                # Fire decision still follows attack logic
+                _, fire = self._attack(
+                    style,
+                    me,
+                    view,
+                    my_pos,
+                    direction,
+                    dist,
+                    face,
+                    cos_thresh,
+                    projectile_speed,
+                )
+                accel = (-direction[0] * 400.0, -direction[1] * 400.0)
+                parry = False
 
         if abs(dy) <= 1e-6:
             offset = self.vertical_offset + self.rng.uniform(-0.05, 0.05)
@@ -194,13 +232,19 @@ class StatefulPolicy(SimplePolicy):
         return damage
 
 
-def policy_for_weapon(weapon_name: str, rng: random.Random | None = None) -> StatefulPolicy:
+def policy_for_weapon(
+    weapon_name: str,
+    transition_time: float,
+    rng: random.Random | None = None,
+) -> StatefulPolicy:
     """Return a :class:`StatefulPolicy` tuned for ``weapon_name``.
 
     Parameters
     ----------
     weapon_name:
         Identifier of the weapon used by the agent.
+    transition_time:
+        Timestamp at which the policy switches to offensive mode.
     rng:
         Optional random number generator. When ``None``, a new instance
         derived from the global seed is created.
@@ -210,12 +254,23 @@ def policy_for_weapon(weapon_name: str, rng: random.Random | None = None) -> Sta
     if weapon_name == "bazooka":
         return StatefulPolicy(
             "evader",
+            transition_time=transition_time,
             desired_dist_factor=1.2,
             fire_range_factor=1.2,
             rng=rng,
         )
     if weapon_name == "knife":
-        return StatefulPolicy("aggressive", dodge_bias=1.0, rng=rng)
+        return StatefulPolicy(
+            "aggressive",
+            transition_time=transition_time,
+            dodge_bias=1.0,
+            rng=rng,
+        )
     if weapon_name == "shuriken":
-        return StatefulPolicy("aggressive", fire_range=float("inf"), rng=rng)
-    return StatefulPolicy("aggressive", rng=rng)
+        return StatefulPolicy(
+            "aggressive",
+            transition_time=transition_time,
+            fire_range=float("inf"),
+            rng=rng,
+        )
+    return StatefulPolicy("aggressive", transition_time=transition_time, rng=rng)

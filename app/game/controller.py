@@ -334,7 +334,7 @@ class GameController:
         for p in self.players:
             if not p.alive:
                 continue
-            accel, face, fire, parry = p.policy.decide(p.eid, self.view, p.weapon.speed)
+            accel, face, fire, parry = p.policy.decide(p.eid, self.view, now, p.weapon.speed)
             dash_dir = p.policy.dash_direction(p.eid, self.view, now, p.dash.can_dash)
             p.face = face
             if dash_dir is not None:
