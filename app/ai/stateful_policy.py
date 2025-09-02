@@ -15,7 +15,8 @@ from app.ai.policy import (
     _projectile_dodge,
 )
 from app.core.types import Damage, EntityId, Vec2
-from app.weapons.base import WorldView
+from app.weapons.base import RangeType, WorldView
+from app.weapons.utils import range_type_for
 
 
 class State(Enum):
@@ -234,43 +235,24 @@ class StatefulPolicy(SimplePolicy):
 
 def policy_for_weapon(
     weapon_name: str,
+    enemy_weapon_name: str,
     transition_time: float,
     rng: random.Random | None = None,
 ) -> StatefulPolicy:
-    """Return a :class:`StatefulPolicy` tuned for ``weapon_name``.
-
-    Parameters
-    ----------
-    weapon_name:
-        Identifier of the weapon used by the agent.
-    transition_time:
-        Timestamp at which the policy switches to offensive mode.
-    rng:
-        Optional random number generator. When ``None``, a new instance
-        derived from the global seed is created.
-    """
+    """Return a :class:`StatefulPolicy` tuned for a weapon matchup."""
 
     rng = rng or _new_rng()
-    if weapon_name == "bazooka":
+    my_range: RangeType = range_type_for(weapon_name)
+    enemy_range: RangeType = range_type_for(enemy_weapon_name)
+
+    if my_range == "distant":
+        style = "evader" if enemy_range == "contact" else "kiter"
+        fire_factor = 0.0 if style == "evader" else float("inf")
         return StatefulPolicy(
-            "evader",
+            style,
             transition_time=transition_time,
-            desired_dist_factor=1.2,
-            fire_range_factor=1.2,
+            fire_range_factor=fire_factor,
             rng=rng,
         )
-    if weapon_name == "knife":
-        return StatefulPolicy(
-            "aggressive",
-            transition_time=transition_time,
-            dodge_bias=1.0,
-            rng=rng,
-        )
-    if weapon_name == "shuriken":
-        return StatefulPolicy(
-            "aggressive",
-            transition_time=transition_time,
-            fire_range=float("inf"),
-            rng=rng,
-        )
+
     return StatefulPolicy("aggressive", transition_time=transition_time, rng=rng)

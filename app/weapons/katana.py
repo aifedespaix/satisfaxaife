@@ -8,7 +8,7 @@ from app.world.entities import DEFAULT_BALL_RADIUS
 
 from . import weapon_registry
 from .assets import load_weapon_sprite
-from .base import Weapon, WorldView
+from .base import RangeType, Weapon, WorldView
 from .effects import OrbitingSprite
 from .parry import ParryEffect
 
@@ -16,8 +16,16 @@ from .parry import ParryEffect
 class Katana(Weapon):
     """Orbiting blade rotating around the owner."""
 
+    range_type: RangeType = "contact"
+
     def __init__(self) -> None:
-        super().__init__(name="katana", cooldown=0.1, damage=Damage(7), speed=5.0)
+        super().__init__(
+            name="katana",
+            cooldown=0.1,
+            damage=Damage(7),
+            speed=5.0,
+            range_type=self.range_type,
+        )
         self.audio = WeaponAudio("melee", "katana")
         self._initialized = False
         blade_height = DEFAULT_BALL_RADIUS * 3.0

@@ -7,7 +7,8 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from app.core.types import EntityId, Vec2
-from app.weapons.base import WorldView
+from app.weapons.base import RangeType, WorldView
+from app.weapons.utils import range_type_for
 
 
 def _new_rng() -> random.Random:
@@ -309,28 +310,31 @@ class SimplePolicy:
         return accel, fire
 
 
-def policy_for_weapon(weapon_name: str, rng: random.Random | None = None) -> SimplePolicy:
-    """Return a :class:`SimplePolicy` tuned for ``weapon_name``.
+def policy_for_weapon(
+    weapon_name: str,
+    enemy_weapon_name: str,
+    rng: random.Random | None = None,
+) -> SimplePolicy:
+    """Return a :class:`SimplePolicy` tuned for a weapon matchup.
 
     Parameters
     ----------
     weapon_name:
         Identifier of the weapon used by the agent.
+    enemy_weapon_name:
+        Identifier of the opposing weapon.
     rng:
         Optional random number generator. When ``None``, a new instance
         derived from the global seed is created.
     """
 
     rng = rng or _new_rng()
-    if weapon_name == "bazooka":
-        return SimplePolicy(
-            "evader",
-            desired_dist_factor=1.2,
-            fire_range_factor=1.2,
-            rng=rng,
-        )
-    if weapon_name == "knife":
-        return SimplePolicy("aggressive", dodge_bias=1.0, rng=rng)
-    if weapon_name == "shuriken":
-        return SimplePolicy("aggressive", fire_range=float("inf"), rng=rng)
+    my_range: RangeType = range_type_for(weapon_name)
+    enemy_range: RangeType = range_type_for(enemy_weapon_name)
+
+    if my_range == "distant":
+        style = "evader" if enemy_range == "contact" else "kiter"
+        fire_factor = 0.0 if style == "evader" else float("inf")
+        return SimplePolicy(style, fire_range_factor=fire_factor, rng=rng)
+
     return SimplePolicy("aggressive", rng=rng)

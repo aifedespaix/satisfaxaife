@@ -21,5 +21,21 @@ class Registry(Generic[T]):
     def create(self, name: str) -> T:
         return self._factories[name]()
 
+    def factory(self, name: str) -> Callable[[], T]:
+        """Return the registered factory for ``name``.
+
+        Parameters
+        ----------
+        name:
+            Identifier of the factory to retrieve.
+
+        Returns
+        -------
+        Callable[[], T]
+            The factory function associated with ``name``.
+        """
+
+        return self._factories[name]
+
     def names(self) -> list[str]:
         return sorted(self._factories)
