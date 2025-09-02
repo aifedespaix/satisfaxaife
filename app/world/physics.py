@@ -6,8 +6,8 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import pymunk
-from app.ai.policy import _lead_target
 from app.core.config import settings
+from app.core.targeting import _lead_target
 from app.core.types import EntityId
 from pymunk import Vec2 as Vec2d
 
