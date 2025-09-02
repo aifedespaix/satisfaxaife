@@ -81,12 +81,17 @@ class OrbitingSprite(WeaponEffect):
     radius: float
     angle: float
     speed: float
+    thickness: float | None = None
     knockback: float = 0.0
     trail_color: Color = (255, 255, 255)
     trail: list[Vec2] = field(default_factory=list)
     trail_len: int = 8
     audio: WeaponAudio | None = None
     hit_angles: dict[EntityId, float] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.thickness is None:
+            self.thickness = max(self.sprite.get_width(), self.sprite.get_height()) / 4
 
     def step(self, dt: float) -> bool:  # noqa: D401
         """Advance rotation."""
@@ -100,10 +105,13 @@ class OrbitingSprite(WeaponEffect):
         return (center[0] + c * self.radius, center[1] + s * self.radius)
 
     def collides(self, view: WorldView, position: Vec2, radius: float) -> bool:  # noqa: D401
-        cx, cy = self._position(view)
-        dx, dy = cx - position[0], cy - position[1]
-        hit_rad = max(self.sprite.get_width(), self.sprite.get_height()) / 2
-        return bool(dx * dx + dy * dy <= (hit_rad + radius) ** 2)
+        owner_pos = view.get_position(self.owner)
+        dx = owner_pos[0] - position[0]
+        dy = owner_pos[1] - position[1]
+        distance = math.hypot(dx, dy)
+        thickness = self.thickness
+        assert thickness is not None
+        return abs(distance - self.radius) <= (thickness + radius)
 
     @staticmethod
     def _angle_distance(a: float, b: float) -> float:
