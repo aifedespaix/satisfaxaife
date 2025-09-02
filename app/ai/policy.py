@@ -333,7 +333,9 @@ def policy_for_weapon(
     enemy_range: RangeType = range_type_for(enemy_weapon_name)
 
     if my_range == "distant":
-        style = "evader" if enemy_range == "contact" else "kiter"
+        style: Literal["evader", "kiter"] = (
+            "evader" if enemy_range == "contact" else "kiter"
+        )
         fire_factor = 0.0 if style == "evader" else float("inf")
         return SimplePolicy(style, fire_range_factor=fire_factor, rng=rng)
 

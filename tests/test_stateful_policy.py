@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
-from app.ai.stateful_policy import State, StatefulPolicy
+import pytest
+
+from app.ai.stateful_policy import Mode, State, StatefulPolicy, policy_for_weapon
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.weapons.base import WeaponEffect, WorldView
 
@@ -107,3 +110,49 @@ def test_mode_transition() -> None:
     assert accel[0] < 0  # defensive: keep distance
     accel, _, _, _ = policy.decide(me, view, 1.5, 600.0)
     assert accel[0] > 0  # offensive: close in
+
+
+def test_transition_time_switches_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``transition_time`` flips internal mode from defensive to offensive."""
+    me = EntityId(1)
+    enemy = EntityId(2)
+    view = DummyView(me, enemy, (0.0, 0.0), (100.0, 0.0))
+    policy = StatefulPolicy("aggressive", transition_time=1.0)
+
+    called: dict[str, Mode] = {}
+
+    def fake_evader(*args: object, **kwargs: object) -> tuple[Vec2, bool]:
+        called["mode"] = Mode.DEFENSIVE
+        return (0.0, 0.0), False
+
+    def fake_attack(*args: object, **kwargs: object) -> tuple[Vec2, bool]:
+        called["mode"] = Mode.OFFENSIVE
+        return (0.0, 0.0), False
+
+    monkeypatch.setattr(policy, "_evader", fake_evader)
+    monkeypatch.setattr(policy, "_attack", fake_attack)
+
+    policy.decide(me, view, 0.5, 600.0)
+    assert called.get("mode") is Mode.DEFENSIVE
+
+    called.clear()
+    policy.decide(me, view, 1.5, 600.0)
+    assert called.get("mode") is Mode.OFFENSIVE
+
+
+@pytest.mark.parametrize(
+    ("weapon", "enemy", "expected_style", "expected_factor"),
+    [
+        ("knife", "katana", "aggressive", 0.8),
+        ("knife", "shuriken", "aggressive", 0.8),
+        ("shuriken", "knife", "evader", 0.0),
+        ("shuriken", "bazooka", "kiter", math.inf),
+    ],
+)
+def test_policy_for_weapon_range_combinations(
+    weapon: str, enemy: str, expected_style: str, expected_factor: float
+) -> None:
+    """``policy_for_weapon`` returns correct style per range matchup."""
+    policy = policy_for_weapon(weapon, enemy, transition_time=0.0)
+    assert policy.style == expected_style
+    assert policy.fire_range_factor == expected_factor
