@@ -379,7 +379,10 @@ class GameController:
                 p.dash.direction[0] * p.dash.knockback,
                 p.dash.direction[1] * p.dash.knockback,
             )
-            self.view.deal_damage(other.eid, p.dash.damage, now)
+            vx, vy = p.ball.body.velocity
+            speed = sqrt(vx * vx + vy * vy)
+            scaled = Damage(p.dash.damage.amount * speed / p.dash.speed)
+            self.view.deal_damage(other.eid, scaled, now)
             p.dash.has_hit = True
             return
 

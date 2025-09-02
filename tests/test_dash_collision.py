@@ -89,34 +89,51 @@ def _make_player(eid: int, x: float) -> Player:
     return Player(EntityId(eid), ball, weapon, policy, (1.0, 0.0), (0, 0, 0), audio)
 
 
-def test_dash_collision_deals_damage_and_knockback() -> None:
-    player_a = _make_player(1, 0.0)
-    player_b = _make_player(2, 70.0)
-    world = DummyWorld()
-    renderer = cast(object, SimpleNamespace())
-    hud = cast(object, SimpleNamespace())
-    engine = SimpleNamespace(play_variation=lambda *a, **k: None)
-    recorder = cast(
-        object, SimpleNamespace(add_frame=lambda *_a: None, close=lambda *_a, **_k: None)
-    )
-    intro = cast(object, SimpleNamespace())
-
-    controller = GameController(
+def _make_controller(player_a: Player, player_b: Player) -> GameController:
+    world = cast(Any, DummyWorld())
+    renderer = cast(Any, SimpleNamespace())
+    hud = cast(Any, SimpleNamespace())
+    engine = cast(Any, SimpleNamespace(play_variation=lambda *a, **k: None))
+    recorder = cast(Any, SimpleNamespace(add_frame=lambda *_a: None, close=lambda *_a, **_k: None))
+    intro = cast(Any, SimpleNamespace())
+    return GameController(
         "a",
         "b",
         [player_a, player_b],
-        cast(Any, world),
-        cast(Any, renderer),
-        cast(Any, hud),
-        cast(Any, engine),
-        cast(Any, recorder),
-        cast(Any, intro),
+        world,
+        renderer,
+        hud,
+        engine,
+        recorder,
+        intro,
     )
 
+
+def test_dash_collision_deals_damage_and_knockback() -> None:
+    player_a = _make_player(1, 0.0)
+    player_b = _make_player(2, 70.0)
+    controller = _make_controller(player_a, player_b)
     player_a.dash.start((1.0, 0.0), 0.0)
-
     controller._update_players(0.0)
-
     assert player_b.ball.health == 95.0
     assert player_b.ball.body.velocity.x > 0.0
     assert player_a.dash.has_hit
+
+
+def test_dash_damage_scales_with_speed() -> None:
+    player_a = _make_player(1, 0.0)
+    player_b = _make_player(2, 70.0)
+    controller = _make_controller(player_a, player_b)
+    player_a.dash.start((1.0, 0.0), 0.0)
+    player_a.ball.body.velocity = (player_a.dash.speed / 2.0, 0.0)
+    controller._resolve_dash_collision(player_a, 0.0)
+    assert player_b.ball.health == 97.5
+
+
+def test_dashing_player_can_be_damaged() -> None:
+    player_a = _make_player(1, 0.0)
+    player_b = _make_player(2, 200.0)
+    controller = _make_controller(player_a, player_b)
+    player_a.dash.start((1.0, 0.0), 0.0)
+    controller.view.deal_damage(player_a.eid, Damage(10.0), 0.0)
+    assert player_a.ball.health == 90.0
