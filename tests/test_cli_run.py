@@ -59,6 +59,8 @@ def test_run_timeout(monkeypatch: MonkeyPatch) -> None:
     from app.game.match import MatchTimeout
 
     def run_short(self: GameController) -> str | None:  # noqa: ARG001
+        assert self.recorder.path is not None
+        self.recorder.path.write_bytes(b"dummy")
         raise MatchTimeout("Match exceeded 0 seconds")
 
     monkeypatch.setattr(GameController, "run", run_short)
@@ -76,10 +78,12 @@ def test_run_timeout(monkeypatch: MonkeyPatch) -> None:
         ],
     )
     assert result.exit_code != 0
-    assert "exceeded" in (result.stderr or "").lower()
+    assert "timed out" in (result.stderr or "").lower()
     generated_dir = Path("generated")
     assert generated_dir.exists()
-    assert list(generated_dir.glob("*")) == []
+    files = list(generated_dir.glob("*.mp4"))
+    assert len(files) == 1
+    assert "timeout" in files[0].stem
 
 
 def test_run_display_mode_no_file(monkeypatch: MonkeyPatch) -> None:
