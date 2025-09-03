@@ -327,11 +327,13 @@ def policy_for_weapon(
     if my_range == "distant":
         style: Literal["evader", "kiter"] = "evader" if enemy_range == "contact" else "kiter"
         fire_factor = 0.0 if style == "evader" else float("inf")
+        fire_out = weapon_name == "shuriken"
         return StatefulPolicy(
             style,
             range_type=my_range,
             transition_time=transition_time,
             fire_range_factor=fire_factor,
+            fire_out_of_range=fire_out,
             rng=rng,
         )
 

@@ -212,6 +212,22 @@ def test_policy_for_weapon_range_combinations(
     assert policy.fire_range_factor == expected_factor
 
 
+def test_shuriken_stateful_policy_fires_when_enemy_far() -> None:
+    view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (1000.0, 0.0))
+    policy = policy_for_weapon("shuriken", "katana", transition_time=0.0)
+    _, _, fire, parry = policy.decide(EntityId(1), view, 0.0, 600.0)
+    assert fire is True
+    assert parry is False
+
+
+def test_bazooka_stateful_policy_no_fire_when_enemy_far() -> None:
+    view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (1000.0, 0.0))
+    policy = policy_for_weapon("bazooka", "katana", transition_time=0.0)
+    _, _, fire, parry = policy.decide(EntityId(1), view, 0.0, 300.0)
+    assert fire is False
+    assert parry is False
+
+
 def test_stateful_evader_moves_toward_offscreen_enemy() -> None:
     me = EntityId(1)
     enemy = EntityId(2)
