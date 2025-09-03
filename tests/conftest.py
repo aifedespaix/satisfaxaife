@@ -32,6 +32,28 @@ sys.modules.setdefault("app.render.renderer", _renderer_stub)
 
 sys.modules.setdefault("numpy", types.ModuleType("numpy"))
 
+# Provide a minimal pydantic stub so configuration modules can be imported.
+_pydantic_stub = types.ModuleType("pydantic")
+
+
+class _BaseModel:
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    @classmethod
+    def model_validate(cls, data: dict[str, object]) -> _BaseModel:
+        return cls(**data)
+
+
+def _field(default: object, **_kwargs: object) -> object:  # pragma: no cover - simple stub
+    return default
+
+
+_pydantic_stub.BaseModel = _BaseModel  # type: ignore[attr-defined]
+_pydantic_stub.Field = _field  # type: ignore[attr-defined]
+sys.modules.setdefault("pydantic", _pydantic_stub)
+
 
 class WorldView(Protocol):
     def get_enemy(self, owner: EntityId) -> EntityId | None: ...

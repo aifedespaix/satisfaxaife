@@ -186,6 +186,7 @@ class OrbitingRectangle(WeaponEffect):
     knockback: float = 0.0
     audio: WeaponAudio | None = None
     hit_times: dict[EntityId, float] = field(default_factory=dict)
+    sprite: pygame.Surface | None = None
 
     def __post_init__(self) -> None:
         if self.offset <= DEFAULT_BALL_RADIUS:
@@ -253,8 +254,10 @@ class OrbitingRectangle(WeaponEffect):
             projectile.audio.on_touch(timestamp)
 
     def draw(self, renderer: Renderer, view: WorldView) -> None:  # noqa: D401
+        center = self._center(view)
+        if self.sprite is not None:
+            renderer.draw_sprite(self.sprite, center, self.angle)
         if renderer.debug:
-            center = self._center(view)
             c, s = math.cos(self.angle), math.sin(self.angle)
             tc, ts = -s, c
             hw, hh = self.width / 2, self.height / 2

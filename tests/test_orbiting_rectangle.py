@@ -25,6 +25,9 @@ class DummyView:
     def get_weapon(self, eid: EntityId) -> object:  # pragma: no cover - unused
         raise NotImplementedError
 
+    def get_velocity(self, eid: EntityId) -> Vec2:  # pragma: no cover - unused
+        return (0.0, 0.0)
+
     def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:
         self.damage[eid] = self.damage.get(eid, 0.0) + damage.amount
 
