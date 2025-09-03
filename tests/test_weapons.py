@@ -1,3 +1,8 @@
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+
 from app.weapons.bazooka import Bazooka
 from app.weapons.katana import Katana
 from app.weapons.knife import Knife
@@ -13,17 +18,29 @@ def test_shuriken_sprite_and_radius() -> None:
     assert shuriken._radius == DEFAULT_BALL_RADIUS / 3
 
 
-def test_katana_sprite_height() -> None:
+def test_katana_blade_dimensions() -> None:
     katana = Katana()
-    expected_height = int(DEFAULT_BALL_RADIUS * 3)
+    expected_height = DEFAULT_BALL_RADIUS * 3.0
+    expected_width = DEFAULT_BALL_RADIUS / 4.0
+    expected_offset = DEFAULT_BALL_RADIUS + expected_height / 2 + 1.0
     _, height = katana._sprite.get_size()
-    assert height == expected_height
+    assert height == int(expected_height)
+    assert katana._blade_height == expected_height
+    assert katana._blade_width == expected_width
+    assert katana._blade_offset == expected_offset
 
 
-def test_knife_sprite_loaded() -> None:
+def test_knife_blade_dimensions() -> None:
     knife = Knife()
+    expected_height = DEFAULT_BALL_RADIUS * 2.0
+    expected_width = DEFAULT_BALL_RADIUS / 4.0
+    expected_offset = DEFAULT_BALL_RADIUS + expected_height / 2 + 1.0
     width, height = knife._sprite.get_size()
-    assert width > 0 and height > 0
+    assert height == int(expected_height)
+    assert width > 0
+    assert knife._blade_height == expected_height
+    assert knife._blade_width == expected_width
+    assert knife._blade_offset == expected_offset
 
 
 def test_bazooka_missile_radius() -> None:

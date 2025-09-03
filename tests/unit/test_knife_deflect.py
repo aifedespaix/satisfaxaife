@@ -1,8 +1,7 @@
-"""Verify katana's deflection and contact mechanics."""
+"""Verify knife's deflection and contact mechanics."""
 
 from __future__ import annotations
 
-import math
 import pathlib
 import sys
 from dataclasses import dataclass, field
@@ -21,7 +20,7 @@ from app.world.projectiles import Projectile
 
 @dataclass
 class DummyView(WorldView):
-    """Minimal :class:`WorldView` for katana tests."""
+    """Minimal :class:`WorldView` used for knife tests."""
 
     positions: dict[EntityId, Vec2]
     enemies: dict[EntityId, EntityId]
@@ -71,8 +70,8 @@ class DummyView(WorldView):
         return []
 
 
-def _make_katana(owner: EntityId) -> OrbitingRectangle:
-    height = DEFAULT_BALL_RADIUS * 3.0
+def _make_knife(owner: EntityId) -> OrbitingRectangle:
+    height = DEFAULT_BALL_RADIUS * 2.0
     width = DEFAULT_BALL_RADIUS / 4.0
     offset = DEFAULT_BALL_RADIUS + height / 2 + 1.0
     return OrbitingRectangle(
@@ -86,7 +85,7 @@ def _make_katana(owner: EntityId) -> OrbitingRectangle:
     )
 
 
-def test_katana_deflects_projectile() -> None:
+def test_knife_deflects_projectile() -> None:
     pygame.init()
     world = PhysicsWorld()
     owner = EntityId(1)
@@ -94,11 +93,11 @@ def test_katana_deflects_projectile() -> None:
     positions = {owner: (0.0, 0.0), enemy: (150.0, 0.0)}
     enemies = {owner: enemy, enemy: owner}
     view = DummyView(positions, enemies)
-    katana = _make_katana(owner)
+    knife = _make_knife(owner)
     projectile = Projectile.spawn(
         world,
         owner=enemy,
-        position=(katana.offset, 0.0),
+        position=(knife.offset, 0.0),
         velocity=(-100.0, 0.0),
         radius=1.0,
         damage=Damage(5),
@@ -107,9 +106,9 @@ def test_katana_deflects_projectile() -> None:
     )
     projectile.ttl = 0.1
     pos = (float(projectile.body.position.x), float(projectile.body.position.y))
-    assert katana.collides(view, pos, float(projectile.shape.radius))
+    assert knife.collides(view, pos, float(projectile.shape.radius))
 
-    katana.deflect_projectile(view, projectile, timestamp=0.0)
+    knife.deflect_projectile(view, projectile, timestamp=0.0)
 
     assert projectile.owner == owner
     assert projectile.body.velocity.x == 100.0
@@ -120,7 +119,7 @@ def test_katana_deflects_projectile() -> None:
     assert view.damage[enemy] == 5
 
 
-def test_katana_does_not_deflect_body_hit() -> None:
+def test_knife_does_not_deflect_body_hit() -> None:
     pygame.init()
     world = PhysicsWorld()
     owner = EntityId(1)
@@ -128,7 +127,7 @@ def test_katana_does_not_deflect_body_hit() -> None:
     positions = {owner: (0.0, 0.0), enemy: (150.0, 0.0)}
     enemies = {owner: enemy, enemy: owner}
     view = DummyView(positions, enemies)
-    katana = _make_katana(owner)
+    knife = _make_knife(owner)
     projectile = Projectile.spawn(
         world,
         owner=enemy,
@@ -141,23 +140,23 @@ def test_katana_does_not_deflect_body_hit() -> None:
     )
     projectile.ttl = 0.1
     pos = (float(projectile.body.position.x), float(projectile.body.position.y))
-    assert not katana.collides(view, pos, float(projectile.shape.radius))
+    assert not knife.collides(view, pos, float(projectile.shape.radius))
 
     projectile.on_hit(view, owner, timestamp=0.0)
     assert view.damage[owner] == 5
 
 
-def test_katana_hits_enemy_ball() -> None:
+def test_knife_hits_enemy_ball() -> None:
     pygame.init()
     owner = EntityId(1)
     enemy = EntityId(2)
-    height = DEFAULT_BALL_RADIUS * 3.0
+    height = DEFAULT_BALL_RADIUS * 2.0
     width = DEFAULT_BALL_RADIUS / 4.0
     offset = DEFAULT_BALL_RADIUS + height / 2 + 1.0
     positions = {owner: (0.0, 0.0), enemy: (offset, 0.0)}
     enemies = {owner: enemy, enemy: owner}
     view = DummyView(positions, enemies)
-    katana = OrbitingRectangle(
+    knife = OrbitingRectangle(
         owner=owner,
         damage=Damage(5),
         width=width,
@@ -166,37 +165,9 @@ def test_katana_hits_enemy_ball() -> None:
         angle=0.0,
         speed=0.0,
     )
-    assert katana.collides(view, positions[enemy], DEFAULT_BALL_RADIUS)
+    assert knife.collides(view, positions[enemy], DEFAULT_BALL_RADIUS)
 
-    katana.on_hit(view, enemy, timestamp=0.0)
+    knife.on_hit(view, enemy, timestamp=0.0)
 
     assert view.damage[enemy] == 5
 
-
-def test_katana_deflect_respects_angle() -> None:
-    pygame.init()
-    world = PhysicsWorld()
-    owner = EntityId(1)
-    enemy = EntityId(2)
-    positions = {owner: (0.0, 0.0), enemy: (0.0, 150.0)}
-    enemies = {owner: enemy, enemy: owner}
-    view = DummyView(positions, enemies)
-    katana = _make_katana(owner)
-    projectile = Projectile.spawn(
-        world,
-        owner=enemy,
-        position=(0.0, katana.offset),
-        velocity=(0.0, -100.0),
-        radius=1.0,
-        damage=Damage(5),
-        knockback=0.0,
-        ttl=1.0,
-    )
-    pos = (float(projectile.body.position.x), float(projectile.body.position.y))
-    assert not katana.collides(view, pos, float(projectile.shape.radius))
-
-    katana.angle = math.pi / 2
-    assert katana.collides(view, pos, float(projectile.shape.radius))
-
-    katana.deflect_projectile(view, projectile, timestamp=0.0)
-    assert projectile.owner == owner
