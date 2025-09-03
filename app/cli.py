@@ -33,8 +33,8 @@ def _load_run_defaults_from_yaml(path: Path = Path("config.yml")) -> dict[str, s
     The parser supports a minimal subset: ``key: value`` per line, comments
     starting with ``#``, and ignores blank lines. Values are returned as strings
     and converted by the caller as needed. Recognised keys include
-    ``weapon_a``, ``weapon_b``, ``seed``, ``max_simulation_seconds`` and
-    ``ai_transition_seconds``.
+    ``weapon_a``, ``weapon_b``, ``seed``, ``max_simulation_seconds``,
+    ``ai_transition_seconds`` and ``debug``.
 
     Parameters
     ----------
@@ -66,7 +66,8 @@ def _resolve_run_parameters(
     weapon_b: str | None,
     max_seconds: int | None,
     ai_transition_seconds: int | None,
-) -> tuple[int, str, str, int, int]:
+    debug: bool | None,
+) -> tuple[int, str, str, int, int, bool]:
     """Return CLI parameters with defaults applied from ``config.yml``."""
     cfg = _load_run_defaults_from_yaml()
     if weapon_a is None:
@@ -85,13 +86,16 @@ def _resolve_run_parameters(
             ai_transition_seconds = int(cfg["ai_transition_seconds"])
         except ValueError:
             ai_transition_seconds = None
+    if debug is None and "debug" in cfg:
+        debug = cfg["debug"].lower() in {"1", "true", "yes", "on"}
 
     weapon_a = weapon_a or "katana"
     weapon_b = weapon_b or "shuriken"
     seed = int(seed or 0)
     max_seconds = max_seconds or 120
     ai_transition_seconds = int(ai_transition_seconds or 20)
-    return seed, weapon_a, weapon_b, max_seconds, ai_transition_seconds
+    debug = bool(debug)
+    return seed, weapon_a, weapon_b, max_seconds, ai_transition_seconds, debug
 
 
 @app.command()  # type: ignore[misc]
@@ -124,6 +128,13 @@ def run(
     display: bool = typer.Option(
         False, "--display/--no-display", help="Display simulation instead of recording"
     ),
+    debug: Annotated[
+        bool | None,
+        typer.Option(
+            "--debug/--no-debug",
+            help="Enable debug rendering (hitboxes and helpers)",
+        ),
+    ] = None,
 ) -> None:
     """Run a single match and export a video to ``./generated``.
 
@@ -131,12 +142,20 @@ def run(
     still kept on disk with a ``-timeout`` suffix.
     """
     # If parameters are not provided, read defaults from config.yml
-    seed, weapon_a, weapon_b, max_seconds_val, ai_transition_seconds = _resolve_run_parameters(
+    (
+        seed,
+        weapon_a,
+        weapon_b,
+        max_seconds_val,
+        ai_transition_seconds,
+        debug_flag,
+    ) = _resolve_run_parameters(
         seed,
         weapon_a,
         weapon_b,
         max_seconds,
         ai_transition_seconds,
+        debug,
     )
 
     random.seed(seed)
@@ -167,7 +186,7 @@ def run(
 
         weapon_registry.names()
         if display:
-            renderer = Renderer(settings.width, settings.height, display=True)
+            renderer = Renderer(settings.width, settings.height, display=True, debug=debug_flag)
             recorder = NullRecorder()
         else:
             out_dir = Path("generated")
@@ -177,7 +196,7 @@ def run(
             safe_b = _sanitize(weapon_b)
             temp_path = out_dir / f"{timestamp}-{safe_a}-VS-{safe_b}.mp4"
             recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
-            renderer = Renderer(settings.width, settings.height)
+            renderer = Renderer(settings.width, settings.height, debug=debug_flag)
 
         try:
             controller = create_controller(

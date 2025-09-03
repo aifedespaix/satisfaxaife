@@ -91,7 +91,7 @@ class OrbitingSprite(WeaponEffect):
 
     def __post_init__(self) -> None:
         if self.thickness is None:
-            self.thickness = max(self.sprite.get_width(), self.sprite.get_height()) / 4
+            self.thickness = max(self.sprite.get_width(), self.sprite.get_height()) / 8
 
     def step(self, dt: float) -> bool:  # noqa: D401
         """Advance rotation."""
@@ -111,7 +111,13 @@ class OrbitingSprite(WeaponEffect):
         distance = math.hypot(dx, dy)
         thickness = self.thickness
         assert thickness is not None
-        return abs(distance - self.radius) <= (thickness + radius)
+        inner = max(self.radius - thickness, 0.0)
+        outer = self.radius + thickness
+        if distance + radius < inner:
+            return False
+        if distance - radius > outer:
+            return False
+        return True
 
     @staticmethod
     def _angle_distance(a: float, b: float) -> float:
@@ -158,6 +164,11 @@ class OrbitingSprite(WeaponEffect):
         for a, b in zip(self.trail, self.trail[1:], strict=False):
             renderer.draw_line(a, b, self.trail_color, 2)
         renderer.draw_sprite(self.sprite, pos, self.angle)
+        if renderer.debug:
+            thickness = self.thickness or 0.0
+            center = view.get_position(self.owner)
+            renderer.draw_circle_outline(center, self.radius + thickness, (0, 255, 0))
+            renderer.draw_circle_outline(center, max(self.radius - thickness, 0.0), (0, 255, 0))
 
     def destroy(self) -> None:  # noqa: D401
         self.trail.clear()

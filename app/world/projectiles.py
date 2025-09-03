@@ -168,6 +168,8 @@ class Projectile(WeaponEffect):
             renderer.draw_sprite(self.sprite, pos, self.angle)
         else:
             renderer.draw_projectile(pos, int(self.shape.radius), (255, 255, 0))
+        if renderer.debug:
+            renderer.draw_circle_outline(pos, float(self.shape.radius), (0, 255, 0))
 
     def destroy(self) -> None:
         self.world.unregister_projectile(self)
