@@ -1,3 +1,9 @@
+"""Core weapon interfaces and types.
+
+Contact weapons are responsible for deflecting projectiles via their own
+hitboxes. No separate parry effect is used.
+"""
+
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -10,7 +16,6 @@ if TYPE_CHECKING:
     import pygame
 
     from app.render.renderer import Renderer
-    from .parry import ParryEffect
 
 
 class WorldView(Protocol):
@@ -67,9 +72,6 @@ class WorldView(Protocol):
 
     def get_weapon(self, eid: EntityId) -> Weapon:
         """Return the weapon currently wielded by ``eid``."""
-
-    def get_parry(self, eid: EntityId) -> ParryEffect | None:
-        """Return the active parry effect for ``eid`` if present."""
 
 
 class WeaponEffect(Protocol):
@@ -153,25 +155,6 @@ class Weapon:
             return
         self._fire(owner, view, direction)
         self._timer = self.cooldown
-
-    def parry(self, owner: EntityId, view: WorldView) -> None:
-        """Attempt to block incoming attacks.
-
-        Parameters
-        ----------
-        owner:
-            Entity identifier owning the weapon.
-        view:
-            Read-only access to the game state.
-
-        Notes
-        -----
-        Subclasses may override to spawn defensive effects or modify state.
-        The default implementation performs no action, making the method
-        optional for offensive-only weapons.
-        """
-
-        return None
 
     def _fire(self, owner: EntityId, view: WorldView, direction: Vec2) -> None:
         """Execute the weapon's effect. Subclasses must override."""

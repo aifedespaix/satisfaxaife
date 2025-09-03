@@ -13,7 +13,6 @@ import pygame
 
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.weapons.base import Weapon, WeaponEffect, WorldView
-from app.weapons.parry import ParryEffect
 from app.weapons.effects import OrbitingRectangle
 from app.world.entities import DEFAULT_BALL_RADIUS
 from app.world.physics import PhysicsWorld
@@ -27,7 +26,6 @@ class DummyView(WorldView):
     positions: dict[EntityId, Vec2]
     enemies: dict[EntityId, EntityId]
     weapons: dict[EntityId, Weapon] = field(default_factory=dict)
-    parries: dict[EntityId, ParryEffect] = field(default_factory=dict)
     damage: dict[EntityId, float] = field(default_factory=dict)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
@@ -75,9 +73,6 @@ class DummyView(WorldView):
 
     def get_weapon(self, eid: EntityId) -> Weapon:  # noqa: D401
         return self.weapons[eid]
-
-    def get_parry(self, eid: EntityId) -> ParryEffect | None:  # noqa: D401
-        return self.parries.get(eid)
 
 
 def _make_katana(owner: EntityId) -> OrbitingRectangle:

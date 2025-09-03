@@ -23,6 +23,8 @@ Image de prévisualisation à venir.
  - 🛡️ **Esquives dépendantes de la seed** : chaque seed produit un biais d'évitement unique mais reproductible.
 - 🌀 **Dash** d'esquive infligeant des dégâts proportionnels à la vitesse,
   coup critique si une attaque touche pendant l'action et 3 s de recharge.
+- 🛡️ **Armes de contact** qui renvoient automatiquement les projectiles sans
+  logique de parade séparée.
 - 🧩 **Architecture plug-in** : ajout d'armes, IA ou effets visuels sans toucher au moteur.
 - 🔊 **Effets sonores** intégrés dans la piste audio.
 - 📦 **Batch mode** : génération de **N vidéos** en une seule commande.

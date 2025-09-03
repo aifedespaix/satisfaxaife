@@ -32,8 +32,6 @@ sys.modules.setdefault("app.render.renderer", _renderer_stub)
 
 sys.modules.setdefault("numpy", types.ModuleType("numpy"))
 
-_weapons_base = types.ModuleType("app.weapons.base")
-
 
 class WorldView(Protocol):
     def get_enemy(self, owner: EntityId) -> EntityId | None: ...
@@ -58,8 +56,6 @@ class WorldView(Protocol):
 
     def get_weapon(self, eid: EntityId) -> Weapon: ...
 
-    def get_parry(self, eid: EntityId) -> ParryEffect | None: ...
-
 
 class WeaponEffect(Protocol):
     owner: EntityId
@@ -77,18 +73,3 @@ class WeaponEffect(Protocol):
 
 class Weapon(Protocol):
     def step(self, dt: float) -> None: ...
-
-
-class ParryEffect(WeaponEffect, Protocol):
-    pass
-
-
-_weapons_base.WorldView = WorldView  # type: ignore[attr-defined]
-_weapons_base.WeaponEffect = WeaponEffect  # type: ignore[attr-defined]
-_weapons_base.Weapon = Weapon  # type: ignore[attr-defined]
-_weapons_base.ParryEffect = ParryEffect  # type: ignore[attr-defined]
-sys.modules.setdefault("app.weapons", types.ModuleType("app.weapons"))
-sys.modules["app.weapons.base"] = _weapons_base
-_shuriken_stub = types.ModuleType("app.weapons.shuriken")
-_shuriken_stub.Shuriken = object  # type: ignore[attr-defined]
-sys.modules.setdefault("app.weapons.shuriken", _shuriken_stub)
