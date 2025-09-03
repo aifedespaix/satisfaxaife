@@ -263,10 +263,11 @@ class PhysicsWorld:
         if parry is not None:
             parry.deflect_projectile(view, projectile, self._timestamp)
             return True
-        reflector = getattr(weapon, "deflect_projectile", None)
-        if reflector is not None:
-            reflector(view, projectile, self._timestamp)
-            return True
+        if getattr(weapon, "range_type", "contact") != "contact":
+            reflector = getattr(weapon, "deflect_projectile", None)
+            if reflector is not None:
+                reflector(view, projectile, self._timestamp)
+                return True
 
         keep = projectile.on_hit(view, ball.eid, self._timestamp)
         if not keep:
