@@ -52,6 +52,7 @@ class Knife(Weapon):
                 speed=self.speed,
                 knockback=120.0,
                 audio=self.audio,
+                sprite=self._sprite,
             )
             view.spawn_effect(effect)
             self.audio.start_idle()
