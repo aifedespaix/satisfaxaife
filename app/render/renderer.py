@@ -57,6 +57,8 @@ class Renderer:
         width: int = settings.width,
         height: int = settings.height,
         display: bool = False,
+        *,
+        debug: bool = False,
     ) -> None:
         """Create a renderer.
 
@@ -91,6 +93,7 @@ class Renderer:
         self._impacts: list[_Impact] = []
         self._shake: Vec2 = (0.0, 0.0)
         self._hp_display = [1.0, 1.0]
+        self.debug = debug
         assets_dir = Path(__file__).resolve().parents[2] / "assets"
         self._ball_sprites: dict[Color, pygame.Surface] = {
             settings.theme.team_a.primary: pygame.image.load(
@@ -161,6 +164,10 @@ class Renderer:
     def draw_line(self, start: Vec2, end: Vec2, color: Color, width: int = 1) -> None:
         """Draw a line between two points with camera shake applied."""
         pygame.draw.line(self.surface, color, self._offset(start), self._offset(end), width)
+
+    def draw_circle_outline(self, pos: Vec2, radius: float, color: Color, width: int = 1) -> None:
+        """Draw a circle outline centered at ``pos`` with ``radius`` pixels."""
+        pygame.draw.circle(self.surface, color, self._offset(pos), int(radius), width)
 
     def draw_sprite(self, sprite: pygame.Surface, pos: Vec2, angle: float) -> None:
         """Render a rotated sprite centered at *pos*.

@@ -17,6 +17,18 @@ def test_run_reads_config_yaml(monkeypatch: Any) -> None:
     # Avoid invoking ffmpeg by using a null recorder
     monkeypatch.setattr(cli_module, "Recorder", NullRecorder)
 
+    def fake_renderer(
+        width: int,
+        height: int,
+        display: bool = False,
+        *,
+        debug: bool = False,
+    ) -> Any:
+        captured["debug"] = debug
+        return object()
+
+    monkeypatch.setattr(cli_module, "Renderer", fake_renderer)
+
     # Spy on controller creation to capture arguments
     def fake_create_controller(
         weapon_a: str,
@@ -55,6 +67,7 @@ def test_run_reads_config_yaml(monkeypatch: Any) -> None:
                     "max_simulation_seconds: 42",
                     "ai_transition_seconds: 30",
                     "seed: 1234",
+                    "debug: true",
                 ]
             ),
             encoding="utf-8",
@@ -66,6 +79,7 @@ def test_run_reads_config_yaml(monkeypatch: Any) -> None:
     assert captured["weapon_b"] == "shuriken"
     assert captured["max_seconds"] == 42
     assert captured["ai_transition_seconds"] == 30
+    assert captured["debug"] is True
 
 
 def test_run_uses_default_ai_transition_seconds(monkeypatch: Any) -> None:
@@ -73,6 +87,17 @@ def test_run_uses_default_ai_transition_seconds(monkeypatch: Any) -> None:
     captured: dict[str, object] = {}
 
     monkeypatch.setattr(cli_module, "Recorder", NullRecorder)
+
+    def fake_renderer(
+        width: int,
+        height: int,
+        display: bool = False,
+        *,
+        debug: bool = False,
+    ) -> Any:
+        return object()
+
+    monkeypatch.setattr(cli_module, "Renderer", fake_renderer)
 
     def fake_create_controller(
         weapon_a: str,
@@ -101,11 +126,13 @@ def test_run_uses_default_ai_transition_seconds(monkeypatch: Any) -> None:
     runner = CliRunner()
     with runner.isolated_filesystem():
         Path("config.yml").write_text(
-            "\n".join([
-                "weapon_a: knife",
-                "weapon_b: shuriken",
-                "seed: 1234",
-            ]),
+            "\n".join(
+                [
+                    "weapon_a: knife",
+                    "weapon_b: shuriken",
+                    "seed: 1234",
+                ]
+            ),
             encoding="utf-8",
         )
         result = runner.invoke(app, ["run"])

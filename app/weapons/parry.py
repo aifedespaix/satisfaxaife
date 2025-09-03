@@ -53,7 +53,9 @@ class ParryEffect(WeaponEffect):
             projectile.audio.on_touch(timestamp)
 
     def draw(self, renderer: Renderer, view: WorldView) -> None:  # noqa: D401
-        return None
+        if renderer.debug:
+            center = view.get_position(self.owner)
+            renderer.draw_circle_outline(center, self.radius, (0, 255, 0))
 
     def destroy(self) -> None:  # noqa: D401
         return None
