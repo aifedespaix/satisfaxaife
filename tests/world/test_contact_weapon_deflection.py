@@ -138,3 +138,59 @@ def test_contact_weapon_hitbox_collision_deflects_projectile() -> None:
     effect.deflect_projectile(view, projectile, timestamp=0.0)
     assert projectile.owner == owner
     assert view.damage == {}
+
+
+def test_contact_weapon_ignores_allied_projectile() -> None:
+    pygame.init()
+    world = PhysicsWorld()
+    owner = EntityId(1)
+    positions = {owner: (0.0, 0.0)}
+    weapon = DummyContactWeapon()
+    view = DummyView(positions, {owner: cast(Weapon, weapon)})
+    effect = OrbitingRectangle(
+        owner=owner,
+        damage=Damage(5),
+        width=DEFAULT_BALL_RADIUS / 4.0,
+        height=DEFAULT_BALL_RADIUS * 2.0,
+        offset=DEFAULT_BALL_RADIUS * 2.0,
+        angle=0.0,
+        speed=0.0,
+    )
+    projectile = Projectile.spawn(
+        world,
+        owner=owner,
+        position=(effect.offset, 0.0),
+        velocity=(-100.0, 0.0),
+        radius=1.0,
+        damage=Damage(5),
+        knockback=0.0,
+        ttl=1.0,
+    )
+    pos = (float(projectile.body.position.x), float(projectile.body.position.y))
+    assert effect.collides(view, pos, float(projectile.shape.radius))
+    effect.deflect_projectile(view, projectile, timestamp=0.0)
+    assert projectile.owner == owner
+    assert weapon.deflected is False
+
+
+def test_allied_projectile_body_hit_is_ignored() -> None:
+    pygame.init()
+    world = PhysicsWorld()
+    owner_ball = Ball.spawn(world, (0.0, 0.0))
+    owner = owner_ball.eid
+    weapon = DummyContactWeapon()
+    positions = {owner: (0.0, 0.0)}
+    view = DummyView(positions, {owner: cast(Weapon, weapon)})
+    _projectile = Projectile.spawn(
+        world,
+        owner=owner,
+        position=(0.0, 0.0),
+        velocity=(0.0, 0.0),
+        radius=1.0,
+        damage=Damage(5),
+        knockback=0.0,
+        ttl=1.0,
+    )
+    world.set_context(view, 0.0)
+    world.step(0.1)
+    assert view.damage == {}

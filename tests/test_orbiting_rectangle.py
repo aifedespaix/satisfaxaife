@@ -14,6 +14,7 @@ class DummyView:
     def __init__(self, positions: dict[EntityId, Vec2], enemy: EntityId | None = None) -> None:
         self._positions = positions
         self._enemy = enemy
+        self.damage: dict[EntityId, float] = {}
 
     def get_position(self, eid: EntityId) -> Vec2:
         return self._positions[eid]
@@ -23,6 +24,12 @@ class DummyView:
 
     def get_weapon(self, eid: EntityId) -> object:  # pragma: no cover - unused
         raise NotImplementedError
+
+    def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:
+        self.damage[eid] = self.damage.get(eid, 0.0) + damage.amount
+
+    def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:  # noqa: D401
+        return None
 
 
 class DummyProjectile:
@@ -77,3 +84,28 @@ def test_orbiting_rectangle_deflect_projectile() -> None:
     assert projectile2.body.velocity == (-1.0, -2.0)
     assert projectile2.owner == owner
     assert projectile2.ttl == projectile2.max_ttl
+
+
+def test_orbiting_rectangle_respects_per_target_cooldown() -> None:
+    owner = EntityId(1)
+    target = EntityId(2)
+    effect = OrbitingRectangle(
+        owner=owner,
+        damage=Damage(5),
+        width=20.0,
+        height=40.0,
+        offset=DEFAULT_BALL_RADIUS + 10.0,
+        angle=0.0,
+        speed=0.0,
+    )
+    view_obj = DummyView({owner: (0.0, 0.0), target: (effect.offset, 0.0)})
+    view = cast(WorldView, view_obj)
+
+    effect.on_hit(view, target, timestamp=0.0)
+    assert view_obj.damage[target] == 5
+
+    effect.on_hit(view, target, timestamp=0.05)
+    assert view_obj.damage[target] == 5
+
+    effect.on_hit(view, target, timestamp=0.15)
+    assert view_obj.damage[target] == 10
