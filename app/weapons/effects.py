@@ -10,10 +10,16 @@ import pygame
 from app.audio.weapons import WeaponAudio
 from app.core.types import Color, Damage, EntityId, Vec2
 from app.render.renderer import Renderer
+from app.world.entities import DEFAULT_BALL_RADIUS
 from app.world.projectiles import Projectile
 
 from .base import WeaponEffect, WorldView
 from .utils import critical_multiplier
+
+
+def _angle_distance(a: float, b: float) -> float:
+    """Return the smallest absolute distance between angles ``a`` and ``b``."""
+    return abs((a - b + math.pi) % tau - math.pi)
 
 
 @dataclass(slots=True)
@@ -119,15 +125,10 @@ class OrbitingSprite(WeaponEffect):
             return False
         return True
 
-    @staticmethod
-    def _angle_distance(a: float, b: float) -> float:
-        """Return the smallest absolute distance between angles ``a`` and ``b``."""
-        return abs((a - b + math.pi) % tau - math.pi)
-
     def on_hit(self, view: WorldView, target: EntityId, timestamp: float) -> bool:  # noqa: D401
         """Apply damage if the blade rotated at least half a turn since the last hit."""
         last_angle = self.hit_angles.get(target)
-        if last_angle is not None and self._angle_distance(self.angle, last_angle) < math.pi:
+        if last_angle is not None and _angle_distance(self.angle, last_angle) < math.pi:
             return True
         mult = critical_multiplier(view, self.owner)
         view.deal_damage(target, Damage(self.damage.amount * mult), timestamp)
@@ -172,6 +173,103 @@ class OrbitingSprite(WeaponEffect):
 
     def destroy(self) -> None:  # noqa: D401
         self.trail.clear()
+
+
+@dataclass(slots=True)
+class OrbitingRectangle(WeaponEffect):
+    """Rectangular blade rotating around its owner and dealing contact damage."""
+
+    owner: EntityId
+    damage: Damage
+    width: float
+    height: float
+    offset: float
+    angle: float
+    speed: float
+    knockback: float = 0.0
+    audio: WeaponAudio | None = None
+    hit_angles: dict[EntityId, float] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.offset <= DEFAULT_BALL_RADIUS:
+            msg = "offset must exceed DEFAULT_BALL_RADIUS to avoid owner's hitbox"
+            raise ValueError(msg)
+
+    def step(self, dt: float) -> bool:  # noqa: D401
+        """Advance rotation angle by ``speed``."""
+        self.angle = float(np.float32(self.angle + self.speed * dt) % np.float32(tau))
+        return True
+
+    def _center(self, view: WorldView) -> Vec2:
+        owner_pos = view.get_position(self.owner)
+        c, s = math.cos(self.angle), math.sin(self.angle)
+        return (owner_pos[0] + c * self.offset, owner_pos[1] + s * self.offset)
+
+    def collides(self, view: WorldView, position: Vec2, radius: float) -> bool:  # noqa: D401
+        """Return ``True`` if the circle at ``position`` intersects the blade."""
+        center = self._center(view)
+        theta = self.angle + math.pi / 2
+        cos_t, sin_t = math.cos(theta), math.sin(theta)
+        dx, dy = position[0] - center[0], position[1] - center[1]
+        local_x = dx * cos_t + dy * sin_t
+        local_y = -dx * sin_t + dy * cos_t
+        half_w = self.width / 2
+        half_h = self.height / 2
+        closest_x = min(max(local_x, -half_w), half_w)
+        closest_y = min(max(local_y, -half_h), half_h)
+        dist_x = local_x - closest_x
+        dist_y = local_y - closest_y
+        return dist_x * dist_x + dist_y * dist_y <= radius * radius
+
+    def on_hit(self, view: WorldView, target: EntityId, timestamp: float) -> bool:  # noqa: D401
+        """Apply damage if the blade rotated at least half a turn since the last hit."""
+        last_angle = self.hit_angles.get(target)
+        if last_angle is not None and _angle_distance(self.angle, last_angle) < math.pi:
+            return True
+        mult = critical_multiplier(view, self.owner)
+        view.deal_damage(target, Damage(self.damage.amount * mult), timestamp)
+        blade_pos = self._center(view)
+        target_pos = view.get_position(target)
+        dx = target_pos[0] - blade_pos[0]
+        dy = target_pos[1] - blade_pos[1]
+        norm = math.hypot(dx, dy) or 1.0
+        view.apply_impulse(target, dx / norm * self.knockback, dy / norm * self.knockback)
+        if self.audio is not None:
+            self.audio.on_touch(timestamp)
+        self.hit_angles[target] = self.angle
+        return True
+
+    def deflect_projectile(self, view: WorldView, projectile: Projectile, timestamp: float) -> None:
+        """Reflect ``projectile`` and aim it at the current enemy."""
+        enemy = view.get_enemy(self.owner)
+        if enemy is not None:
+            target = view.get_position(enemy)
+            projectile.retarget(target, self.owner)
+        else:
+            vx, vy = projectile.body.velocity
+            projectile.body.velocity = (-vx, -vy)
+            projectile.owner = self.owner
+            projectile.ttl = projectile.max_ttl
+        if projectile.audio is not None:
+            projectile.audio.on_touch(timestamp)
+
+    def draw(self, renderer: Renderer, view: WorldView) -> None:  # noqa: D401
+        if renderer.debug:
+            center = self._center(view)
+            c, s = math.cos(self.angle), math.sin(self.angle)
+            tc, ts = -s, c
+            hw, hh = self.width / 2, self.height / 2
+            corners = [
+                (center[0] + tc * hw + c * hh, center[1] + ts * hw + s * hh),
+                (center[0] - tc * hw + c * hh, center[1] - ts * hw + s * hh),
+                (center[0] - tc * hw - c * hh, center[1] - ts * hw - s * hh),
+                (center[0] + tc * hw - c * hh, center[1] + ts * hw - s * hh),
+            ]
+            for a, b in zip(corners, corners[1:] + [corners[0]], strict=False):
+                renderer.draw_line(a, b, (0, 255, 0))
+
+    def destroy(self) -> None:  # noqa: D401
+        return None
 
 
 @dataclass(slots=True)

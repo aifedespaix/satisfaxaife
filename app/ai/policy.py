@@ -107,7 +107,14 @@ def _attack_range(
 
 @dataclass(slots=True)
 class SimplePolicy:
-    """Very small deterministic combat policy."""
+    """Very small deterministic combat policy.
+
+    Parameters
+    ----------
+    fire_out_of_range:
+        When ``True`` the agent fires even if the opponent stands beyond the
+        computed attack range.
+    """
 
     style: Literal["aggressive", "kiter", "evader"]
     range_type: RangeType = "contact"
@@ -117,6 +124,7 @@ class SimplePolicy:
     desired_dist_factor: float = 0.5
     fire_range_factor: float = 0.8
     fire_range: float = 150.0
+    fire_out_of_range: bool = False
     rng: random.Random = field(default_factory=_new_rng, repr=False)
     _prev_dodge: Vec2 = field(default=(1.0, 0.0), init=False, repr=False)
 
@@ -143,7 +151,11 @@ class SimplePolicy:
 
         atk_range = _attack_range(projectile_speed, self.fire_range_factor, self.fire_range)
         out_of_range = self.range_type == "distant" and dist > atk_range
-        projectile = _nearest_projectile(me, view, my_pos) if out_of_range else None
+        projectile = (
+            _nearest_projectile(me, view, my_pos)
+            if out_of_range and not self.fire_out_of_range
+            else None
+        )
 
         if projectile is not None:
             target_pos, target_vel = projectile.position, projectile.velocity
@@ -173,7 +185,7 @@ class SimplePolicy:
             accel = (direction[0] * 400.0, direction[1] * 400.0)
 
         if out_of_range:
-            fire = projectile is not None
+            fire = self.fire_out_of_range or projectile is not None
 
         if projectile is None and abs(dy) <= 1e-6:
             offset = self.vertical_offset + self.rng.uniform(-0.05, 0.05)
@@ -345,10 +357,12 @@ def policy_for_weapon(
     if my_range == "distant":
         style: Literal["evader", "kiter"] = "evader" if enemy_range == "contact" else "kiter"
         fire_factor = 0.0 if style == "evader" else float("inf")
+        fire_out = weapon_name == "shuriken"
         return SimplePolicy(
             style,
             range_type=my_range,
             fire_range_factor=fire_factor,
+            fire_out_of_range=fire_out,
             rng=rng,
         )
 
