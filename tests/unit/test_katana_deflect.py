@@ -151,6 +151,31 @@ def test_katana_does_not_deflect_body_hit() -> None:
     assert view.damage[owner] == 5
 
 
+def test_katana_ignores_allied_projectile() -> None:
+    pygame.init()
+    world = PhysicsWorld()
+    owner = EntityId(1)
+    positions = {owner: (0.0, 0.0)}
+    enemies: dict[EntityId, EntityId] = {}
+    view = DummyView(positions, enemies)
+    katana = _make_katana(owner)
+    projectile = Projectile.spawn(
+        world,
+        owner=owner,
+        position=(katana.offset, 0.0),
+        velocity=(-100.0, 0.0),
+        radius=1.0,
+        damage=Damage(5),
+        knockback=0.0,
+        ttl=1.0,
+    )
+    vel_before = projectile.body.velocity.x
+    katana.deflect_projectile(view, projectile, timestamp=0.0)
+    assert projectile.owner == owner
+    assert projectile.body.velocity.x == vel_before
+    assert projectile.ttl == 1.0
+
+
 def test_katana_hits_enemy_ball() -> None:
     pygame.init()
     owner = EntityId(1)

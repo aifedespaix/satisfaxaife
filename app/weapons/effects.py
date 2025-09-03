@@ -17,11 +17,6 @@ from .base import WeaponEffect, WorldView
 from .utils import critical_multiplier
 
 
-def _angle_distance(a: float, b: float) -> float:
-    """Return the smallest absolute distance between angles ``a`` and ``b``."""
-    return abs((a - b + math.pi) % tau - math.pi)
-
-
 @dataclass(slots=True)
 class HeldSprite(WeaponEffect):
     """Static sprite following its owner without interacting with the world."""
@@ -93,7 +88,7 @@ class OrbitingSprite(WeaponEffect):
     trail: list[Vec2] = field(default_factory=list)
     trail_len: int = 8
     audio: WeaponAudio | None = None
-    hit_angles: dict[EntityId, float] = field(default_factory=dict)
+    hit_times: dict[EntityId, float] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.thickness is None:
@@ -126,9 +121,9 @@ class OrbitingSprite(WeaponEffect):
         return True
 
     def on_hit(self, view: WorldView, target: EntityId, timestamp: float) -> bool:  # noqa: D401
-        """Apply damage if the blade rotated at least half a turn since the last hit."""
-        last_angle = self.hit_angles.get(target)
-        if last_angle is not None and _angle_distance(self.angle, last_angle) < math.pi:
+        """Apply damage if ``target`` was not hit during the last 0.1 s."""
+        last = self.hit_times.get(target)
+        if last is not None and timestamp - last < 0.1:
             return True
         mult = critical_multiplier(view, self.owner)
         view.deal_damage(target, Damage(self.damage.amount * mult), timestamp)
@@ -140,11 +135,13 @@ class OrbitingSprite(WeaponEffect):
         view.apply_impulse(target, dx / norm * self.knockback, dy / norm * self.knockback)
         if self.audio is not None:
             self.audio.on_touch(timestamp)
-        self.hit_angles[target] = self.angle
+        self.hit_times[target] = timestamp
         return True
 
     def deflect_projectile(self, view: WorldView, projectile: Projectile, timestamp: float) -> None:
-        """Reflect ``projectile`` and aim it at the current enemy."""
+        """Reflect ``projectile`` toward the current enemy, unless it is allied."""
+        if projectile.owner == self.owner:
+            return None
         enemy = view.get_enemy(self.owner)
         if enemy is not None:
             target = view.get_position(enemy)
@@ -188,7 +185,7 @@ class OrbitingRectangle(WeaponEffect):
     speed: float
     knockback: float = 0.0
     audio: WeaponAudio | None = None
-    hit_angles: dict[EntityId, float] = field(default_factory=dict)
+    hit_times: dict[EntityId, float] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.offset <= DEFAULT_BALL_RADIUS:
@@ -222,9 +219,9 @@ class OrbitingRectangle(WeaponEffect):
         return dist_x * dist_x + dist_y * dist_y <= radius * radius
 
     def on_hit(self, view: WorldView, target: EntityId, timestamp: float) -> bool:  # noqa: D401
-        """Apply damage if the blade rotated at least half a turn since the last hit."""
-        last_angle = self.hit_angles.get(target)
-        if last_angle is not None and _angle_distance(self.angle, last_angle) < math.pi:
+        """Apply damage if ``target`` was not hit during the last 0.1 s."""
+        last = self.hit_times.get(target)
+        if last is not None and timestamp - last < 0.1:
             return True
         mult = critical_multiplier(view, self.owner)
         view.deal_damage(target, Damage(self.damage.amount * mult), timestamp)
@@ -236,11 +233,13 @@ class OrbitingRectangle(WeaponEffect):
         view.apply_impulse(target, dx / norm * self.knockback, dy / norm * self.knockback)
         if self.audio is not None:
             self.audio.on_touch(timestamp)
-        self.hit_angles[target] = self.angle
+        self.hit_times[target] = timestamp
         return True
 
     def deflect_projectile(self, view: WorldView, projectile: Projectile, timestamp: float) -> None:
-        """Reflect ``projectile`` and aim it at the current enemy."""
+        """Reflect ``projectile`` toward the current enemy, unless it is allied."""
+        if projectile.owner == self.owner:
+            return None
         enemy = view.get_enemy(self.owner)
         if enemy is not None:
             target = view.get_position(enemy)

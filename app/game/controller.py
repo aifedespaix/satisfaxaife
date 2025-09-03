@@ -439,6 +439,9 @@ class GameController:
         for other in self.effects:
             if other is eff:
                 continue
+            owner = getattr(other, "owner", None)
+            if owner == eff.owner:
+                continue
             collide = getattr(other, "collides", None)
             if collide is None or not collide(self.view, proj_pos, proj_rad):
                 continue
