@@ -303,9 +303,12 @@ class GameController:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_LSHIFT:
                     self.players[0].dash.start(self.players[0].face, current_time)
             self._update_players(current_time)
-            self._update_effects(current_time)
             self.world.set_context(self.view, current_time)
             self.world.step(settings.dt, settings.physics_substeps)
+            for p in self.players:
+                if p.alive:
+                    self._resolve_dash_collision(p, current_time)
+            self._update_effects(current_time)
             self._render_frame()
             self._capture_frame()
 
@@ -358,7 +361,6 @@ class GameController:
             elif fire:
                 p.weapon.trigger(p.eid, self.view, face)
             p.ball.cap_speed()
-            self._resolve_dash_collision(p, now)
 
     def _resolve_dash_collision(self, p: Player, now: float) -> None:
         """Resolve dash impacts between ``p`` and opponents."""
@@ -387,14 +389,31 @@ class GameController:
             return
 
     def _update_effects(self, current_time: float) -> None:
-        """Advance active effects and resolve collisions."""
+        """Advance active effects and apply their impacts on players."""
         for eff in list(self.effects):
             if not eff.step(settings.dt):
                 eff.destroy()
                 self.effects.remove(eff)
                 continue
-            if isinstance(eff, Projectile) and self._deflect_projectile(eff, current_time):
+            if isinstance(eff, Projectile):
+                self._deflect_projectile(eff, current_time)
                 continue
+            owner = getattr(eff, "owner", None)
+            for p in self.players:
+                if p.eid == owner or not p.alive:
+                    continue
+                pos = (
+                    float(p.ball.body.position.x),
+                    float(p.ball.body.position.y),
+                )
+                radius = float(p.ball.shape.radius)
+                if not eff.collides(self.view, pos, radius):
+                    continue
+                keep = eff.on_hit(self.view, p.eid, current_time)
+                if not keep:
+                    eff.destroy()
+                    self.effects.remove(eff)
+                break
 
     def _deflect_projectile(self, eff: Projectile, current_time: float) -> bool:
         """Return ``True`` if ``eff`` was deflected by another effect."""
