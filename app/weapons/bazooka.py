@@ -17,7 +17,14 @@ from .effects import AimedSprite
 
 
 class Bazooka(Weapon):
-    """AI-controlled launcher that fires slow, heavy missiles."""
+    """AI-controlled launcher that fires slow, heavy missiles.
+
+    The weapon keeps an :class:`~app.weapons.effects.AimedSprite` in front of
+    its owner to indicate the current aiming direction.  The sprite is
+    automatically respawned if it gets removed from the world's effect list and
+    its angle and offset are refreshed every frame to remain aligned with the
+    predicted impact point.
+    """
 
     missile_radius: float
     acceleration: float
@@ -70,11 +77,23 @@ class Bazooka(Weapon):
             proj.audio = self.audio
             proj.angle = angle
 
-    def update(self, owner: EntityId, view: WorldView, dt: float) -> None:  # noqa: D401
-        if self._effect is None:
-            effect = AimedSprite(owner=owner, sprite=self._sprite, offset=DEFAULT_BALL_RADIUS * 1.5)
+    def _ensure_effect(self, owner: EntityId, view: WorldView) -> None:
+        """Ensure the aiming sprite exists within the view's effect list."""
+        is_active = (
+            self._effect is not None
+            and self._effect in getattr(view, "effects", [])
+        )
+        if not is_active:
+            effect = AimedSprite(
+                owner=owner,
+                sprite=self._sprite,
+                offset=DEFAULT_BALL_RADIUS * 1.5,
+            )
             view.spawn_effect(effect)
             self._effect = effect
+
+    def update(self, owner: EntityId, view: WorldView, dt: float) -> None:  # noqa: D401
+        self._ensure_effect(owner, view)
 
         enemy = view.get_enemy(owner)
         if enemy is not None:
@@ -96,6 +115,7 @@ class Bazooka(Weapon):
 
             if self._effect is not None:
                 self._effect.angle = angle
+                self._effect.offset = DEFAULT_BALL_RADIUS * 1.5
 
             if self._timer <= 0.0 and distance > 0.0:
                 norm = math.hypot(dx, dy) or 1.0
