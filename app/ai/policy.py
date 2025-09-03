@@ -204,12 +204,26 @@ class SimplePolicy:
     ) -> Vec2 | None:
         """Return a dash vector if a projectile threatens ``me``.
 
-        The dash is triggered only when ``can_dash(now)`` is True and a
-        projectile is predicted to approach within ``0.3`` seconds.
+        The dash favours forward or lateral movement toward the enemy. When a
+        projectile is predicted to approach within ``0.3`` seconds the returned
+        vector combines a forward component with a dodge component. If this
+        combination would point backwards the backward component is removed to
+        prevent retreating.
         """
         if not can_dash(now):
             return None
+
+        enemy = view.get_enemy(me)
+        if enemy is None:
+            return None
+
         position = view.get_position(me)
+        enemy_pos = view.get_position(enemy)
+        fx = enemy_pos[0] - position[0]
+        fy = enemy_pos[1] - position[1]
+        fdist = math.hypot(fx, fy)
+        forward = (fx / fdist, fy / fdist) if fdist > 0.0 else (1.0, 0.0)
+
         for proj in view.iter_projectiles(excluding=me):
             px, py = proj.position
             vx, vy = proj.velocity
@@ -228,7 +242,25 @@ class SimplePolicy:
             hit_y = ry + vy * t
             if hit_x * hit_x + hit_y * hit_y > 200.0**2:
                 continue
-            return _projectile_dodge(me, view, position, (1.0, 0.0))
+
+            dodge = _projectile_dodge(me, view, position, forward)
+            combined = (forward[0] + dodge[0], forward[1] + dodge[1])
+            norm = math.hypot(*combined)
+            if norm <= 1e-6:
+                combined = forward
+            else:
+                combined = (combined[0] / norm, combined[1] / norm)
+
+            dot = combined[0] * forward[0] + combined[1] * forward[1]
+            if dot < 0.0:
+                combined = (
+                    combined[0] - forward[0] * dot,
+                    combined[1] - forward[1] * dot,
+                )
+                norm = math.hypot(*combined) or 1.0
+                combined = (combined[0] / norm, combined[1] / norm)
+
+            return combined
         return None
 
     def _aggressive(
