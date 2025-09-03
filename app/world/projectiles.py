@@ -45,6 +45,7 @@ class Projectile(WeaponEffect):
     acceleration: float = 0.0
     bounces: int = 0
     last_velocity: Vec2d = field(default_factory=lambda: Vec2d(0.0, 0.0))
+    destroyed: bool = False
 
     @classmethod
     def spawn(
@@ -172,5 +173,6 @@ class Projectile(WeaponEffect):
             renderer.draw_circle_outline(pos, float(self.shape.radius), (0, 255, 0))
 
     def destroy(self) -> None:
+        self.destroyed = True
         self.world.unregister_projectile(self)
         self.world.space.remove(self.body, self.shape)

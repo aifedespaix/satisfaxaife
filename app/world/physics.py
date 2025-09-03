@@ -219,7 +219,7 @@ class PhysicsWorld:
             other_proj is None
             or candidate in processed
             or candidate is proj_shape
-            or getattr(other_proj, "destroyed", False)
+            or other_proj.destroyed
             or not _shapes_hit(proj_shape, candidate)
         ):
             return False
@@ -289,7 +289,7 @@ class PhysicsWorld:
         processed: set[pymunk.Shape] = set()
 
         for proj_shape, projectile in list(self._projectiles.items()):
-            if getattr(projectile, "destroyed", False):
+            if projectile.destroyed:
                 continue
 
             for candidate in self._index.query(proj_shape):
