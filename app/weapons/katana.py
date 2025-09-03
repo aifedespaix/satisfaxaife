@@ -9,7 +9,7 @@ from app.world.entities import DEFAULT_BALL_RADIUS
 from . import weapon_registry
 from .assets import load_weapon_sprite
 from .base import RangeType, Weapon, WorldView
-from .effects import OrbitingSprite
+from .effects import OrbitingRectangle
 from .parry import ParryEffect
 
 
@@ -28,9 +28,11 @@ class Katana(Weapon):
         )
         self.audio = WeaponAudio("melee", "katana")
         self._initialized = False
-        blade_height = DEFAULT_BALL_RADIUS * 3.0
+        self._blade_height = DEFAULT_BALL_RADIUS * 3.0
+        self._blade_width = DEFAULT_BALL_RADIUS / 4.0
+        self._blade_offset = DEFAULT_BALL_RADIUS + self._blade_height / 2 + 1.0
         self._sprite = pygame.transform.rotate(
-            load_weapon_sprite("katana", max_dim=blade_height),
+            load_weapon_sprite("katana", max_dim=self._blade_height),
             -90,
         )
 
@@ -39,14 +41,14 @@ class Katana(Weapon):
 
     def update(self, owner: EntityId, view: WorldView, dt: float) -> None:
         if not self._initialized:
-            effect = OrbitingSprite(
+            effect = OrbitingRectangle(
                 owner=owner,
                 damage=self.damage,
-                sprite=self._sprite,
-                radius=60.0,
+                width=self._blade_width,
+                height=self._blade_height,
+                offset=self._blade_offset,
                 angle=0.0,
                 speed=self.speed,
-                thickness=DEFAULT_BALL_RADIUS / 4.0,
                 knockback=220.0,
                 audio=self.audio,
             )
