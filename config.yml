@@ -1,6 +1,6 @@
 weapon_a: katana
 weapon_b: shuriken
 max_simulation_seconds: 120
-seed: 6667
+seed: 6666
 ai_transition_seconds: 20
 debug: false
