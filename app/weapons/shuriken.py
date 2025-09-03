@@ -18,9 +18,9 @@ class Shuriken(Weapon):
     def __init__(self) -> None:
         super().__init__(
             name="shuriken",
-            cooldown=0.4,
+            cooldown=0.8,
             damage=Damage(8),
-            speed=600.0,
+            speed=500.0,
             range_type=self.range_type,
         )
         self.audio = WeaponAudio("throw", "shuriken")
