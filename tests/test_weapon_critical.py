@@ -7,7 +7,6 @@ from typing import Any
 
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.weapons.base import Weapon, WeaponEffect, WorldView
-from app.weapons.parry import ParryEffect
 from app.weapons.effects import OrbitingSprite
 
 
@@ -17,7 +16,6 @@ class DummyView(WorldView):
     target: EntityId
     last_damage: float = field(default=0.0, init=False)
     weapons: dict[EntityId, Weapon] = field(default_factory=dict)
-    parries: dict[EntityId, ParryEffect] = field(default_factory=dict)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
         return self.target if owner == self.owner else self.owner
@@ -51,9 +49,6 @@ class DummyView(WorldView):
 
     def get_weapon(self, eid: EntityId) -> Weapon:  # noqa: D401
         return self.weapons[eid]
-
-    def get_parry(self, eid: EntityId) -> ParryEffect | None:  # noqa: D401
-        return self.parries.get(eid)
 
 
 def test_orbiting_sprite_deals_critical_damage_when_owner_is_fast() -> None:

@@ -21,7 +21,6 @@ from app.render.renderer import Renderer
 from app.video.recorder import RecorderProtocol
 from app.video.slowmo import append_slowmo_ending
 from app.weapons.base import Weapon, WeaponEffect, WorldView
-from app.weapons.parry import ParryEffect
 from app.world.entities import Ball
 from app.world.physics import PhysicsWorld
 from app.world.projectiles import Projectile
@@ -186,12 +185,6 @@ class _MatchView(WorldView):
                 return p.weapon
         raise KeyError(eid)
 
-    def get_parry(self, eid: EntityId) -> ParryEffect | None:
-        for eff in self.effects:
-            if isinstance(eff, ParryEffect) and eff.owner == eid:
-                return eff
-        return None
-
 
 class Phase(Enum):
     INTRO = "intro"
@@ -350,7 +343,7 @@ class GameController:
         for p in self.players:
             if not p.alive:
                 continue
-            accel, face, fire, parry = p.policy.decide(p.eid, self.view, now, p.weapon.speed)
+            accel, face, fire = p.policy.decide(p.eid, self.view, now, p.weapon.speed)
             dash_dir = p.policy.dash_direction(p.eid, self.view, now, p.dash.can_dash)
             p.face = face
             if dash_dir is not None:
@@ -371,9 +364,7 @@ class GameController:
             p.ball.body.velocity = new_velocity
             p.weapon.step(settings.dt)
             p.weapon.update(p.eid, self.view, settings.dt)
-            if parry:
-                p.weapon.parry(p.eid, self.view)
-            elif fire:
+            if fire:
                 p.weapon.trigger(p.eid, self.view, face)
             p.ball.cap_speed()
 

@@ -8,7 +8,6 @@ import pygame
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.weapons.base import Weapon, WeaponEffect, WorldView
 from app.weapons.effects import OrbitingRectangle
-from app.weapons.parry import ParryEffect
 from app.world.entities import DEFAULT_BALL_RADIUS, Ball
 from app.world.physics import PhysicsWorld
 from app.world.projectiles import Projectile
@@ -67,9 +66,6 @@ class DummyView(WorldView):
 
     def get_weapon(self, eid: EntityId) -> Weapon:  # noqa: D401
         return self.weapons[eid]
-
-    def get_parry(self, eid: EntityId) -> ParryEffect | None:  # noqa: D401
-        return None
 
 
 class DummyContactWeapon:

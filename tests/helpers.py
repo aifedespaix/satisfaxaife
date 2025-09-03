@@ -12,7 +12,6 @@ from app.audio import BallAudio
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.game.controller import GameController, Player
 from app.weapons.base import Weapon, WeaponEffect, WorldView
-from app.weapons.parry import ParryEffect
 from app.world.entities import Ball
 from pymunk import Body
 
@@ -74,9 +73,6 @@ class StubWorldView(WorldView):
     def get_weapon(self, eid: EntityId) -> Weapon:  # pragma: no cover - unused
         raise NotImplementedError
 
-    def get_parry(self, eid: EntityId) -> ParryEffect | None:  # pragma: no cover - unused
-        return None
-
 
 class DummyWorld:
     """Physics-free world stub used in unit tests."""
@@ -99,10 +95,9 @@ class DummyWeapon:
     def step(self, _dt: float) -> None:  # pragma: no cover - stub
         return None
 
-    def update(self, _owner: EntityId, _view: object, _dt: float) -> None:  # pragma: no cover - stub
-        return None
-
-    def parry(self, _owner: EntityId, _view: object) -> None:  # pragma: no cover - stub
+    def update(
+        self, _owner: EntityId, _view: object, _dt: float
+    ) -> None:  # pragma: no cover - stub
         return None
 
     def trigger(
@@ -116,12 +111,10 @@ class DummyPolicy:
 
     def decide(
         self, _eid: EntityId, _view: object, _speed: float
-    ) -> tuple[tuple[float, float], tuple[float, float], bool, bool]:
-        return (0.0, 0.0), (1.0, 0.0), False, False
+    ) -> tuple[tuple[float, float], tuple[float, float], bool]:
+        return (0.0, 0.0), (1.0, 0.0), False
 
-    def dash_direction(
-        self, _eid: EntityId, _view: object, _now: float, _can_dash: Any
-    ) -> None:
+    def dash_direction(self, _eid: EntityId, _view: object, _now: float, _can_dash: Any) -> None:
         return None
 
 

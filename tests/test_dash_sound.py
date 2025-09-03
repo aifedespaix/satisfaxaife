@@ -40,9 +40,6 @@ class DummyWeapon:
     ) -> None:  # pragma: no cover - stub
         return
 
-    def parry(self, _owner: EntityId, _view: object) -> None:  # pragma: no cover - stub
-        return
-
     def trigger(
         self, _owner: EntityId, _view: object, _direction: tuple[float, float]
     ) -> None:  # pragma: no cover - stub
@@ -52,8 +49,8 @@ class DummyWeapon:
 class DummyPolicy:
     def decide(
         self, _eid: EntityId, _view: object, _speed: float
-    ) -> tuple[tuple[float, float], tuple[float, float], bool, bool]:
-        return (0.0, 0.0), (1.0, 0.0), False, False
+    ) -> tuple[tuple[float, float], tuple[float, float], bool]:
+        return (0.0, 0.0), (1.0, 0.0), False
 
     def dash_direction(
         self, _eid: EntityId, _view: object, _now: float, _can_dash: Any

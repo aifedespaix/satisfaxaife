@@ -1,11 +1,11 @@
-"""Stateful AI policy with attack, dodge, parry and retreat states."""
+"""Stateful AI policy with attack, dodge and retreat states."""
 
 from __future__ import annotations
 
 import math
 import random
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Literal
 
@@ -18,7 +18,7 @@ from app.ai.policy import (
 )
 from app.core.config import settings
 from app.core.targeting import _lead_target
-from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
+from app.core.types import EntityId, ProjectileInfo, Vec2
 from app.weapons.utils import range_type_for
 
 if TYPE_CHECKING:
@@ -30,7 +30,6 @@ class State(Enum):
 
     ATTACK = "attack"
     DODGE = "dodge"
-    PARRY = "parry"
     RETREAT = "retreat"
 
 
@@ -55,8 +54,6 @@ class StatefulPolicy(SimplePolicy):
 
     state: State = State.ATTACK
     transition_time: float = 0.0
-    parry_window: float = 0.15
-    _incoming_time: float = field(default=float("inf"), init=False)
 
     def decide(  # type: ignore[override]  # noqa: C901
         self,
@@ -64,8 +61,8 @@ class StatefulPolicy(SimplePolicy):
         view: WorldView,
         now: float,
         projectile_speed: float | None = None,
-    ) -> tuple[Vec2, Vec2, bool, bool]:
-        """Return acceleration, facing vector, fire and parry decisions.
+    ) -> tuple[Vec2, Vec2, bool]:
+        """Return acceleration, facing vector and fire decision.
 
         The behaviour switches from defensive to offensive at
         ``transition_time``. For non-contact weapons defensive mode keeps
@@ -107,7 +104,6 @@ class StatefulPolicy(SimplePolicy):
             accel, fire = self._evader(
                 me, view, my_pos, direction, dist, face, cos_thresh, projectile_speed
             )
-            parry = False
         else:
             my_health = view.get_health_ratio(me)
             enemy_health = view.get_health_ratio(enemy)
@@ -115,11 +111,8 @@ class StatefulPolicy(SimplePolicy):
             if my_health < 0.15 and not both_critical:
                 self.state = State.RETREAT
             else:
-                vel, t_hit = self._incoming_projectile(me, view, my_pos)
-                self._incoming_time = t_hit
-                if vel is not None and t_hit <= self.parry_window:
-                    self.state = State.PARRY
-                elif vel is not None:
+                vel, _t_hit = self._incoming_projectile(me, view, my_pos)
+                if vel is not None:
                     self.state = State.DODGE
                 else:
                     self.state = State.ATTACK
@@ -138,13 +131,8 @@ class StatefulPolicy(SimplePolicy):
                     cos_thresh,
                     projectile_speed,
                 )
-                parry = False
             elif self.state == State.DODGE:
                 accel, fire = self._dodge(me, view, my_pos, direction)
-                parry = False
-            elif self.state == State.PARRY:
-                accel, fire = self._parry(direction)
-                parry = True
             else:  # retreat
                 # Fire decision still follows attack logic
                 _, fire = self._attack(
@@ -159,7 +147,6 @@ class StatefulPolicy(SimplePolicy):
                     projectile_speed,
                 )
                 accel = (-direction[0] * 400.0, -direction[1] * 400.0)
-                parry = False
 
         if self.range_type == "distant" and dist > settings.width:
             accel = (direction[0] * 400.0, direction[1] * 400.0)
@@ -173,7 +160,7 @@ class StatefulPolicy(SimplePolicy):
             norm = math.hypot(*offset_face) or 1.0
             face = (offset_face[0] / norm, offset_face[1] / norm)
 
-        return accel, face, fire, parry
+        return accel, face, fire
 
     def dash_direction(
         self,
@@ -272,11 +259,6 @@ class StatefulPolicy(SimplePolicy):
         accel = (combined[0] / norm * 400.0, combined[1] / norm * 400.0)
         return accel, False
 
-    def _parry(self, direction: Vec2) -> tuple[Vec2, bool]:
-        # Stand still and face the threat; firing is disabled
-        accel = (0.0, 0.0)
-        return accel, False
-
     # Utilities ----------------------------------------------------------
     def _incoming_projectile(
         self, me: EntityId, view: WorldView, position: Vec2
@@ -304,12 +286,6 @@ class StatefulPolicy(SimplePolicy):
             closest_t = t
             best_vel = (vx, vy)
         return best_vel, closest_t
-
-    def parry_damage(self, damage: Damage) -> Damage:
-        """Return modified ``damage`` after a parry attempt."""
-        if self.state == State.PARRY and self._incoming_time <= self.parry_window:
-            return Damage(0.0)
-        return damage
 
 
 def policy_for_weapon(

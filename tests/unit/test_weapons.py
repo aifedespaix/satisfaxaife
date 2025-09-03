@@ -13,7 +13,6 @@ from app.render.renderer import Renderer
 from app.video.recorder import NullRecorder
 from app.weapons import weapon_registry
 from app.weapons.base import Weapon, WeaponEffect, WorldView
-from app.weapons.parry import ParryEffect
 from app.weapons.bazooka import Bazooka
 from app.weapons.katana import Katana
 from app.weapons.knife import Knife
@@ -30,7 +29,6 @@ class DummyView(WorldView):
     effects: list[WeaponEffect] = field(default_factory=list)
     projectiles: list[dict[str, object]] = field(default_factory=list)
     weapons: dict[EntityId, Weapon] = field(default_factory=dict)
-    parries: dict[EntityId, ParryEffect] = field(default_factory=dict)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
         return self.enemy
@@ -109,9 +107,6 @@ class DummyView(WorldView):
     def get_weapon(self, eid: EntityId) -> Weapon:  # noqa: D401
         return self.weapons[eid]
 
-    def get_parry(self, eid: EntityId) -> ParryEffect | None:  # noqa: D401
-        return self.parries.get(eid)
-
 
 def test_weapon_speed_attribute() -> None:
     """Weapons expose their projectile speed on the base class."""
@@ -182,7 +177,6 @@ class _OrientView(WorldView):
     effects: list[WeaponEffect] = field(default_factory=list)
     projectile: object | None = None
     weapons: dict[EntityId, Weapon] = field(default_factory=dict)
-    parries: dict[EntityId, ParryEffect] = field(default_factory=dict)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
         return self.enemy
@@ -250,9 +244,6 @@ class _OrientView(WorldView):
 
     def get_weapon(self, eid: EntityId) -> Weapon:  # noqa: D401
         return self.weapons[eid]
-
-    def get_parry(self, eid: EntityId) -> ParryEffect | None:  # noqa: D401
-        return self.parries.get(eid)
 
 
 def test_bazooka_sprite_and_projectile_orientation() -> None:

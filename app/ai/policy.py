@@ -130,8 +130,8 @@ class SimplePolicy:
 
     def decide(
         self, me: EntityId, view: WorldView, projectile_speed: float | None = None
-    ) -> tuple[Vec2, Vec2, bool, bool]:
-        """Return acceleration, facing vector, fire and parry decisions.
+    ) -> tuple[Vec2, Vec2, bool]:
+        """Return acceleration, facing vector and fire decision.
 
         The agent retreats when its health falls below ``15%``. If both
         combatants are in this critical state the retreat is cancelled and the
@@ -193,7 +193,7 @@ class SimplePolicy:
             norm = math.hypot(*offset_face) or 1.0
             face = (offset_face[0] / norm, offset_face[1] / norm)
 
-        return accel, face, fire, False
+        return accel, face, fire
 
     def dash_direction(
         self,
