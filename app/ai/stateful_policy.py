@@ -7,7 +7,7 @@ import random
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Final, Literal
 
 from app.ai.policy import (
     SimplePolicy,
@@ -19,10 +19,14 @@ from app.ai.policy import (
 from app.core.config import settings
 from app.core.targeting import _lead_target
 from app.core.types import EntityId, ProjectileInfo, Vec2
+from app.game.dash import Dash
 from app.weapons.utils import range_type_for
 
 if TYPE_CHECKING:
     from app.weapons.base import RangeType, WorldView
+
+
+DASH_RANGE: Final = Dash().speed * Dash().duration
 
 
 class State(Enum):
@@ -169,13 +173,16 @@ class StatefulPolicy(SimplePolicy):
         now: float,
         can_dash: Callable[[float], bool],
     ) -> Vec2 | None:
-        """Return dash vector based on ``mode`` and weapon range.
+        """Return dash vector based on tactical mode and weapon range.
 
-        For contact weapons the dash orientation depends on the tactical mode:
+        For contact weapons the dash behaviour differs between modes:
 
-        - Offensive mode dashes toward the enemy to engage in melee.
-        - Defensive mode dashes away from the enemy while factoring in incoming
-          projectiles.
+        - Offensive mode dashes straight forward when the opponent is within
+          reach, otherwise it blends the forward vector with
+          :func:`_projectile_dodge` to approach diagonally while evading.
+        - Defensive mode performs a sideways dash, choosing the safer side via
+          :func:`_projectile_dodge` while keeping the forward component near
+          zero.
 
         Non-contact weapons fall back to :class:`SimplePolicy` behaviour.
         """
@@ -194,22 +201,39 @@ class StatefulPolicy(SimplePolicy):
         dx = enemy_pos[0] - my_pos[0]
         dy = enemy_pos[1] - my_pos[1]
         dist = math.hypot(dx, dy)
-        direction = (dx / dist, dy / dist) if dist > 1e-6 else (1.0, 0.0)
+        forward = (dx / dist, dy / dist) if dist > 1e-6 else (1.0, 0.0)
 
         mode = Mode.DEFENSIVE if now < self.transition_time else Mode.OFFENSIVE
         if mode is Mode.OFFENSIVE:
-            return direction
+            if dist <= DASH_RANGE:
+                return forward
+            dodge = _projectile_dodge(me, view, my_pos, forward)
+            combined = (
+                forward[0] + self.dodge_bias * dodge[0],
+                forward[1] + self.dodge_bias * dodge[1],
+            )
+            dot = combined[0] * forward[0] + combined[1] * forward[1]
+            if dot < 0.0:
+                combined = (
+                    combined[0] - forward[0] * dot,
+                    combined[1] - forward[1] * dot,
+                )
+            norm = math.hypot(*combined) or 1.0
+            return (combined[0] / norm, combined[1] / norm)
 
         # Defensive mode --------------------------------------------------
-        super_dir = super(StatefulPolicy, self).dash_direction(me, view, now, can_dash)  # noqa: UP008
-        projectile_threat = super_dir is not None
-        if dist > 150.0 and not projectile_threat:
-            return None
-        dodge = _projectile_dodge(me, view, my_pos, direction) if projectile_threat else (0.0, 0.0)
-        away = (-direction[0], -direction[1])
+        dodge = _projectile_dodge(me, view, my_pos, forward)
+        sideways = (-forward[1], forward[0])
+        if dodge[0] * sideways[0] + dodge[1] * sideways[1] < 0.0:
+            sideways = (-sideways[0], -sideways[1])
         combined = (
-            away[0] + self.dodge_bias * dodge[0],
-            away[1] + self.dodge_bias * dodge[1],
+            sideways[0] + self.dodge_bias * dodge[0],
+            sideways[1] + self.dodge_bias * dodge[1],
+        )
+        dot = combined[0] * forward[0] + combined[1] * forward[1]
+        combined = (
+            combined[0] - forward[0] * dot,
+            combined[1] - forward[1] * dot,
         )
         norm = math.hypot(*combined) or 1.0
         return (combined[0] / norm, combined[1] / norm)

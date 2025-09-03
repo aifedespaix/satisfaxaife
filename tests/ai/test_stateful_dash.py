@@ -3,7 +3,9 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
-from app.ai.policy import SimplePolicy
+import pytest
+
+from app.ai.stateful_policy import StatefulPolicy
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.weapons.base import Weapon, WeaponEffect, WorldView
 
@@ -69,36 +71,54 @@ class DummyView(WorldView):
         raise KeyError
 
 
-def test_dash_does_not_retreat() -> None:
-    """Dash direction never points away from the enemy."""
+def test_offensive_dash_forward_when_in_range() -> None:
+    """Enemy within dash reach yields a straight forward dash."""
 
     me = EntityId(1)
     enemy = EntityId(2)
-    proj = ProjectileInfo(owner=enemy, position=(0.0, -50.0), velocity=(0.0, 400.0))
-    view = DummyView(me, enemy, (0.0, 0.0), (50.0, 0.0), [proj])
-    policy = SimplePolicy("aggressive")
+    proj = ProjectileInfo(owner=enemy, position=(0.0, 50.0), velocity=(0.0, -400.0))
+    view = DummyView(me, enemy, (0.0, 0.0), (100.0, 0.0), [proj])
+    policy = StatefulPolicy("aggressive", range_type="contact", transition_time=0.0)
+
+    direction = policy.dash_direction(me, view, 0.1, lambda _now: True)
+    assert direction is not None
+    assert math.isclose(direction[0], 1.0)
+    assert math.isclose(direction[1], 0.0)
+
+
+def test_offensive_dash_diagonal_out_of_range() -> None:
+    """Out-of-range targets produce a diagonal forward dash."""
+
+    me = EntityId(1)
+    enemy = EntityId(2)
+    view = DummyView(me, enemy, (0.0, 0.0), (300.0, 0.0))
+    policy = StatefulPolicy("aggressive", range_type="contact", transition_time=0.0)
+
+    direction = policy.dash_direction(me, view, 0.1, lambda _now: True)
+    assert direction is not None
+    forward = (1.0, 0.0)
+    dot = direction[0] * forward[0] + direction[1] * forward[1]
+    assert dot > 0.0
+    assert abs(direction[1]) > 0.0
+
+
+@pytest.mark.parametrize("with_projectile", [False, True])
+def test_defensive_dash_is_sideways(with_projectile: bool) -> None:
+    """Defensive mode always dashes sideways, ignoring projectile threats."""
+
+    me = EntityId(1)
+    enemy = EntityId(2)
+    projs = (
+        [ProjectileInfo(owner=enemy, position=(0.0, -50.0), velocity=(0.0, 400.0))]
+        if with_projectile
+        else []
+    )
+    view = DummyView(me, enemy, (0.0, 0.0), (200.0, 0.0), projs)
+    policy = StatefulPolicy("aggressive", range_type="contact", transition_time=1.0)
 
     direction = policy.dash_direction(me, view, 0.0, lambda _now: True)
     assert direction is not None
     forward = (1.0, 0.0)
     dot = direction[0] * forward[0] + direction[1] * forward[1]
-    assert dot >= 0.0
-    assert math.isclose(direction[0], forward[0])
-    assert math.isclose(direction[1], forward[1])
-
-
-def test_dash_reacts_to_projectile() -> None:
-    """Dash vector keeps forward component while dodging laterally."""
-
-    me = EntityId(1)
-    enemy = EntityId(2)
-    proj = ProjectileInfo(owner=enemy, position=(50.0, 100.0), velocity=(-400.0, -400.0))
-    view = DummyView(me, enemy, (0.0, 0.0), (50.0, 0.0), [proj])
-    policy = SimplePolicy("aggressive")
-
-    direction = policy.dash_direction(me, view, 0.0, lambda _now: True)
-    assert direction is not None
-    forward = (1.0, 0.0)
-    dot = direction[0] * forward[0] + direction[1] * forward[1]
-    assert dot >= 0.0
+    assert math.isclose(dot, 0.0)
     assert abs(direction[1]) > 0.0
