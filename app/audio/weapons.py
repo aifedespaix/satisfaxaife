@@ -50,6 +50,7 @@ class WeaponAudio:
         self._idle_running = threading.Event()
         self._idle_handle: pygame.mixer.Channel | None = None
         self._idle_lock = threading.Lock()
+        self._idle_disabled = False
 
         base = Path(base_dir) / name
         self._idle_path: str | None
@@ -74,6 +75,8 @@ class WeaponAudio:
         """Start looping the idle sound for melee weapons."""
         if self._type != "melee" or self._idle_path is None:
             raise RuntimeError("Idle sound is only available for melee weapons")
+        if self._idle_disabled:
+            return
         if self._idle_thread and self._idle_thread.is_alive():
             return
         self._idle_running.set()
@@ -93,7 +96,7 @@ class WeaponAudio:
                 current += length + self._idle_gap
             time.sleep(length + self._idle_gap)
 
-    def stop_idle(self, timestamp: float | None = None) -> None:
+    def stop_idle(self, timestamp: float | None = None, *, disable: bool = False) -> None:
         """Stop the idle loop for melee weapons.
 
         The idle sound is stopped using :meth:`AudioEngine.stop_handle` so
@@ -106,6 +109,8 @@ class WeaponAudio:
         timestamp:
             Optional capture time in seconds used to truncate the recorded
             idle sound.
+        disable:
+            When ``True``, prevent the idle loop from being restarted.
         """
         if self._idle_thread and self._idle_thread.is_alive():
             self._idle_running.clear()
@@ -116,6 +121,8 @@ class WeaponAudio:
                 self._engine.stop_handle(handle, timestamp)
             self._idle_thread.join()
             self._idle_thread = None
+        if disable:
+            self._idle_disabled = True
 
     # ------------------------------------------------------------------
     # Events

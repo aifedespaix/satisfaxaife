@@ -53,7 +53,7 @@ class _WeaponAudio:
     def start_idle(self) -> None:  # pragma: no cover - unused
         return None
 
-    def stop_idle(self, timestamp: float | None = None) -> None:  # pragma: no cover - unused
+    def stop_idle(self, timestamp: float | None = None, *, disable: bool = False) -> None:  # pragma: no cover - unused
         return None
 
 

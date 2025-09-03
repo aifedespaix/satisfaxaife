@@ -10,6 +10,20 @@ portée pendant un dash devient un **coup critique**.
 - **Durée** : `0,2` s
 - **Recharge** : `3` s
 
+## Orientation
+
+- **Mêlée offensive** : le dash cherche à réduire la distance jusqu'à
+  l'adversaire. La trajectoire pointe directement vers lui.
+- **Mêlée défensive** : le dash s'oriente latéralement afin d'esquiver les
+  projectiles tout en restant à portée de frappe.
+- **Armes de contact** : les dashs en arrière sont évités pour conserver la
+  pression sur l'adversaire.
+
+```text
+Offensif :  [Vous] ───▶ [Ennemi]
+Défensif : projectile ─▶ (dash latéral)
+```
+
 ## Utilisation
 
 - **Joueur** : pressez `Maj gauche` pour déclencher un dash.

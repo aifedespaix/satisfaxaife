@@ -106,7 +106,7 @@ class _MatchView(WorldView):
                     for other in self.players:
                         weapon_audio = getattr(other.weapon, "audio", None)
                         if weapon_audio is not None:
-                            weapon_audio.stop_idle(timestamp)
+                            weapon_audio.stop_idle(timestamp, disable=True)
                 self.renderer.trigger_blink(p.color, int(damage.amount))
                 self.renderer.trigger_hit_flash(p.color)
                 return
@@ -498,7 +498,7 @@ class GameController:
         for p in self.players:
             weapon_audio = getattr(p.weapon, "audio", None)
             if weapon_audio is not None:
-                weapon_audio.stop_idle(self.death_ts)
+                weapon_audio.stop_idle(self.death_ts, disable=True)
         for p in self.players:
             p.ball.body.velocity = (0.0, 0.0)
         hp_a = max(
