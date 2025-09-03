@@ -13,7 +13,8 @@ if "app" in sys.modules:
     del sys.modules["app"]
 
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
-from app.weapons.base import WeaponEffect, WorldView
+from app.weapons.base import Weapon, WeaponEffect, WorldView
+from app.weapons.parry import ParryEffect
 from app.weapons.effects import ResonanceWaveEffect
 
 
@@ -21,6 +22,8 @@ from app.weapons.effects import ResonanceWaveEffect
 class DummyView(WorldView):
     positions: dict[EntityId, Vec2]
     damage: dict[EntityId, float] = field(default_factory=dict)
+    weapons: dict[EntityId, Weapon] = field(default_factory=dict)
+    parries: dict[EntityId, ParryEffect] = field(default_factory=dict)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # pragma: no cover - unused
         return None
@@ -51,6 +54,12 @@ class DummyView(WorldView):
 
     def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # pragma: no cover - unused
         return []
+
+    def get_weapon(self, eid: EntityId) -> Weapon:  # pragma: no cover - unused
+        return self.weapons[eid]
+
+    def get_parry(self, eid: EntityId) -> ParryEffect | None:  # pragma: no cover - unused
+        return self.parries.get(eid)
 
 
 def test_resonance_wave_reflects_and_amplifies() -> None:

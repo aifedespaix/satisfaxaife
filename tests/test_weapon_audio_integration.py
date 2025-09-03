@@ -13,8 +13,9 @@ sys.modules.pop("pygame.sndarray", None)
 import pygame as _pygame  # noqa: F401, E402  - ensure real pygame is loaded
 
 from app.audio.weapons import WeaponAudio  # noqa: E402
-from app.core.types import Damage, EntityId, Vec2  # noqa: E402
-from app.weapons.base import WeaponEffect, WorldView  # noqa: E402
+from app.core.types import Damage, EntityId, ProjectileInfo, Vec2  # noqa: E402
+from app.weapons.base import Weapon, WeaponEffect, WorldView  # noqa: E402
+from app.weapons.parry import ParryEffect  # noqa: E402
 from app.weapons.bazooka import Bazooka  # noqa: E402
 from app.weapons.katana import Katana  # noqa: E402
 from app.weapons.knife import Knife  # noqa: E402
@@ -83,11 +84,35 @@ class ProjectileView:
         self.projectile = proj
         return proj
 
-    def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:  # noqa: D401
-        pass
+    def get_enemy(self, owner: EntityId) -> EntityId | None:  # pragma: no cover - unused
+        return None
 
-    def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:  # noqa: D401
-        pass
+    def get_velocity(self, eid: EntityId) -> Vec2:  # pragma: no cover - unused
+        return (0.0, 0.0)
+
+    def get_health_ratio(self, eid: EntityId) -> float:  # pragma: no cover - unused
+        return 1.0
+
+    def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:  # pragma: no cover - unused
+        return None
+
+    def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:  # pragma: no cover - unused
+        return None
+
+    def add_speed_bonus(self, eid: EntityId, bonus: float) -> None:  # pragma: no cover - unused
+        return None
+
+    def spawn_effect(self, effect: WeaponEffect) -> None:  # pragma: no cover - unused
+        return None
+
+    def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # pragma: no cover - unused
+        return []
+
+    def get_weapon(self, eid: EntityId) -> Weapon:  # pragma: no cover - unused
+        return cast(Weapon, object())
+
+    def get_parry(self, eid: EntityId) -> ParryEffect | None:  # pragma: no cover - unused
+        return None
 
 
 def test_katana_audio_events() -> None:

@@ -56,6 +56,10 @@ class WorldView(Protocol):
 
     def iter_projectiles(self, excluding: EntityId | None = None) -> object: ...
 
+    def get_weapon(self, eid: EntityId) -> Weapon: ...
+
+    def get_parry(self, eid: EntityId) -> ParryEffect | None: ...
+
 
 class WeaponEffect(Protocol):
     owner: EntityId
@@ -71,8 +75,18 @@ class WeaponEffect(Protocol):
     def destroy(self) -> None: ...
 
 
+class Weapon(Protocol):
+    def step(self, dt: float) -> None: ...
+
+
+class ParryEffect(WeaponEffect, Protocol):
+    pass
+
+
 _weapons_base.WorldView = WorldView  # type: ignore[attr-defined]
 _weapons_base.WeaponEffect = WeaponEffect  # type: ignore[attr-defined]
+_weapons_base.Weapon = Weapon  # type: ignore[attr-defined]
+_weapons_base.ParryEffect = ParryEffect  # type: ignore[attr-defined]
 sys.modules.setdefault("app.weapons", types.ModuleType("app.weapons"))
 sys.modules["app.weapons.base"] = _weapons_base
 _shuriken_stub = types.ModuleType("app.weapons.shuriken")

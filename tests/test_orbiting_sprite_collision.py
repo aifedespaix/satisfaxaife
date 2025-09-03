@@ -22,5 +22,6 @@ def test_orbiting_sprite_hits_enemy() -> None:
         speed=0.0,
     )
     controller.effects.append(blade)
-    controller._update_effects(0.0)
+    controller._step_effects()
+    controller._resolve_effect_hits(0.0)
     assert player_b.ball.health == 90.0

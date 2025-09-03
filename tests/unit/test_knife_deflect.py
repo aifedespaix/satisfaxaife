@@ -1,19 +1,23 @@
 """Verify knife's deflection and contact mechanics."""
 
+# ruff: noqa: I001
+
 from __future__ import annotations
 
 import pathlib
 import sys
 from dataclasses import dataclass, field
-
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
+from typing import cast
 
 import pygame
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
+
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
-from app.weapons.base import WeaponEffect, WorldView
+from app.weapons.base import Weapon, WeaponEffect, WorldView
 from app.weapons.effects import OrbitingRectangle
-from app.world.entities import DEFAULT_BALL_RADIUS
+from app.weapons.parry import ParryEffect
+from app.world.entities import Ball, DEFAULT_BALL_RADIUS
 from app.world.physics import PhysicsWorld
 from app.world.projectiles import Projectile
 
@@ -24,6 +28,8 @@ class DummyView(WorldView):
 
     positions: dict[EntityId, Vec2]
     enemies: dict[EntityId, EntityId]
+    weapons: dict[EntityId, Weapon] = field(default_factory=dict)
+    parries: dict[EntityId, ParryEffect] = field(default_factory=dict)
     damage: dict[EntityId, float] = field(default_factory=dict)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
@@ -68,6 +74,12 @@ class DummyView(WorldView):
 
     def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # noqa: D401
         return []
+
+    def get_weapon(self, eid: EntityId) -> Weapon:  # noqa: D401
+        return self.weapons[eid]
+
+    def get_parry(self, eid: EntityId) -> ParryEffect | None:  # noqa: D401
+        return self.parries.get(eid)
 
 
 def _make_knife(owner: EntityId) -> OrbitingRectangle:
@@ -119,31 +131,34 @@ def test_knife_deflects_projectile() -> None:
     assert view.damage[enemy] == 5
 
 
-def test_knife_does_not_deflect_body_hit() -> None:
+def test_projectile_deflected_on_body_hit() -> None:
     pygame.init()
     world = PhysicsWorld()
-    owner = EntityId(1)
+    owner_ball = Ball.spawn(world, (0.0, 0.0))
+    owner = owner_ball.eid
     enemy = EntityId(2)
-    positions = {owner: (0.0, 0.0), enemy: (150.0, 0.0)}
-    enemies = {owner: enemy, enemy: owner}
-    view = DummyView(positions, enemies)
-    knife = _make_knife(owner)
     projectile = Projectile.spawn(
         world,
         owner=enemy,
         position=(0.0, 0.0),
-        velocity=(-100.0, 0.0),
+        velocity=(100.0, 0.0),
         radius=1.0,
         damage=Damage(5),
         knockback=0.0,
         ttl=1.0,
     )
-    projectile.ttl = 0.1
-    pos = (float(projectile.body.position.x), float(projectile.body.position.y))
-    assert not knife.collides(view, pos, float(projectile.shape.radius))
-
-    projectile.on_hit(view, owner, timestamp=0.0)
-    assert view.damage[owner] == 5
+    parry = ParryEffect(owner=owner, radius=80.0, duration=1.0)
+    positions = {owner: (0.0, 0.0), enemy: (150.0, 0.0)}
+    enemies = {owner: enemy, enemy: owner}
+    weapons = {
+        owner: cast(Weapon, object()),
+        enemy: cast(Weapon, object()),
+    }
+    view = DummyView(positions, enemies, weapons=weapons, parries={owner: parry})
+    world.set_context(view, 0.0)
+    world.step(0.1)
+    assert view.damage == {}
+    assert projectile.owner == owner
 
 
 def test_knife_hits_enemy_ball() -> None:

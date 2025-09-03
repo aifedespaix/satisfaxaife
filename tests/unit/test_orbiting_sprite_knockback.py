@@ -3,7 +3,8 @@ from dataclasses import dataclass, field
 import pygame
 
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
-from app.weapons.base import WeaponEffect, WorldView
+from app.weapons.base import Weapon, WeaponEffect, WorldView
+from app.weapons.parry import ParryEffect
 from app.weapons.effects import OrbitingSprite
 
 
@@ -11,6 +12,8 @@ from app.weapons.effects import OrbitingSprite
 class DummyView(WorldView):
     positions: dict[EntityId, Vec2]
     impulses: dict[EntityId, Vec2] = field(default_factory=dict)
+    weapons: dict[EntityId, Weapon] = field(default_factory=dict)
+    parries: dict[EntityId, ParryEffect] = field(default_factory=dict)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:
         return None
@@ -54,6 +57,12 @@ class DummyView(WorldView):
 
     def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:
         return []
+
+    def get_weapon(self, eid: EntityId) -> Weapon:
+        return self.weapons[eid]
+
+    def get_parry(self, eid: EntityId) -> ParryEffect | None:
+        return self.parries.get(eid)
 
 
 def test_orbiting_sprite_applies_knockback() -> None:

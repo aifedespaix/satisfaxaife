@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     import pygame
 
     from app.render.renderer import Renderer
+    from .parry import ParryEffect
 
 
 class WorldView(Protocol):
@@ -63,6 +64,12 @@ class WorldView(Protocol):
 
     def iter_projectiles(self, excluding: EntityId | None = None) -> Iterable[ProjectileInfo]:
         """Yield active projectiles, optionally skipping those owned by *excluding*."""
+
+    def get_weapon(self, eid: EntityId) -> Weapon:
+        """Return the weapon currently wielded by ``eid``."""
+
+    def get_parry(self, eid: EntityId) -> ParryEffect | None:
+        """Return the active parry effect for ``eid`` if present."""
 
 
 class WeaponEffect(Protocol):

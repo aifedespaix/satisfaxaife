@@ -21,6 +21,7 @@ from app.render.renderer import Renderer
 from app.video.recorder import RecorderProtocol
 from app.video.slowmo import append_slowmo_ending
 from app.weapons.base import Weapon, WeaponEffect, WorldView
+from app.weapons.parry import ParryEffect
 from app.world.entities import Ball
 from app.world.physics import PhysicsWorld
 from app.world.projectiles import Projectile
@@ -179,6 +180,18 @@ class _MatchView(WorldView):
                 vel = (float(eff.body.velocity.x), float(eff.body.velocity.y))
                 yield ProjectileInfo(eff.owner, pos, vel)
 
+    def get_weapon(self, eid: EntityId) -> Weapon:
+        for p in self.players:
+            if p.eid == eid:
+                return p.weapon
+        raise KeyError(eid)
+
+    def get_parry(self, eid: EntityId) -> ParryEffect | None:
+        for eff in self.effects:
+            if isinstance(eff, ParryEffect) and eff.owner == eid:
+                return eff
+        return None
+
 
 class Phase(Enum):
     INTRO = "intro"
@@ -303,12 +316,14 @@ class GameController:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_LSHIFT:
                     self.players[0].dash.start(self.players[0].face, current_time)
             self._update_players(current_time)
+            self._step_effects()
+            self._deflect_projectiles(current_time)
             self.world.set_context(self.view, current_time)
             self.world.step(settings.dt, settings.physics_substeps)
             for p in self.players:
                 if p.alive:
                     self._resolve_dash_collision(p, current_time)
-            self._update_effects(current_time)
+            self._resolve_effect_hits(current_time)
             self._render_frame()
             self._capture_frame()
 
@@ -388,15 +403,23 @@ class GameController:
             p.dash.has_hit = True
             return
 
-    def _update_effects(self, current_time: float) -> None:
-        """Advance active effects and apply their impacts on players."""
+    def _step_effects(self) -> None:
+        """Advance effect state and prune expired entries."""
         for eff in list(self.effects):
             if not eff.step(settings.dt):
                 eff.destroy()
                 self.effects.remove(eff)
-                continue
+
+    def _deflect_projectiles(self, current_time: float) -> None:
+        """Deflect active projectiles using defensive effects."""
+        for eff in list(self.effects):
             if isinstance(eff, Projectile):
                 self._deflect_projectile(eff, current_time)
+
+    def _resolve_effect_hits(self, current_time: float) -> None:
+        """Apply non-projectile effect collisions to players."""
+        for eff in list(self.effects):
+            if isinstance(eff, Projectile):
                 continue
             owner = getattr(eff, "owner", None)
             for p in self.players:

@@ -7,7 +7,8 @@ import pytest
 
 from app.ai.policy import SimplePolicy, policy_for_weapon
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
-from app.weapons.base import WeaponEffect, WorldView
+from app.weapons.base import Weapon, WeaponEffect, WorldView
+from app.weapons.parry import ParryEffect
 from app.weapons.shuriken import Shuriken
 from pymunk import Vec2 as Vec2d
 
@@ -23,6 +24,8 @@ class DummyView(WorldView):
     health_me: float = 1.0
     health_enemy: float = 1.0
     last_velocity: Vec2d | None = field(default=None, init=False)
+    weapons: dict[EntityId, Weapon] = field(default_factory=dict)
+    parries: dict[EntityId, ParryEffect] = field(default_factory=dict)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
         return self.enemy
@@ -86,6 +89,12 @@ class DummyView(WorldView):
 
     def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # noqa: D401
         return []
+
+    def get_weapon(self, eid: EntityId) -> Weapon:  # noqa: D401
+        return self.weapons[eid]
+
+    def get_parry(self, eid: EntityId) -> ParryEffect | None:  # noqa: D401
+        return self.parries.get(eid)
 
 
 def test_kiter_moves_away() -> None:

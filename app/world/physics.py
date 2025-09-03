@@ -249,7 +249,7 @@ class PhysicsWorld:
         candidate: pymunk.Shape,
         view: WorldView,
     ) -> bool:
-        """Return ``True`` if a projectile hit a ball and was removed."""
+        """Return ``True`` if a projectile↔ball collision was handled."""
         ball = self._balls.get(candidate)
         if ball is None or not _shapes_hit(proj_shape, candidate):
             return False
@@ -257,6 +257,17 @@ class PhysicsWorld:
             # Skip self-collisions so a deflected projectile cannot immediately
             # hit its new owner.
             return False
+
+        weapon = view.get_weapon(ball.eid)
+        parry = view.get_parry(ball.eid)
+        if parry is not None:
+            parry.deflect_projectile(view, projectile, self._timestamp)
+            return True
+        reflector = getattr(weapon, "deflect_projectile", None)
+        if reflector is not None:
+            reflector(view, projectile, self._timestamp)
+            return True
+
         keep = projectile.on_hit(view, ball.eid, self._timestamp)
         if not keep:
             projectile.destroy()
