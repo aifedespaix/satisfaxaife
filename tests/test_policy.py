@@ -301,10 +301,18 @@ def test_distant_vs_distant_policy_is_kiter() -> None:
     assert policy.style == "kiter"
 
 
-def test_distant_policy_no_fire_without_projectile() -> None:
+def test_shuriken_policy_fires_when_enemy_far() -> None:
     view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (1000.0, 0.0))
     policy = policy_for_weapon("shuriken", "katana")
     _, _, fire, parry = policy.decide(EntityId(1), view, 600.0)
+    assert fire is True
+    assert parry is False
+
+
+def test_bazooka_policy_no_fire_when_enemy_far() -> None:
+    view = DummyView(EntityId(1), EntityId(2), (0.0, 0.0), (1000.0, 0.0))
+    policy = policy_for_weapon("bazooka", "katana")
+    _, _, fire, parry = policy.decide(EntityId(1), view, 300.0)
     assert fire is False
     assert parry is False
 

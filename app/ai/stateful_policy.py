@@ -86,7 +86,9 @@ class StatefulPolicy(SimplePolicy):
         atk_range = _attack_range(projectile_speed, self.fire_range_factor, self.fire_range)
         out_of_range = self.range_type == "distant" and dist > atk_range
         projectile: ProjectileInfo | None = (
-            _nearest_projectile(me, view, my_pos) if out_of_range else None
+            _nearest_projectile(me, view, my_pos)
+            if out_of_range and not self.fire_out_of_range
+            else None
         )
 
         if projectile is not None:
@@ -163,7 +165,7 @@ class StatefulPolicy(SimplePolicy):
             accel = (direction[0] * 400.0, direction[1] * 400.0)
 
         if out_of_range:
-            fire = projectile is not None
+            fire = self.fire_out_of_range or projectile is not None
 
         if projectile is None and abs(dy) <= 1e-6:
             offset = self.vertical_offset + self.rng.uniform(-0.05, 0.05)
