@@ -127,7 +127,7 @@ class DummyBallAudio:
     def on_explode(self, _timestamp: float | None = None) -> None:  # pragma: no cover - stub
         return None
 
-    def stop_idle(self, _timestamp: float | None = None) -> None:  # pragma: no cover - stub
+    def stop_idle(self, _timestamp: float | None = None, *, disable: bool = False) -> None:  # pragma: no cover - stub
         return None
 
 

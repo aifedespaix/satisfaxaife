@@ -22,10 +22,10 @@ class SpyWeaponAudio(WeaponAudio):
         super().__init__(*args, **kwargs)
         self.stopped_at: float | None = None
 
-    def stop_idle(self, timestamp: float | None = None) -> None:
+    def stop_idle(self, timestamp: float | None = None, *, disable: bool = False) -> None:
         if self._idle_thread and self._idle_thread.is_alive() and self.stopped_at is None:
             self.stopped_at = timestamp
-        super().stop_idle(timestamp)
+        super().stop_idle(timestamp, disable=disable)
 
 
 class KillerWeapon(Weapon):
@@ -87,6 +87,11 @@ def test_idle_sounds_stop_on_death() -> None:
     assert audio_a.stopped_at == pytest.approx(0.5)
     assert audio_b.stopped_at == pytest.approx(0.5)
     assert audio_a.stopped_at == audio_b.stopped_at
+
+    audio_a.start_idle(timestamp=1.0)
+    audio_b.start_idle(timestamp=1.0)
+    assert audio_a._idle_thread is None
+    assert audio_b._idle_thread is None
 
     weapon_registry._factories.pop("killer_test")
     weapon_registry._factories.pop("passive_test")
