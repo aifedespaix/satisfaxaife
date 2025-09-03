@@ -5,7 +5,8 @@ from dataclasses import dataclass, field
 
 from app.ai.stateful_policy import StatefulPolicy
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
-from app.weapons.base import WeaponEffect, WorldView
+from app.weapons.base import Weapon, WeaponEffect, WorldView
+from app.weapons.parry import ParryEffect
 
 
 @dataclass
@@ -16,6 +17,8 @@ class DummyView(WorldView):
     pos_enemy: Vec2
     vel_enemy: Vec2 = (0.0, 0.0)
     projectiles: list[ProjectileInfo] = field(default_factory=list)
+    weapons: dict[EntityId, Weapon] = field(default_factory=dict)
+    parries: dict[EntityId, ParryEffect] = field(default_factory=dict)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
         return self.enemy
@@ -59,6 +62,12 @@ class DummyView(WorldView):
 
     def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # noqa: D401
         return self.projectiles
+
+    def get_weapon(self, eid: EntityId) -> Weapon:  # noqa: D401
+        return self.weapons[eid]
+
+    def get_parry(self, eid: EntityId) -> ParryEffect | None:  # noqa: D401
+        return self.parries.get(eid)
 
 
 def _collect_faces(seed: int) -> list[Vec2]:

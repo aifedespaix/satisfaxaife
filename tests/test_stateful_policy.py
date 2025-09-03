@@ -7,7 +7,8 @@ import pytest
 
 from app.ai.stateful_policy import Mode, State, StatefulPolicy, policy_for_weapon
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
-from app.weapons.base import WeaponEffect, WorldView
+from app.weapons.base import Weapon, WeaponEffect, WorldView
+from app.weapons.parry import ParryEffect
 
 
 @dataclass
@@ -20,6 +21,8 @@ class DummyView(WorldView):
     health_me: float = 1.0
     health_enemy: float = 1.0
     projectiles: list[ProjectileInfo] = field(default_factory=list)
+    weapons: dict[EntityId, Weapon] = field(default_factory=dict)
+    parries: dict[EntityId, ParryEffect] = field(default_factory=dict)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
         return self.enemy
@@ -63,6 +66,12 @@ class DummyView(WorldView):
 
     def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # noqa: D401
         return self.projectiles
+
+    def get_weapon(self, eid: EntityId) -> Weapon:  # noqa: D401
+        return self.weapons[eid]
+
+    def get_parry(self, eid: EntityId) -> ParryEffect | None:  # noqa: D401
+        return self.parries.get(eid)
 
 
 def test_attack_then_dodge() -> None:

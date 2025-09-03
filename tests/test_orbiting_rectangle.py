@@ -21,6 +21,12 @@ class DummyView:
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
         return self._enemy
 
+    def get_weapon(self, eid: EntityId) -> object:  # pragma: no cover - unused
+        raise NotImplementedError
+
+    def get_parry(self, eid: EntityId) -> None:  # pragma: no cover - unused
+        return None
+
 
 class DummyProjectile:
     def __init__(self, velocity: Vec2) -> None:

@@ -12,6 +12,7 @@ from app.audio import BallAudio
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
 from app.game.controller import GameController, Player
 from app.weapons.base import Weapon, WeaponEffect, WorldView
+from app.weapons.parry import ParryEffect
 from app.world.entities import Ball
 from pymunk import Body
 
@@ -69,6 +70,12 @@ class StubWorldView(WorldView):
         self, excluding: EntityId | None = None
     ) -> list[ProjectileInfo]:  # pragma: no cover - unused
         return []
+
+    def get_weapon(self, eid: EntityId) -> Weapon:  # pragma: no cover - unused
+        raise NotImplementedError
+
+    def get_parry(self, eid: EntityId) -> ParryEffect | None:  # pragma: no cover - unused
+        return None
 
 
 class DummyWorld:

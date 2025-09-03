@@ -4,7 +4,8 @@ from dataclasses import dataclass, field
 
 from app.ai.policy import SimplePolicy
 from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
-from app.weapons.base import WeaponEffect, WorldView
+from app.weapons.base import Weapon, WeaponEffect, WorldView
+from app.weapons.parry import ParryEffect
 from app.weapons.shuriken import Shuriken
 from pymunk import Vec2 as Vec2d
 
@@ -17,6 +18,8 @@ class DummyView(WorldView):
     pos_enemy: Vec2
     vel_me: Vec2 = (0.0, 0.0)
     vel_enemy: Vec2 = (0.0, 0.0)
+    weapons: dict[EntityId, Weapon] = field(default_factory=dict)
+    parries: dict[EntityId, ParryEffect] = field(default_factory=dict)
     last_velocity: Vec2d | None = field(default=None, init=False)
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
@@ -81,6 +84,12 @@ class DummyView(WorldView):
 
     def iter_projectiles(self, excluding: EntityId | None = None) -> list[ProjectileInfo]:  # noqa: D401
         return []
+
+    def get_weapon(self, eid: EntityId) -> Weapon:  # noqa: D401
+        return self.weapons[eid]
+
+    def get_parry(self, eid: EntityId) -> ParryEffect | None:  # noqa: D401
+        return self.parries.get(eid)
 
 
 def test_policy_angle_has_vertical_component() -> None:
