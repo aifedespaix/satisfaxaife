@@ -169,8 +169,15 @@ class Renderer:
         """Draw a circle outline centered at ``pos`` with ``radius`` pixels."""
         pygame.draw.circle(self.surface, color, self._offset(pos), int(radius), width)
 
-    def draw_sprite(self, sprite: pygame.Surface, pos: Vec2, angle: float) -> None:
-        """Render a rotated sprite centered at *pos*.
+    def draw_sprite(
+        self,
+        sprite: pygame.Surface,
+        pos: Vec2,
+        angle: float,
+        aura_color: Color | None = None,
+        aura_radius: int | None = None,
+    ) -> None:
+        """Render a rotated sprite centered at ``pos`` with an optional aura.
 
         Parameters
         ----------
@@ -180,6 +187,10 @@ class Renderer:
             Center position in world coordinates.
         angle:
             Rotation angle in radians.
+        aura_color:
+            Optional color for a concentric outline used to simulate a team aura.
+        aura_radius:
+            Radius of the aura circle in pixels. Required when ``aura_color`` is provided.
         """
         degrees = math.degrees(-angle)
         quantized = int(round(degrees / _ROTATION_STEP_DEGREES) * _ROTATION_STEP_DEGREES)
@@ -191,6 +202,10 @@ class Renderer:
             self._rotation_cache[key] = rotated
         rect = rotated.get_rect(center=self._offset(pos))
         self.surface.blit(rotated, rect)
+        if aura_color is not None and aura_radius is not None:
+            pygame.draw.circle(
+                self.surface, aura_color, self._offset(pos), aura_radius + 2, width=2
+            )
 
     def add_impact(self, pos: Vec2, duration: float = 0.08) -> None:
         """Register an impact at ``pos`` lasting ``duration`` seconds.
