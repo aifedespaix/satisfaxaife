@@ -109,7 +109,7 @@ def test_draw_sprite_with_aura(
     renderer, Surface, _rotation_calls, glow_calls = renderer_stub
     sprite = Surface((32, 32))
     renderer.draw_sprite(sprite, (0.0, 0.0), 0.0, aura_color=(1, 2, 3), aura_radius=5)
-    assert glow_calls == [((0.0, 0.0), 7, (1, 2, 3))]
+    assert glow_calls == [((0.0, 0.0), 5, (1, 2, 3))]
 
 
 def test_draw_projectile_with_aura(
@@ -117,5 +117,5 @@ def test_draw_projectile_with_aura(
 ) -> None:
     renderer, _Surface, _rotation_calls, glow_calls = renderer_stub
     renderer.draw_projectile((1.0, 2.0), 5, (255, 255, 0), aura_color=(1, 2, 3))
-    assert glow_calls == [((1.0, 2.0), 7, (1, 2, 3))]
+    assert glow_calls == [((1.0, 2.0), 5, (1, 2, 3))]
 

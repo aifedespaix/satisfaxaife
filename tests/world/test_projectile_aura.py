@@ -47,4 +47,4 @@ def test_projectile_sprite_has_aura() -> None:
     renderer = DummyRenderer()
     view = DummyView()
     projectile.draw(cast(Renderer, renderer), cast(WorldView, view))
-    assert renderer.calls == [((0.0, 0.0), 7, (1, 2, 3))]
+    assert renderer.calls == [((0.0, 0.0), 5, (1, 2, 3))]
