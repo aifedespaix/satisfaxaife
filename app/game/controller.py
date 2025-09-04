@@ -97,6 +97,12 @@ class _MatchView(WorldView):
                 return float(ratio)
         raise KeyError(eid)
 
+    def get_team_color(self, eid: EntityId) -> Color:
+        for p in self.players:
+            if p.eid == eid:
+                return p.color
+        raise KeyError(eid)
+
     def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:
         """Apply ``damage`` to ``eid`` at ``timestamp``."""
         for p in self.players:

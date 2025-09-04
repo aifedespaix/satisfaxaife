@@ -168,7 +168,10 @@ class Projectile(WeaponEffect):
         if self.sprite is not None:
             renderer.draw_sprite(self.sprite, pos, self.angle)
         else:
-            renderer.draw_projectile(pos, int(self.shape.radius), (255, 255, 0))
+            team_color: Color = view.get_team_color(self.owner)
+            renderer.draw_projectile(
+                pos, int(self.shape.radius), (255, 255, 0), aura_color=team_color
+            )
         if renderer.debug:
             renderer.draw_circle_outline(pos, float(self.shape.radius), (0, 255, 0))
 

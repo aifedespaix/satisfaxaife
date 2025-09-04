@@ -305,8 +305,29 @@ class Renderer:
             pygame.draw.circle(self.surface, overlay, self._offset(pos), radius)
             state.hit_flash_timer = max(0.0, state.hit_flash_timer - settings.dt)
 
-    def draw_projectile(self, pos: Vec2, radius: int, color: Color) -> None:
+    def draw_projectile(
+        self,
+        pos: Vec2,
+        radius: int,
+        color: Color,
+        aura_color: Color | None = None,
+    ) -> None:
+        """Draw a projectile centered at ``pos``.
+
+        Parameters
+        ----------
+        pos:
+            Center position of the projectile in world coordinates.
+        radius:
+            Projectile radius in pixels.
+        color:
+            Fill color of the projectile.
+        aura_color:
+            Optional color for a concentric outline used to simulate a team aura.
+        """
         pygame.draw.circle(self.surface, color, self._offset(pos), radius)
+        if aura_color is not None:
+            pygame.draw.circle(self.surface, aura_color, self._offset(pos), radius + 2, width=2)
 
     def draw_eyes(self, pos: Vec2, gaze: Vec2, radius: int, team_color: Color) -> None:
         if not settings.show_eyes:

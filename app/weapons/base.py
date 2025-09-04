@@ -33,6 +33,9 @@ class WorldView(Protocol):
     def get_health_ratio(self, eid: EntityId) -> float:
         """Return the current health ratio ``health / max_health`` of an entity."""
 
+    def get_team_color(self, eid: EntityId) -> Color:
+        """Return the color of the team owning ``eid``."""
+
     def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:
         """Apply ``damage`` to ``eid`` at the given ``timestamp``."""
 
