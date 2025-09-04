@@ -1,6 +1,7 @@
 weapon_a: shuriken
 weapon_b: bazooka
 max_simulation_seconds: 120
-seeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+# seeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+seed: 666
 ai_transition_seconds: 20
 debug: false

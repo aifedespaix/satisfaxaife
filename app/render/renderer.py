@@ -17,43 +17,29 @@ from app.render.hud import Hud
 # Angle quantization step for rotated sprite caching in degrees.
 _ROTATION_STEP_DEGREES = 5
 
-
-def draw_glow(
-    surface: pygame.Surface, center: Vec2, radius: int, color: Color
+def draw_soft_light(
+    surface: pygame.Surface,
+    center: Vec2,
+    radius: int,
+    color: Color,
+    max_alpha: int = 120,
 ) -> None:
-    """Render a soft halo centred at ``center``.
+    """Dessine une lumière douce avec un dégradé radial réel."""
+    size = radius * 2
+    glow = pygame.Surface((size, size), pygame.SRCALPHA)
+    cx, cy = radius, radius
 
-    The halo is built from a filled circle that is duplicated several times
-    with partial transparency to approximate a glow. A darkened offset copy
-    provides a subtle drop shadow. Callers should render the underlying sprite
-    *after* invoking this function so the opaque centre is hidden by the
-    sprite itself.
+    for y in range(size):
+        for x in range(size):
+            dx = x - cx
+            dy = y - cy
+            dist = math.sqrt(dx * dx + dy * dy)
+            if dist <= radius:
+                alpha = int(max_alpha * (1 - dist / radius))
+                glow.set_at((x, y), (*color, alpha))
 
-    Parameters
-    ----------
-    surface:
-        Destination surface where the glow is drawn.
-    center:
-        Pixel coordinates for the centre of the halo.
-    radius:
-        Radius of the glow in pixels.
-    color:
-        RGB colour of the glow.
-    """
-
-    diameter = radius * 2
-    img = pygame.Surface((diameter, diameter), flags=pygame.SRCALPHA)
-    pygame.draw.circle(img, color, (radius, radius), radius)
-
-    shadow = img.copy()
-    shadow.fill((0, 0, 0, 180), special_flags=pygame.BLEND_RGBA_MULT)
-    rect = img.get_rect(center=center)
-    surface.blit(shadow, rect.move(2, 2))
-
-    for dx, dy in ((0, 0), (-2, 0), (2, 0), (0, -2), (0, 2)):
-        glow = img.copy()
-        glow.set_alpha(128)
-        surface.blit(glow, rect.move(dx, dy))
+    rect = glow.get_rect(center=center)
+    surface.blit(glow, rect)
 
 
 @dataclass(slots=True)
@@ -240,7 +226,7 @@ class Renderer:
             self._rotation_cache[key] = rotated
         rect = rotated.get_rect(center=self._offset(pos))
         if aura_color is not None and aura_radius is not None:
-            draw_glow(self.surface, rect.center, aura_radius, aura_color)
+            draw_soft_light(self.surface, rect.center, aura_radius, aura_color)
         self.surface.blit(rotated, rect)
 
     def add_impact(self, pos: Vec2, duration: float = 0.08) -> None:
@@ -378,7 +364,7 @@ class Renderer:
         """
         center = self._offset(pos)
         if aura_color is not None:
-            draw_glow(self.surface, center, radius, aura_color)
+            draw_soft_light(self.surface, center, radius, aura_color)
         pygame.draw.circle(self.surface, color, center, radius)
 
     def draw_eyes(self, pos: Vec2, gaze: Vec2, radius: int, team_color: Color) -> None:
