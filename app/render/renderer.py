@@ -18,6 +18,45 @@ from app.render.hud import Hud
 _ROTATION_STEP_DEGREES = 5
 
 
+def draw_glow(
+    surface: pygame.Surface, center: Vec2, radius: int, color: Color
+) -> None:
+    """Draw a soft halo around ``center``.
+
+    A ring is rendered using ``color`` and enhanced with a subtle shadow and
+    four semi-transparent copies to simulate a glow effect. The implementation
+    mirrors the technique used in :mod:`app.render.intro_renderer` for
+    consistency across the project.
+
+    Parameters
+    ----------
+    surface:
+        Destination surface where the glow is drawn.
+    center:
+        Pixel coordinates for the centre of the halo.
+    radius:
+        Outer radius of the glow circle in pixels.
+    color:
+        RGB colour of the glow.
+    """
+
+    diameter = radius * 2
+    img = pygame.Surface((diameter, diameter), flags=pygame.SRCALPHA)
+    pygame.draw.circle(img, color, (radius, radius), radius, width=2)
+
+    shadow = img.copy()
+    shadow.fill((0, 0, 0, 180), special_flags=pygame.BLEND_RGBA_MULT)
+    rect = img.get_rect(center=center)
+    surface.blit(shadow, rect.move(2, 2))
+
+    for dx, dy in ((-2, 0), (2, 0), (0, -2), (0, 2)):
+        glow = img.copy()
+        glow.set_alpha(128)
+        surface.blit(glow, rect.move(dx, dy))
+
+    surface.blit(img, rect)
+
+
 @dataclass(slots=True)
 class _BallState:
     prev_pos: Vec2 | None = None
@@ -203,9 +242,7 @@ class Renderer:
         rect = rotated.get_rect(center=self._offset(pos))
         self.surface.blit(rotated, rect)
         if aura_color is not None and aura_radius is not None:
-            pygame.draw.circle(
-                self.surface, aura_color, self._offset(pos), aura_radius + 2, width=2
-            )
+            draw_glow(self.surface, self._offset(pos), aura_radius + 2, aura_color)
 
     def add_impact(self, pos: Vec2, duration: float = 0.08) -> None:
         """Register an impact at ``pos`` lasting ``duration`` seconds.
@@ -342,7 +379,7 @@ class Renderer:
         """
         pygame.draw.circle(self.surface, color, self._offset(pos), radius)
         if aura_color is not None:
-            pygame.draw.circle(self.surface, aura_color, self._offset(pos), radius + 2, width=2)
+            draw_glow(self.surface, self._offset(pos), radius + 2, aura_color)
 
     def draw_eyes(self, pos: Vec2, gaze: Vec2, radius: int, team_color: Color) -> None:
         if not settings.show_eyes:

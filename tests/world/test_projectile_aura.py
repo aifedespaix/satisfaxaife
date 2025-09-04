@@ -11,7 +11,7 @@ from app.weapons.base import WorldView
 
 class DummyRenderer:
     def __init__(self) -> None:  # pragma: no cover - simple init
-        self.calls: list[tuple[tuple[int, int, int] | None, int | None]] = []
+        self.calls: list[tuple[tuple[float, float], int, tuple[int, int, int]]] = []
         self.debug = False
 
     def draw_sprite(
@@ -22,7 +22,8 @@ class DummyRenderer:
         aura_color: tuple[int, int, int] | None = None,
         aura_radius: int | None = None,
     ) -> None:
-        self.calls.append((aura_color, aura_radius))
+        if aura_color is not None and aura_radius is not None:
+            self.calls.append((pos, aura_radius + 2, aura_color))
 
 
 class DummyView:
@@ -46,4 +47,4 @@ def test_projectile_sprite_has_aura() -> None:
     renderer = DummyRenderer()
     view = DummyView()
     projectile.draw(cast(Renderer, renderer), cast(WorldView, view))
-    assert renderer.calls == [((1, 2, 3), 5)]
+    assert renderer.calls == [((0.0, 0.0), 7, (1, 2, 3))]
