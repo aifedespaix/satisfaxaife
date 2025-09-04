@@ -7,6 +7,15 @@ from app.core.config import settings
 from app.render.hud import Hud
 from app.render.renderer import Renderer
 
+ALPHA = int(255 * 0.8)
+
+
+def _blend(color: tuple[int, int, int], background: tuple[int, int, int]) -> tuple[int, int, int]:
+    r = (color[0] * ALPHA + background[0] * (255 - ALPHA)) // 255
+    g = (color[1] * ALPHA + background[1] * (255 - ALPHA)) // 255
+    b = (color[2] * ALPHA + background[2] * (255 - ALPHA)) // 255
+    return r, g, b
+
 
 def test_hud_draws_without_errors() -> None:
     renderer = Renderer(100, 200)
@@ -32,9 +41,10 @@ def test_hp_bar_background_color() -> None:
     y = 120 + bar_height // 2
     width_a = int(bar_width * hud.current_hp_a)
     left_empty_x = 40 + width_a + 1
-    assert renderer.surface.get_at((left_empty_x, y))[:3] == empty
+    expected = _blend(empty, renderer.background)
+    assert renderer.surface.get_at((left_empty_x, y))[:3] == expected
     right_rect_start = renderer.surface.get_width() - 40 - bar_width
-    assert renderer.surface.get_at((right_rect_start + 1, y))[:3] == empty
+    assert renderer.surface.get_at((right_rect_start + 1, y))[:3] == expected
 
 
 def test_hp_bar_low_hp_color() -> None:
@@ -47,9 +57,10 @@ def test_hp_bar_low_hp_color() -> None:
     bar_height = int(renderer.surface.get_height() * Hud.BAR_HEIGHT_RATIO)
     x = 40 + bar_width // 10
     y = 120 + bar_height // 2
-    assert renderer.surface.get_at((x, y))[:3] == settings.theme.hp_warning
+    warning_blend = _blend(settings.theme.hp_warning, renderer.background)
+    assert renderer.surface.get_at((x, y))[:3] == warning_blend
     right_x = renderer.surface.get_width() - 40 - bar_width + bar_width // 2
-    assert renderer.surface.get_at((right_x, y))[:3] != settings.theme.hp_warning
+    assert renderer.surface.get_at((right_x, y))[:3] != warning_blend
 
 
 def test_hp_bars_scale_with_surface(monkeypatch: pytest.MonkeyPatch) -> None:
