@@ -163,6 +163,7 @@ uv run python -m app.cli batch \
 - **Boucle & fin de match** : animation de victoire puis segment ralenti configurable, démarrant au plus tôt après l'intro.
 - **Configuration externe** : `app/config.json` regroupe canvas, palette (bleu/orange), HUD (titre, watermark) et paramètres d'**end screen** (textes, slow-mo, fade...).
 - **FPS / résolution** : ajuster `canvas` dans `app/config.json`.
+- **Seeds** : `config.yml` peut contenir `seed: 42` pour un combat unique ou `seeds: [1, 2, 3]` pour générer plusieurs vidéos l'une après l'autre.
 
 ## 🎬 Intro animation
 

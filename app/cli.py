@@ -8,17 +8,6 @@ from typing import Annotated
 
 import typer
 
-from app.audio import reset_default_engine
-from app.audio.env import temporary_sdl_audio_driver
-from app.core.config import settings
-from app.core.images import sanitize_images as sanitize_directory_images
-from app.core.registry import UnknownWeaponError
-from app.game.controller import MatchTimeout
-from app.game.match import create_controller
-from app.intro.config import IntroConfig, set_intro_weapons
-from app.render.renderer import Renderer
-from app.video.recorder import NullRecorder, Recorder, RecorderProtocol
-
 app = typer.Typer(help="Génération de vidéos satisfaction (TikTok).")
 
 
@@ -27,14 +16,16 @@ def _sanitize(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9_-]", "_", name)
 
 
-def _load_run_defaults_from_yaml(path: Path = Path("config.yml")) -> dict[str, str]:
+def _load_run_defaults_from_yaml(path: Path = Path("config.yml")) -> dict[str, str | list[str]]:
     """Load simple key/value defaults from a YAML file.
 
     The parser supports a minimal subset: ``key: value`` per line, comments
     starting with ``#``, and ignores blank lines. Values are returned as strings
-    and converted by the caller as needed. Recognised keys include
-    ``weapon_a``, ``weapon_b``, ``seed``, ``max_simulation_seconds``,
-    ``ai_transition_seconds`` and ``debug``.
+    except for ``seeds`` which accepts a comma-separated list on a single line.
+
+    Recognised keys include ``weapon_a``, ``weapon_b``, ``seed``,
+    ``seeds``, ``max_simulation_seconds``, ``ai_transition_seconds`` and
+    ``debug``.
 
     Parameters
     ----------
@@ -43,10 +34,10 @@ def _load_run_defaults_from_yaml(path: Path = Path("config.yml")) -> dict[str, s
 
     Returns
     -------
-    dict[str, str]
-        Mapping of keys to string values.
+    dict[str, str | list[str]]
+        Mapping of keys to string values or lists of string values.
     """
-    data: dict[str, str] = {}
+    data: dict[str, str | list[str]] = {}
     if not path.exists():
         return data
     for raw in path.read_text(encoding="utf-8").splitlines():
@@ -56,7 +47,15 @@ def _load_run_defaults_from_yaml(path: Path = Path("config.yml")) -> dict[str, s
         if ":" not in line:
             continue
         key, value = line.split(":", 1)
-        data[key.strip()] = value.strip()
+        key = key.strip()
+        value = value.strip()
+        if key == "seeds":
+            if value.startswith("[") and value.endswith("]"):
+                value = value[1:-1]
+            items = [v.strip() for v in value.split(",") if v.strip()]
+            data[key] = items
+        else:
+            data[key] = value
     return data
 
 
@@ -67,35 +66,135 @@ def _resolve_run_parameters(
     max_seconds: int | None,
     ai_transition_seconds: int | None,
     debug: bool | None,
-) -> tuple[int, str, str, int, int, bool]:
+) -> tuple[list[int], str, str, int, int, bool]:
     """Return CLI parameters with defaults applied from ``config.yml``."""
     cfg = _load_run_defaults_from_yaml()
     if weapon_a is None:
-        weapon_a = cfg.get("weapon_a", "katana")
+        weapon_a = str(cfg.get("weapon_a", "katana"))
     if weapon_b is None:
-        weapon_b = cfg.get("weapon_b", "shuriken")
-    if seed is None:
-        seed = int(cfg.get("seed", "0") or 0)
+        weapon_b = str(cfg.get("weapon_b", "shuriken"))
+
+    seeds: list[int]
+    if seed is not None:
+        seeds = [int(seed)]
+    elif "seeds" in cfg:
+        seeds = [int(s) for s in cfg.get("seeds", [])]
+    else:
+        seed_val = int(str(cfg.get("seed", "0") or 0))
+        seeds = [seed_val]
+
     if max_seconds is None and "max_simulation_seconds" in cfg:
         try:
-            max_seconds = int(cfg["max_simulation_seconds"])
+            max_seconds = int(str(cfg["max_simulation_seconds"]))
         except ValueError:
             max_seconds = None
     if ai_transition_seconds is None and "ai_transition_seconds" in cfg:
         try:
-            ai_transition_seconds = int(cfg["ai_transition_seconds"])
+            ai_transition_seconds = int(str(cfg["ai_transition_seconds"]))
         except ValueError:
             ai_transition_seconds = None
     if debug is None and "debug" in cfg:
-        debug = cfg["debug"].lower() in {"1", "true", "yes", "on"}
+        debug = str(cfg["debug"]).lower() in {"1", "true", "yes", "on"}
 
     weapon_a = weapon_a or "katana"
     weapon_b = weapon_b or "shuriken"
-    seed = int(seed or 0)
     max_seconds = max_seconds or 120
     ai_transition_seconds = int(ai_transition_seconds or 20)
     debug = bool(debug)
-    return seed, weapon_a, weapon_b, max_seconds, ai_transition_seconds, debug
+    return seeds, weapon_a, weapon_b, max_seconds, ai_transition_seconds, debug
+
+
+def _run_single_match(
+    seed: int,
+    weapon_a: str,
+    weapon_b: str,
+    max_seconds: int,
+    ai_transition_seconds: int,
+    intro_weapons: tuple[str, str] | None,
+    display: bool,
+    debug_flag: bool,
+) -> None:
+    """Run a single match and write the resulting video to disk."""
+
+    from app.audio import reset_default_engine
+    from app.audio.env import temporary_sdl_audio_driver
+    from app.core.config import settings
+    from app.core.registry import UnknownWeaponError
+    from app.game.controller import MatchTimeout
+    from app.game.match import create_controller
+    from app.intro.config import IntroConfig, set_intro_weapons
+    from app.render.renderer import Renderer
+    from app.video.recorder import NullRecorder, Recorder, RecorderProtocol
+    from app.weapons import weapon_registry
+
+    random.seed(seed)
+    rng = random.Random(seed)
+    driver = None if display else "dummy"
+
+    recorder: RecorderProtocol
+    renderer: Renderer
+    temp_path: Path | None = None
+    winner: str | None = None
+    intro_config: IntroConfig | None = None
+
+    if intro_weapons is not None:
+        paths: dict[str, Path] = {}
+        for item in intro_weapons:
+            key, _, value = item.partition("=")
+            if key not in {"left", "right"} or not value:
+                raise typer.BadParameter("intro-weapons must be 'left=PATH right=PATH'")
+            paths[key] = Path(value)
+        intro_config = set_intro_weapons(paths.get("left"), paths.get("right"))
+
+    with temporary_sdl_audio_driver(driver):
+        weapon_registry.names()
+        if display:
+            renderer = Renderer(settings.width, settings.height, display=True, debug=debug_flag)
+            recorder = NullRecorder()
+        else:
+            out_dir = Path("generated")
+            out_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+            safe_a = _sanitize(weapon_a)
+            safe_b = _sanitize(weapon_b)
+            temp_path = out_dir / f"{timestamp}-seed{seed}-{safe_a}-VS-{safe_b}.mp4"
+            recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
+            renderer = Renderer(settings.width, settings.height, debug=debug_flag)
+
+        try:
+            controller = create_controller(
+                weapon_a,
+                weapon_b,
+                recorder,
+                renderer,
+                max_seconds=max_seconds,
+                ai_transition_seconds=ai_transition_seconds,
+                display=display,
+                intro_config=intro_config,
+                rng=rng,
+            )
+        except UnknownWeaponError as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(code=1) from None
+        try:
+            winner = controller.run()
+        except MatchTimeout as exc:
+            if not display and temp_path is not None and temp_path.exists():
+                final_path = temp_path.with_name(f"{temp_path.stem}-timeout{temp_path.suffix}")
+                temp_path.rename(final_path)
+                typer.echo(f"Match timed out: {exc}", err=True)
+                typer.echo(f"Saved video to {final_path}")
+            else:
+                typer.echo(f"Match timed out: {exc}", err=True)
+            raise typer.Exit(code=1) from None
+
+    if not display and recorder.path is not None and temp_path is not None:
+        winner_name = _sanitize(winner) if winner is not None else "draw"
+        final_path = temp_path.with_name(f"{temp_path.stem}-{winner_name}_win{temp_path.suffix}")
+        temp_path.rename(final_path)
+        typer.echo(f"Saved video to {final_path}")
+
+    reset_default_engine()
 
 
 @app.command()  # type: ignore[misc]
@@ -136,16 +235,11 @@ def run(
         ),
     ] = None,
 ) -> None:
-    """Run a single match and export a video to ``./generated``.
-
-    If the match exceeds the maximum duration, the partially recorded video is
-    still kept on disk with a ``-timeout`` suffix.
-    """
-    # If parameters are not provided, read defaults from config.yml
+    """Run one or more matches and export videos to ``./generated``."""
     (
-        seed,
-        weapon_a,
-        weapon_b,
+        seeds,
+        weapon_a_res,
+        weapon_b_res,
         max_seconds_val,
         ai_transition_seconds,
         debug_flag,
@@ -158,78 +252,17 @@ def run(
         debug,
     )
 
-    random.seed(seed)
-    rng = random.Random(seed)
-
-    driver = None if display else "dummy"
-
-    recorder: RecorderProtocol
-    renderer: Renderer
-    temp_path: Path | None = None
-    winner: str | None = None
-    intro_config: IntroConfig | None = None
-
-    if intro_weapons is not None:
-        paths: dict[str, Path] = {}
-        for item in intro_weapons:
-            key, _, value = item.partition("=")
-            if key not in {"left", "right"} or not value:
-                raise typer.BadParameter("intro-weapons must be 'left=PATH right=PATH'")
-            paths[key] = Path(value)
-        intro_config = set_intro_weapons(
-            paths.get("left"),
-            paths.get("right"),
+    for seed_val in seeds:
+        _run_single_match(
+            seed_val,
+            weapon_a_res,
+            weapon_b_res,
+            max_seconds_val,
+            ai_transition_seconds,
+            intro_weapons,
+            display,
+            debug_flag,
         )
-
-    with temporary_sdl_audio_driver(driver):
-        from app.weapons import weapon_registry
-
-        weapon_registry.names()
-        if display:
-            renderer = Renderer(settings.width, settings.height, display=True, debug=debug_flag)
-            recorder = NullRecorder()
-        else:
-            out_dir = Path("generated")
-            out_dir.mkdir(parents=True, exist_ok=True)
-            timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-            safe_a = _sanitize(weapon_a)
-            safe_b = _sanitize(weapon_b)
-            temp_path = out_dir / f"{timestamp}-{safe_a}-VS-{safe_b}.mp4"
-            recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
-            renderer = Renderer(settings.width, settings.height, debug=debug_flag)
-
-        try:
-            controller = create_controller(
-                weapon_a,
-                weapon_b,
-                recorder,
-                renderer,
-                max_seconds=max_seconds_val,
-                ai_transition_seconds=ai_transition_seconds,
-                display=display,
-                intro_config=intro_config,
-                rng=rng,
-            )
-        except UnknownWeaponError as exc:
-            typer.echo(str(exc), err=True)
-            raise typer.Exit(code=1) from None
-        try:
-            winner = controller.run()
-        except MatchTimeout as exc:
-            if not display and temp_path is not None and temp_path.exists():
-                final_path = temp_path.with_name(f"{temp_path.stem}-timeout{temp_path.suffix}")
-                temp_path.rename(final_path)
-                typer.echo(f"Match timed out: {exc}", err=True)
-                typer.echo(f"Saved video to {final_path}")
-            else:
-                typer.echo(f"Match timed out: {exc}", err=True)
-            raise typer.Exit(code=1) from None
-
-    if not display and recorder.path is not None and temp_path is not None:
-        winner_name = _sanitize(winner) if winner is not None else "draw"
-        final_path = temp_path.with_name(f"{temp_path.stem}-{winner_name}_win{temp_path.suffix}")
-        temp_path.rename(final_path)
-        typer.echo(f"Saved video to {final_path}")
 
 
 @app.command()  # type: ignore[misc]
@@ -246,11 +279,19 @@ def batch(
     ] = Path("generated"),
 ) -> None:
     """Generate multiple match videos with varied seeds and weapons."""
+    from app.audio import reset_default_engine
+    from app.audio.env import temporary_sdl_audio_driver
+    from app.core.config import settings
+    from app.core.registry import UnknownWeaponError
+    from app.game.controller import MatchTimeout
+    from app.game.match import create_controller
+    from app.render.renderer import Renderer
+    from app.video.recorder import Recorder
+    from app.weapons import weapon_registry
+
     out_dir.mkdir(parents=True, exist_ok=True)
 
     with temporary_sdl_audio_driver("dummy"):
-        from app.weapons import weapon_registry
-
         names = weapon_registry.names()
         for _ in range(count):
             seed = random.randint(0, 1_000_000)
@@ -306,6 +347,8 @@ def sanitize_images_command(
     ] = Path("assets"),
 ) -> None:
     """Validate and repair image files in ``directory``."""
+    from app.core.images import sanitize_images as sanitize_directory_images
+
     sanitized = sanitize_directory_images(directory)
     typer.echo(f"Sanitized {len(sanitized)} image(s) in {directory}")
 
