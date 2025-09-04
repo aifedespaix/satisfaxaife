@@ -8,7 +8,7 @@ portée pendant un dash devient un **coup critique**.
 
 - **Vitesse** : `800` unités/s
 - **Durée** : `0,2` s
-- **Recharge** : `3` s
+- **Recharge** : `3` s pour les armes de contact, `6` s pour les armes à distance
 
 ## Orientation
 
