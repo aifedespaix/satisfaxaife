@@ -165,10 +165,16 @@ class Projectile(WeaponEffect):
                 t = (i + 1) / denom
                 color = cast(Color, tuple(int(c * t) for c in self.trail_color))
                 renderer.draw_line(a, b, color, self.trail_width)
+        team_color: Color = view.get_team_color(self.owner)
         if self.sprite is not None:
-            renderer.draw_sprite(self.sprite, pos, self.angle)
+            renderer.draw_sprite(
+                self.sprite,
+                pos,
+                self.angle,
+                aura_color=team_color,
+                aura_radius=int(self.shape.radius),
+            )
         else:
-            team_color: Color = view.get_team_color(self.owner)
             renderer.draw_projectile(
                 pos, int(self.shape.radius), (255, 255, 0), aura_color=team_color
             )

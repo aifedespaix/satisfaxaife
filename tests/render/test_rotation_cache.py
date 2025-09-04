@@ -8,7 +8,8 @@ from typing import Any
 import pytest
 
 
-def test_sprite_rotation_cached(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.fixture()
+def renderer_stub(monkeypatch: pytest.MonkeyPatch) -> tuple[Any, type, list[int], list[tuple[Any, int, int]]]:
     class PygameStub(types.ModuleType):
         SRCALPHA: int
         init: Callable[[], None]
@@ -40,15 +41,21 @@ def test_sprite_rotation_cached(monkeypatch: pytest.MonkeyPatch) -> None:
     pygame_stub.font = types.SimpleNamespace(init=lambda: None)
     pygame_stub.display = types.SimpleNamespace(set_mode=lambda size: None)
     pygame_stub.image = types.SimpleNamespace(load=lambda path: Surface((32, 32)))
-    pygame_stub.draw = types.SimpleNamespace(circle=lambda *a, **k: None, line=lambda *a, **k: None)
 
-    calls: list[int] = []
+    rotation_calls: list[int] = []
+    circle_calls: list[tuple[Any, int, int]] = []
 
     def rotozoom(surface: Surface, angle: float, scale: float) -> Surface:
-        calls.append(int(angle))
+        rotation_calls.append(int(angle))
         return Surface((surface._width, surface._height))
 
-    pygame_stub.transform = types.SimpleNamespace(rotozoom=rotozoom, smoothscale=lambda s, size: Surface(size))
+    def circle(_surface: Surface, color: Any, _center: Any, radius: int, width: int = 0) -> None:
+        circle_calls.append((color, radius, width))
+
+    pygame_stub.draw = types.SimpleNamespace(circle=circle, line=lambda *a, **k: None)
+    pygame_stub.transform = types.SimpleNamespace(
+        rotozoom=rotozoom, smoothscale=lambda s, size: Surface(size)
+    )
 
     sys.modules["pygame"] = pygame_stub
     sys.modules.pop("app.render.renderer", None)
@@ -75,12 +82,22 @@ def test_sprite_rotation_cached(monkeypatch: pytest.MonkeyPatch) -> None:
     from app.render.renderer import Renderer
 
     renderer = Renderer(200, 200)
-    sprite = pygame_stub.Surface((32, 32))
+    return renderer, Surface, rotation_calls, circle_calls
 
+
+def test_sprite_rotation_cached(renderer_stub: tuple[Any, type, list[int], list[tuple[Any, int, int]]]) -> None:
+    renderer, Surface, rotation_calls, _ = renderer_stub
+    sprite = Surface((32, 32))
     renderer.draw_sprite(sprite, (0.0, 0.0), 0.1)
     renderer.draw_sprite(sprite, (0.0, 0.0), 0.12)
     renderer.draw_sprite(sprite, (0.0, 0.0), 0.5)
     renderer.draw_sprite(sprite, (0.0, 0.0), 0.5)
+    assert rotation_calls == [355, 330]
 
-    assert calls == [355, 330]
+
+def test_draw_sprite_with_aura(renderer_stub: tuple[Any, type, list[int], list[tuple[Any, int, int]]]) -> None:
+    renderer, Surface, _rotation_calls, circle_calls = renderer_stub
+    sprite = Surface((32, 32))
+    renderer.draw_sprite(sprite, (0.0, 0.0), 0.0, aura_color=(1, 2, 3), aura_radius=5)
+    assert circle_calls == [((1, 2, 3), 7, 2)]
 
