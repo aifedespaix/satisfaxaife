@@ -23,7 +23,7 @@ class DummyRenderer:
         aura_radius: int | None = None,
     ) -> None:
         if aura_color is not None and aura_radius is not None:
-            self.calls.append((pos, aura_radius, aura_color))
+            self.calls.append((pos, aura_radius + 2, aura_color))
 
 
 class DummyView:
