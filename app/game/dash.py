@@ -5,6 +5,9 @@ from dataclasses import dataclass, field
 
 from app.core.types import Damage, Vec2
 
+# Multiplier applied to the dash cooldown for distant weapons.
+RANGED_COOLDOWN_FACTOR: float = 2.0
+
 
 @dataclass(slots=True)
 class Dash:

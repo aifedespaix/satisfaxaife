@@ -14,13 +14,13 @@ from app.ai.stateful_policy import StatefulPolicy
 from app.audio import AudioEngine, BallAudio
 from app.core.config import settings
 from app.core.types import Color, Damage, EntityId, ProjectileInfo, Vec2
-from app.game.dash import Dash
+from app.game.dash import RANGED_COOLDOWN_FACTOR, Dash
 from app.intro import IntroManager
 from app.render.hud import Hud
 from app.render.renderer import Renderer
 from app.video.recorder import RecorderProtocol
 from app.video.slowmo import append_slowmo_ending
-from app.weapons.base import Weapon, WeaponEffect, WorldView
+from app.weapons.base import RangeType, Weapon, WeaponEffect, WorldView
 from app.world.entities import Ball
 from app.world.physics import PhysicsWorld
 from app.world.projectiles import Projectile
@@ -43,6 +43,12 @@ class Player:
     audio: BallAudio
     dash: Dash = field(default_factory=Dash)
     alive: bool = True
+
+    def __post_init__(self) -> None:
+        """Adjust dash cooldown according to the weapon's range."""
+        range_type: RangeType = getattr(self.weapon, "range_type", "contact")
+        if range_type == "distant":
+            self.dash.cooldown *= RANGED_COOLDOWN_FACTOR
 
 
 class MatchTimeout(Exception):
