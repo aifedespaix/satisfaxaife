@@ -166,9 +166,11 @@ class Hud:
 
         layout_a, layout_b, logo_rect, vs_rect = self.compute_layout(surface, labels)
 
+        hud_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+
         # Left bar (team A)
         left_rect = pygame.Rect(margin, 120, bar_width, bar_height)
-        pygame.draw.rect(surface, self.theme.hp_empty, left_rect)
+        pygame.draw.rect(hud_surface, self.theme.hp_empty, left_rect)
         width_a = int(bar_width * self.current_hp_a)
         if width_a > 0:
             filled_rect = pygame.Rect(left_rect.x, left_rect.y, width_a, bar_height)
@@ -177,15 +179,15 @@ class Hud:
                 if self.current_hp_a < self.LOW_HP_THRESHOLD
                 else self.theme.team_a.hp_gradient
             )
-            draw_diagonal_gradient(surface, filled_rect, colors_a)
+            draw_diagonal_gradient(hud_surface, filled_rect, colors_a)
         label_a = self.bar_font.render(labels[0], True, (255, 255, 255))
-        surface.blit(label_a, layout_a)
+        hud_surface.blit(label_a, layout_a)
 
         # Right bar (team B)
         right_rect = pygame.Rect(
             surface.get_width() - margin - bar_width, 120, bar_width, bar_height
         )
-        pygame.draw.rect(surface, self.theme.hp_empty, right_rect)
+        pygame.draw.rect(hud_surface, self.theme.hp_empty, right_rect)
         width_b = int(bar_width * self.current_hp_b)
         if width_b > 0:
             filled_rect = pygame.Rect(
@@ -196,12 +198,15 @@ class Hud:
                 if self.current_hp_b < self.LOW_HP_THRESHOLD
                 else tuple(reversed(self.theme.team_b.hp_gradient))
             )
-            draw_diagonal_gradient(surface, filled_rect, colors_b)
+            draw_diagonal_gradient(hud_surface, filled_rect, colors_b)
         label_b = self.bar_font.render(labels[1], True, (255, 255, 255))
-        surface.blit(label_b, layout_b)
+        hud_surface.blit(label_b, layout_b)
 
         scaled_vs = pygame.transform.smoothscale(self.vs_image, vs_rect.size)
-        surface.blit(scaled_vs, vs_rect)
+        hud_surface.blit(scaled_vs, vs_rect)
+
+        hud_surface.set_alpha(int(255 * 0.8))  # 80% opacity
+        surface.blit(hud_surface, (0, 0))
 
         return layout_a, layout_b, logo_rect, vs_rect
 
