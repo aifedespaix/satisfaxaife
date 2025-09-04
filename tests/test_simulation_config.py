@@ -19,5 +19,5 @@ def test_simulation_config_defaults() -> None:
     config = _parse_simple_yaml(Path("config.yml"))
     assert config["weapon_a"] == "katana"
     assert config["weapon_b"] == "shuriken"
-    assert int(config["seed"]) == 6666
+    assert int(config["seed"]) == 4
     assert int(config["max_simulation_seconds"]) == 120
