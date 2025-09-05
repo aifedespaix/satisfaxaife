@@ -22,6 +22,9 @@ class DummyView:
     def get_enemy(self, owner: EntityId) -> EntityId | None:  # noqa: D401
         return self._enemy
 
+    def get_team_color(self, eid: EntityId) -> tuple[int, int, int]:  # noqa: D401
+        return (int(eid), 0, 0)
+
     def get_weapon(self, eid: EntityId) -> object:  # pragma: no cover - unused
         raise NotImplementedError
 
@@ -30,6 +33,9 @@ class DummyView:
 
     def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:
         self.damage[eid] = self.damage.get(eid, 0.0) + damage.amount
+
+    def heal(self, eid: EntityId, amount: float, timestamp: float) -> None:  # noqa: D401
+        self.damage[eid] = self.damage.get(eid, 0.0) - amount
 
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:  # noqa: D401
         return None

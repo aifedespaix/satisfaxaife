@@ -39,6 +39,9 @@ class WorldView(Protocol):
     def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:
         """Apply ``damage`` to ``eid`` at the given ``timestamp``."""
 
+    def heal(self, eid: EntityId, amount: float, timestamp: float) -> None:
+        """Restore ``amount`` health to ``eid`` at the given ``timestamp``."""
+
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:
         """Apply an impulse to the entity's body.
 

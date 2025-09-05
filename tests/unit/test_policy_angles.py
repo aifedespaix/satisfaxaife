@@ -32,7 +32,13 @@ class DummyView(WorldView):
     def get_health_ratio(self, eid: EntityId) -> float:  # noqa: D401
         return 1.0
 
+    def get_team_color(self, eid: EntityId) -> tuple[int, int, int]:  # noqa: D401
+        return (int(eid), 0, 0)
+
     def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:  # noqa: D401
+        return
+
+    def heal(self, eid: EntityId, amount: float, timestamp: float) -> None:  # noqa: D401
         return
 
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:  # noqa: D401

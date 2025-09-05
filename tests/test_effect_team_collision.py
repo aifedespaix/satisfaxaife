@@ -53,8 +53,9 @@ def test_effect_hits_enemy() -> None:
     assert player_b.ball.health == 90.0
 
 
-def test_effect_skips_ally() -> None:
+def test_effect_heals_ally() -> None:
     controller, player_a, player_b = _setup_players(team_b=0)
+    player_b.ball.health = 90.0
     eff = DummyEffect(player_a.eid)
     controller.effects.append(cast(Any, eff))
     controller._resolve_effect_hits(0.0)

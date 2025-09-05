@@ -21,6 +21,12 @@ class _NoopView:
     ) -> None:  # pragma: no cover - not used
         pass
 
+    def heal(self, eid: EntityId, amount: float, timestamp: float) -> None:  # pragma: no cover - not used
+        pass
+
+    def get_team_color(self, eid: EntityId) -> tuple[int, int, int]:  # pragma: no cover - simple
+        return (0, 0, 0)
+
     def apply_impulse(
         self, eid: EntityId, vx: float, vy: float
     ) -> None:  # pragma: no cover - not used

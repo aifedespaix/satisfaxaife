@@ -35,8 +35,14 @@ class StubWorldView(WorldView):
     def get_health_ratio(self, eid: EntityId) -> float:  # pragma: no cover - unused
         return 1.0
 
+    def get_team_color(self, eid: EntityId) -> tuple[int, int, int]:  # pragma: no cover - simple
+        return (int(eid), 0, 0)
+
     def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:
         self.ball.take_damage(damage)
+
+    def heal(self, eid: EntityId, amount: float, timestamp: float) -> None:  # pragma: no cover - unused
+        self.ball.heal(amount)
 
     def apply_impulse(
         self, eid: EntityId, vx: float, vy: float

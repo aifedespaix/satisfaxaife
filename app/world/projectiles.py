@@ -131,8 +131,14 @@ class Projectile(WeaponEffect):
             # Returning ``True`` keeps the projectile alive without side effects.
             return True
 
+        owner_color = view.get_team_color(self.owner)
+        target_color = view.get_team_color(target)
         mult = critical_multiplier(view, self.owner)
-        view.deal_damage(target, Damage(self.damage.amount * mult), timestamp)
+        amount = self.damage.amount * mult
+        if owner_color == target_color:
+            view.heal(target, amount, timestamp)
+        else:
+            view.deal_damage(target, Damage(amount), timestamp)
         if self.audio is not None:
             self.audio.on_touch(timestamp)
         target_pos = view.get_position(target)
