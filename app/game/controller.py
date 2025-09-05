@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from enum import Enum
@@ -404,13 +405,9 @@ class GameController:
         if len(alive_teams) != 1:
             return False
         self.winner_team = next(iter(alive_teams))
-        winner_player = next(
-            p for p in self.players if p.alive and p.team == self.winner_team
-        )
+        winner_player = next(p for p in self.players if p.alive and p.team == self.winner_team)
         self.winner = winner_player.eid
-        self.winner_weapon = (
-            self.weapon_a if self.winner_team == TeamId(0) else self.weapon_b
-        )
+        self.winner_weapon = self.weapon_a if self.winner_team == TeamId(0) else self.weapon_b
         self.death_ts = current_time + settings.dt
         return True
 
@@ -556,10 +553,14 @@ class GameController:
             if settings.show_eyes:
                 self.renderer.draw_eyes(pos, gaze, radius, p.color)
         self.renderer.draw_impacts()
-        self.renderer.update_hp(
-            self.players[0].ball.health / self.players[0].ball.stats.max_health,
-            self.players[1].ball.health / self.players[1].ball.stats.max_health,
-        )
+        current_hp: defaultdict[TeamId, float] = defaultdict(float)
+        max_hp: defaultdict[TeamId, float] = defaultdict(float)
+        for p in self.players:
+            current_hp[p.team] += p.ball.health
+            max_hp[p.team] += p.ball.stats.max_health
+        hp_a = current_hp[TeamId(0)] / max_hp[TeamId(0)] if max_hp[TeamId(0)] else 0.0
+        hp_b = current_hp[TeamId(1)] / max_hp[TeamId(1)] if max_hp[TeamId(1)] else 0.0
+        self.renderer.update_hp(hp_a, hp_b)
         self.hud.draw_title(self.renderer.surface, settings.hud.title)
         self.renderer.draw_hp(self.renderer.surface, self.hud, self.labels)
         self.hud.draw_watermark(self.renderer.surface, settings.hud.watermark)
