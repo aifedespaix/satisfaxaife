@@ -451,8 +451,15 @@ class GameController:
             if isinstance(eff, Projectile):
                 continue
             owner = getattr(eff, "owner", None)
+            owner_team = (
+                next((pl.team for pl in self.players if pl.eid == owner), None)
+                if owner is not None
+                else None
+            )
             for p in self.players:
-                if p.eid == owner or not p.alive:
+                if p.eid == owner or not p.alive or (
+                    owner_team is not None and p.team == owner_team
+                ):
                     continue
                 pos = (
                     float(p.ball.body.position.x),

@@ -257,6 +257,10 @@ class PhysicsWorld:
             # Skip self-collisions so a deflected projectile cannot immediately
             # hit its new owner.
             return False
+        owner_color = view.get_team_color(projectile.owner)
+        if view.get_team_color(ball.eid) == owner_color:
+            # Ignore collisions with allied players.
+            return False
 
         weapon = view.get_weapon(ball.eid)
         if getattr(weapon, "range_type", "contact") != "contact":
