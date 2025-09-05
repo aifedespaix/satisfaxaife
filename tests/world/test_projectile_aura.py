@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import cast
 
 from app.core.types import Damage, EntityId
-from app.world.physics import PhysicsWorld
-from app.world.projectiles import Projectile
 from app.render.renderer import Renderer
 from app.weapons.base import WorldView
+from app.world.physics import PhysicsWorld
+from app.world.projectiles import Projectile
 
 
 class DummyRenderer:

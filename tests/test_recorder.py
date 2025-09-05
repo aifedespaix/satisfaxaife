@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-import imageio
 import numpy as np
 from pytest import CaptureFixture, LogCaptureFixture
 
+import imageio
 from app.video.recorder import NullRecorder, Recorder
 
 

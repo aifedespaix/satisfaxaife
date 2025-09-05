@@ -165,6 +165,20 @@ uv run python -m app.cli batch \
 - **FPS / résolution** : ajuster `canvas` dans `app/config.json`.
 - **Seeds** : `config.yml` peut contenir `seed: 42` pour un combat unique ou `seeds: [1, 2, 3]` pour générer plusieurs vidéos l'une après l'autre.
 
+### Taille des équipes
+
+Les paramètres `team_a_count` et `team_b_count` dans `config.yml` contrôlent le nombre de joueurs par camp. La valeur par défaut `1` correspond à un duel classique.
+
+```yaml
+# Match 2v2
+team_a_count: 2
+team_b_count: 2
+
+# Match 1v2
+team_a_count: 1
+team_b_count: 2
+```
+
 ## 🎬 Intro animation
 
 Avant chaque match, une courte séquence présente les armes en jeu.

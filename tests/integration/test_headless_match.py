@@ -3,9 +3,9 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-import imageio_ffmpeg
 import pytest
 
+import imageio_ffmpeg
 from app.core.config import settings
 from app.game.match import MatchTimeout, run_match
 from app.render.renderer import Renderer

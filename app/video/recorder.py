@@ -6,9 +6,10 @@ import wave
 from pathlib import Path
 from typing import Protocol
 
+import numpy as np
+
 import imageio
 import imageio_ffmpeg
-import numpy as np
 
 logger = logging.getLogger(__name__)
 

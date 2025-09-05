@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pytest
-
 from app.world.entities import Ball
 from app.world.physics import PhysicsWorld, _resolve_ball_collision
 
