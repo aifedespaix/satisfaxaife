@@ -16,6 +16,18 @@ def _sanitize(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9_-]", "_", name)
 
 
+def _build_final_path(temp_path: Path, winner: str | None, hp_ratio: float | None) -> Path:
+    """Return final video path with winner name and HP suffix."""
+    winner_name = _sanitize(winner) if winner is not None else "draw"
+    hp_suffix = ""
+    if hp_ratio is not None:
+        percent = int(round(max(0.0, min(1.0, hp_ratio)) * 100))
+        hp_suffix = f"-{percent:02d}"
+    return temp_path.with_name(
+        f"{temp_path.stem}-{winner_name}_win{hp_suffix}{temp_path.suffix}"
+    )
+
+
 def _load_run_defaults_from_yaml(path: Path = Path("config.yml")) -> dict[str, str | list[str]]:
     """Load simple key/value defaults from a YAML file.
 
@@ -135,6 +147,7 @@ def _run_single_match(
     renderer: Renderer
     temp_path: Path | None = None
     winner: str | None = None
+    winner_hp_ratio: float | None = None
     intro_config: IntroConfig | None = None
 
     if intro_weapons is not None:
@@ -178,6 +191,9 @@ def _run_single_match(
             raise typer.Exit(code=1) from None
         try:
             winner = controller.run()
+            get_ratio = getattr(controller, "get_winner_health_ratio", None)
+            if callable(get_ratio):
+                winner_hp_ratio = get_ratio()
         except MatchTimeout as exc:
             if not display and temp_path is not None and temp_path.exists():
                 final_path = temp_path.with_name(f"{temp_path.stem}-timeout{temp_path.suffix}")
@@ -189,8 +205,7 @@ def _run_single_match(
             raise typer.Exit(code=1) from None
 
     if not display and recorder.path is not None and temp_path is not None:
-        winner_name = _sanitize(winner) if winner is not None else "draw"
-        final_path = temp_path.with_name(f"{temp_path.stem}-{winner_name}_win{temp_path.suffix}")
+        final_path = _build_final_path(temp_path, winner, winner_hp_ratio)
         temp_path.rename(final_path)
         typer.echo(f"Saved video to {final_path}")
 

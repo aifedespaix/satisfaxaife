@@ -298,6 +298,19 @@ class GameController:
         finally:
             self._teardown(intro_elapsed)
 
+    def get_winner_health_ratio(self) -> float | None:
+        """Return remaining health ratio of the winning player.
+
+        The ratio is expressed between 0.0 and 1.0. ``None`` is returned if the
+        match ended without a winner or if the winner cannot be determined.
+        """
+        if self.winner is None:
+            return None
+        for player in self.players:
+            if player.eid == self.winner:
+                return float(player.ball.health / player.ball.stats.max_health)
+        return None
+
     def _run_intro(self, ball_positions: tuple[Vec2, Vec2]) -> float:
         """Play the intro sequence and return its duration."""
         intro_elapsed = 0.0
