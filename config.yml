@@ -1,4 +1,6 @@
 weapon_a: katana
+team_a_count: 2
+team_b_count: 2
 weapon_b: knife
 max_simulation_seconds: 120
 seeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
@@ -6,9 +8,7 @@ seeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 ai_transition_seconds: 20
 debug: false
 # Number of players on team A. Set to 2 for a 2v2 match.
-team_a_count: 1
 # Number of players on team B. Set to 2 for a 2v2 or 1 for 1v2.
-team_b_count: 1
 # Example configurations:
 #   2v2 -> team_a_count: 2, team_b_count: 2
 #   1v2 -> team_a_count: 1, team_b_count: 2
