@@ -12,7 +12,7 @@ import pytest
 
 from app.ai.stateful_policy import StatefulPolicy
 from app.audio import AudioEngine, BallAudio
-from app.core.types import EntityId
+from app.core.types import EntityId, TeamId
 from app.game.controller import GameController, MatchTimeout, Player
 from app.intro import IntroManager
 from app.render.hud import Hud
@@ -90,7 +90,7 @@ def _make_player(eid: int) -> Player:
     weapon = cast(Weapon, DummyWeapon())
     policy = cast(StatefulPolicy, DummyPolicy())
     audio = cast(BallAudio, DummyBallAudio())
-    return Player(EntityId(eid), ball, weapon, policy, (1.0, 0.0), (0, 0, 0), audio)
+    return Player(EntityId(eid), ball, weapon, policy, (1.0, 0.0), (0, 0, 0), TeamId(eid % 2), audio)
 
 
 def test_logs_each_second(

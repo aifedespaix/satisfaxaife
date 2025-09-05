@@ -8,7 +8,7 @@ import pytest
 from app.ai.stateful_policy import StatefulPolicy
 from app.audio import AudioEngine, BallAudio
 from app.core.config import settings
-from app.core.types import EntityId
+from app.core.types import EntityId, TeamId
 from app.game.controller import GameController, Player
 from app.intro import IntroManager
 from app.render.hud import Hud
@@ -90,7 +90,7 @@ def _make_player(accel: tuple[float, float], initial_velocity: tuple[float, floa
     weapon = cast(Weapon, DummyWeapon())
     policy = cast(StatefulPolicy, DummyPolicy(accel))
     audio = cast(BallAudio, DummyBallAudio())
-    return Player(EntityId(1), ball, weapon, policy, (1.0, 0.0), (0, 0, 0), audio)
+    return Player(EntityId(1), ball, weapon, policy, (1.0, 0.0), (0, 0, 0), TeamId(0), audio)
 
 
 def test_player_velocity_updates_from_acceleration() -> None:

@@ -4,7 +4,7 @@ from typing import Any, cast
 
 import pytest
 
-from app.core.types import EntityId
+from app.core.types import EntityId, TeamId
 from app.game.match import Player, _MatchView
 from app.world.entities import Ball
 from app.world.physics import PhysicsWorld
@@ -20,6 +20,7 @@ def test_apply_impulse_raises_for_unknown_entity() -> None:
         policy=cast(Any, object()),
         face=(1.0, 0.0),
         color=(255, 255, 255),
+        team=TeamId(0),
         audio=cast(Any, object()),
     )
     view = _MatchView([player], [], world, cast(Any, object()), cast(Any, object()))

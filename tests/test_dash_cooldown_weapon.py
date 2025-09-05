@@ -7,7 +7,7 @@ from typing import cast
 
 from app.ai.stateful_policy import StatefulPolicy
 from app.audio import BallAudio
-from app.core.types import Damage, EntityId
+from app.core.types import Damage, EntityId, TeamId
 from app.game.controller import Player
 from app.game.dash import Dash
 from app.weapons.base import Weapon
@@ -24,8 +24,8 @@ def test_dash_cooldown_depends_on_weapon_range() -> None:
     contact_weapon = Weapon("contact", 0.0, Damage(1.0), range_type="contact")
     distant_weapon = Weapon("distant", 0.0, Damage(1.0), range_type="distant")
 
-    contact_player = Player(EntityId(1), ball, contact_weapon, policy, (0.0, 0.0), (0, 0, 0), audio)
-    distant_player = Player(EntityId(2), ball, distant_weapon, policy, (0.0, 0.0), (0, 0, 0), audio)
+    contact_player = Player(EntityId(1), ball, contact_weapon, policy, (0.0, 0.0), (0, 0, 0), TeamId(0), audio)
+    distant_player = Player(EntityId(2), ball, distant_weapon, policy, (0.0, 0.0), (0, 0, 0), TeamId(1), audio)
 
     base = Dash().cooldown
     assert contact_player.dash.cooldown == base

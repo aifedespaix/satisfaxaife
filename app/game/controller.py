@@ -13,7 +13,7 @@ import pygame
 from app.ai.stateful_policy import StatefulPolicy
 from app.audio import AudioEngine, BallAudio
 from app.core.config import settings
-from app.core.types import Color, Damage, EntityId, ProjectileInfo, Vec2
+from app.core.types import Color, Damage, EntityId, ProjectileInfo, TeamId, Vec2
 from app.game.dash import RANGED_COOLDOWN_FACTOR, Dash
 from app.intro import IntroManager
 from app.render.hud import Hud
@@ -40,6 +40,7 @@ class Player:
     policy: StatefulPolicy
     face: Vec2
     color: Color
+    team: TeamId
     audio: BallAudio
     dash: Dash = field(default_factory=Dash)
     alive: bool = True
@@ -71,8 +72,9 @@ class _MatchView(WorldView):
         self.engine = engine
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:
+        owner_team = self._get_team(owner)
         for p in self.players:
-            if p.eid != owner and p.alive:
+            if p.alive and p.team != owner_team:
                 return p.eid
         return None
 
@@ -185,11 +187,22 @@ class _MatchView(WorldView):
         return proj
 
     def iter_projectiles(self, excluding: EntityId | None = None) -> Iterable[ProjectileInfo]:
+        excluding_team: TeamId | None = None
+        if excluding is not None:
+            excluding_team = self._get_team(excluding)
         for eff in self.effects:
-            if isinstance(eff, Projectile) and eff.owner != excluding:
+            if isinstance(eff, Projectile):
+                if excluding_team is not None and self._get_team(eff.owner) == excluding_team:
+                    continue
                 pos = (float(eff.body.position.x), float(eff.body.position.y))
                 vel = (float(eff.body.velocity.x), float(eff.body.velocity.y))
                 yield ProjectileInfo(eff.owner, pos, vel)
+
+    def _get_team(self, eid: EntityId) -> TeamId:
+        for p in self.players:
+            if p.eid == eid:
+                return p.team
+        raise KeyError(eid)
 
     def get_weapon(self, eid: EntityId) -> Weapon:
         for p in self.players:

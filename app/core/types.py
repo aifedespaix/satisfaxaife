@@ -39,3 +39,4 @@ class ProjectileInfo:
 
 
 WeaponFactory = NewType("WeaponFactory", object)
+TeamId = NewType("TeamId", int)
