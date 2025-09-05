@@ -4,9 +4,10 @@ import random
 from pathlib import Path
 
 from app.ai.stateful_policy import policy_for_weapon
-from app.audio import BallAudio, get_default_engine
+from app.audio import AudioEngine, BallAudio, get_default_engine
 from app.core.config import settings
 from app.core.registry import UnknownWeaponError
+from app.core.types import Color
 from app.game.controller import (
     GameController,
     MatchTimeout,  # noqa: F401 - re-exported
@@ -29,6 +30,46 @@ __all__ = [
     "Player",
     "_MatchView",
 ]
+
+
+def _spawn_team(
+    world: PhysicsWorld,
+    *,
+    count: int,
+    x: float,
+    weapon_name: str,
+    enemy_weapon_name: str,
+    face: tuple[float, float],
+    color: Color,
+    engine: AudioEngine,
+    ai_transition_seconds: int,
+    rng: random.Random,
+) -> list[Player]:
+    """Spawn ``count`` players for one team on the vertical axis."""
+
+    step = settings.height / float(count + 1)
+    players: list[Player] = []
+    for idx in range(count):
+        y = step * float(idx + 1)
+        ball = Ball.spawn(world, (x, y))
+        weapon = weapon_registry.create(weapon_name)
+        policy_rng = random.Random(rng.randint(0, 2**63 - 1))
+        player = Player(
+            ball.eid,
+            ball,
+            weapon,
+            policy_for_weapon(
+                weapon_name,
+                enemy_weapon_name,
+                ai_transition_seconds,
+                rng=policy_rng,
+            ),
+            face,
+            color,
+            BallAudio(engine=engine),
+        )
+        players.append(player)
+    return players
 
 
 def create_controller(
@@ -71,42 +112,46 @@ def create_controller(
     hud = Hud(settings.theme)
 
     rng = rng or random.Random(random.randint(0, 2**63 - 1))
-    rng_a = random.Random(rng.randint(0, 2**63 - 1))
-    rng_b = random.Random(rng.randint(0, 2**63 - 1))
-
-    ball_a = Ball.spawn(world, (settings.width * 0.25, settings.height * 0.5))
-    ball_b = Ball.spawn(world, (settings.width * 0.75, settings.height * 0.5))
 
     try:
-        weapon_a_obj = weapon_registry.create(weapon_a)
+        weapon_registry.factory(weapon_a)
     except UnknownWeaponError as exc:
         raise UnknownWeaponError(exc.name, exc.available) from None
 
     try:
-        weapon_b_obj = weapon_registry.create(weapon_b)
+        weapon_registry.factory(weapon_b)
     except UnknownWeaponError as exc:
         raise UnknownWeaponError(exc.name, exc.available) from None
 
-    players = [
-        Player(
-            ball_a.eid,
-            ball_a,
-            weapon_a_obj,
-            policy_for_weapon(weapon_a, weapon_b, ai_transition_seconds, rng=rng_a),
-            (1.0, 0.0),
-            settings.theme.team_a.primary,
-            BallAudio(engine=engine),
-        ),
-        Player(
-            ball_b.eid,
-            ball_b,
-            weapon_b_obj,
-            policy_for_weapon(weapon_b, weapon_a, ai_transition_seconds, rng=rng_b),
-            (-1.0, 0.0),
-            settings.theme.team_b.primary,
-            BallAudio(engine=engine),
-        ),
-    ]
+    players: list[Player] = []
+    players.extend(
+        _spawn_team(
+            world,
+            count=settings.team_a_count,
+            x=settings.width * 0.25,
+            weapon_name=weapon_a,
+            enemy_weapon_name=weapon_b,
+            face=(1.0, 0.0),
+            color=settings.theme.team_a.primary,
+            engine=engine,
+            ai_transition_seconds=ai_transition_seconds,
+            rng=rng,
+        )
+    )
+    players.extend(
+        _spawn_team(
+            world,
+            count=settings.team_b_count,
+            x=settings.width * 0.75,
+            weapon_name=weapon_b,
+            enemy_weapon_name=weapon_a,
+            face=(-1.0, 0.0),
+            color=settings.theme.team_b.primary,
+            engine=engine,
+            ai_transition_seconds=ai_transition_seconds,
+            rng=rng,
+        )
+    )
 
     intro_config = intro_config or IntroConfig()
     weapons_dir = Path(__file__).resolve().parents[2] / "assets" / "weapons"

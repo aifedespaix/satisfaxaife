@@ -65,6 +65,8 @@ class Settings(BaseModel):  # type: ignore[misc]
     ball_color: Color = (220, 220, 220)
     show_eyes: bool = True  # Render eyes on balls when ``True``.
     physics_substeps: int = Field(default=4, ge=1)  # Physics integration substeps
+    team_a_count: int = Field(default=1, ge=1)  # Number of balls for team A
+    team_b_count: int = Field(default=1, ge=1)  # Number of balls for team B
 
     @property
     def width(self) -> int:
