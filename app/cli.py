@@ -141,7 +141,12 @@ def _run_single_match(  # noqa: C901
     from app.game.match import create_controller
     from app.intro.config import IntroConfig, set_intro_weapons
     from app.render.renderer import Renderer
-    from app.video.recorder import NullRecorder, Recorder, RecorderProtocol
+    from app.video.recorder import (
+        NullRecorder,
+        Recorder,
+        RecorderProtocol,
+        VideoMuxingError,
+    )
     from app.weapons import weapon_registry
 
     random.seed(seed)
@@ -180,6 +185,7 @@ def _run_single_match(  # noqa: C901
             renderer = Renderer(settings.width, settings.height, debug=debug_flag)
 
         timed_out = False
+        mux_failed = False
         try:
             controller = create_controller(
                 weapon_a,
@@ -203,16 +209,23 @@ def _run_single_match(  # noqa: C901
         except MatchTimeout as exc:
             timed_out = True
             if not display and temp_path is not None and temp_path.exists():
-                final_path = temp_path.with_name(f"{temp_path.stem}-timeout{temp_path.suffix}")
+                final_path = temp_path.with_name(
+                    f"{temp_path.stem}-timeout{temp_path.suffix}"
+                )
                 temp_path.rename(final_path)
                 typer.echo(f"Match timed out: {exc}", err=True)
                 typer.echo(f"Saved video to {final_path}")
             else:
                 typer.echo(f"Match timed out: {exc}", err=True)
+        except VideoMuxingError as exc:
+            mux_failed = True
+            if temp_path is not None and temp_path.exists():
+                temp_path.unlink()
+            typer.echo(f"Video muxing failed: {exc}", err=True)
         finally:
             reset_default_engine()
 
-    if timed_out:
+    if timed_out or mux_failed:
         return False
 
     if not display and recorder.path is not None and temp_path is not None:
@@ -317,7 +330,7 @@ def batch(
     from app.game.controller import MatchTimeout
     from app.game.match import create_controller
     from app.render.renderer import Renderer
-    from app.video.recorder import Recorder
+    from app.video.recorder import Recorder, VideoMuxingError
     from app.weapons import weapon_registry
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -354,6 +367,10 @@ def batch(
                 if temp_path.exists():
                     temp_path.unlink()
                 typer.echo(f"Match {seed} timed out: {exc}", err=True)
+            except VideoMuxingError as exc:
+                if temp_path.exists():
+                    temp_path.unlink()
+                typer.echo(f"Video muxing failed: {exc}", err=True)
             else:
                 winner_name = _sanitize(winner) if winner is not None else "draw"
                 final_path = temp_path.with_name(

@@ -14,6 +14,10 @@ import imageio_ffmpeg
 logger = logging.getLogger(__name__)
 
 
+class VideoMuxingError(RuntimeError):
+    """Raised when combining video and audio streams fails."""
+
+
 class RecorderProtocol(Protocol):
     """Minimal interface required from a video recorder.
 
@@ -64,7 +68,20 @@ class Recorder(RecorderProtocol):
             logger.debug("Recorded %s second(s) of video", seconds)
 
     def close(self, audio: np.ndarray | None = None, rate: int = 48_000) -> None:
-        """Finalize the video and optionally mux an audio track."""
+        """Finalize the video and optionally mux an audio track.
+
+        Parameters
+        ----------
+        audio:
+            PCM samples to mux alongside the video.
+        rate:
+            Sampling rate of ``audio`` in Hertz.
+
+        Raises
+        ------
+        VideoMuxingError
+            If ``ffmpeg`` fails to combine audio and video streams.
+        """
         self.writer.close()
         if self._format != "mp4":
             return
@@ -94,7 +111,13 @@ class Recorder(RecorderProtocol):
             "-shortest",
             str(self.path),
         ]
-        subprocess.run(cmd, check=True, capture_output=True)
+        try:
+            subprocess.run(cmd, check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError as exc:
+            logger.error("ffmpeg muxing failed: %s", exc.stderr)
+            self._video_path.unlink(missing_ok=True)
+            audio_path.unlink(missing_ok=True)
+            raise VideoMuxingError(exc.stderr) from exc
         self._video_path.unlink(missing_ok=True)
         audio_path.unlink(missing_ok=True)
 
