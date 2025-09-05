@@ -28,4 +28,4 @@ def test_default_hud_title() -> None:
 
 def test_default_victory_text() -> None:
     default_settings = config.Settings()
-    assert default_settings.end_screen.victory_text == "Victory : {weapon}"
+    assert default_settings.end_screen.victory_text == "Victory : {team}"

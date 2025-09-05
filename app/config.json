@@ -7,8 +7,8 @@
     },
     "hud": {"title": "", "watermark": ""},
     "end_screen": {
-        "victory_text": "Victory : {weapon}",
-        "subtitle_text": "{weapon} wins!",
+        "victory_text": "Victory : {team}",
+        "subtitle_text": "{team} wins!",
         "explosion_duration": 2.0,
         "pre_s": 1.0,
         "post_s": 1.0,

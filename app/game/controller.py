@@ -283,6 +283,7 @@ class GameController:
         self.elapsed = 0.0
         self._next_log_second = 1
         self.winner: EntityId | None = None
+        self.winner_team: TeamId | None = None
         self.winner_weapon: str | None = None
         # Absolute timestamp (including intro) when the fatal hit occurred.
         self.death_ts: float | None = None
@@ -341,27 +342,12 @@ class GameController:
 
     def _run_match_loop(self, intro_elapsed: float) -> None:
         """Run the core match loop until a winner or timeout."""
-        while len([p for p in self.players if p.alive]) >= 2 and self.elapsed < self.max_seconds:
+        while len(self._alive_teams()) >= 2 and self.elapsed < self.max_seconds:
             current_time = intro_elapsed + self.elapsed
-            for event in pygame.event.get():
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_LSHIFT:
-                    self.players[0].dash.start(self.players[0].face, current_time)
-            self._update_players(current_time)
-            self._step_effects()
-            self._deflect_projectiles(current_time)
-            self.world.set_context(self.view, current_time)
-            self.world.step(settings.dt, settings.physics_substeps)
-            for p in self.players:
-                if p.alive:
-                    self._resolve_dash_collision(p, current_time)
-            self._resolve_effect_hits(current_time)
-            self._render_frame()
-            self._capture_frame()
+            self._process_events(current_time)
+            self._step_simulation(current_time)
 
-            alive = [p for p in self.players if p.alive]
-            if len(alive) == 1:
-                self.winner = alive[0].eid
-                self.death_ts = current_time + settings.dt
+            if self._determine_winner(self._alive_teams(), current_time):
                 break
 
             self.elapsed += settings.dt
@@ -369,12 +355,57 @@ class GameController:
                 logger.info("Simulation time: %d s", self._next_log_second)
                 self._next_log_second += 1
 
-        if self.winner is not None:
+        if self.winner_team is None:
+            self._determine_winner(self._alive_teams(), intro_elapsed + self.elapsed)
+
+        if self.winner_team is not None:
             self._play_winner_sequence()
             return
-        if len([p for p in self.players if p.alive]) >= 2 and self.elapsed >= self.max_seconds:
+        if len(self._alive_teams()) >= 2 and self.elapsed >= self.max_seconds:
             raise MatchTimeout(f"Match exceeded {self.max_seconds} seconds")
         self.phase = Phase.FINISHED
+
+    def _alive_teams(self) -> set[TeamId]:
+        """Return identifiers of teams with at least one living player."""
+        return {p.team for p in self.players if p.alive}
+
+    def _process_events(self, current_time: float) -> None:
+        """Handle user input events."""
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_LSHIFT:
+                self.players[0].dash.start(self.players[0].face, current_time)
+
+    def _step_simulation(self, current_time: float) -> None:
+        """Advance world state by one tick."""
+        self._update_players(current_time)
+        self._step_effects()
+        self._deflect_projectiles(current_time)
+        self.world.set_context(self.view, current_time)
+        self.world.step(settings.dt, settings.physics_substeps)
+        for p in self.players:
+            if p.alive:
+                self._resolve_dash_collision(p, current_time)
+        self._resolve_effect_hits(current_time)
+        self._render_frame()
+        self._capture_frame()
+
+    def _determine_winner(self, alive_teams: set[TeamId], current_time: float) -> bool:
+        """Resolve match outcome when ``alive_teams`` contains a single team.
+
+        Returns ``True`` if a winner was set.
+        """
+        if len(alive_teams) != 1:
+            return False
+        self.winner_team = next(iter(alive_teams))
+        winner_player = next(
+            p for p in self.players if p.alive and p.team == self.winner_team
+        )
+        self.winner = winner_player.eid
+        self.winner_weapon = (
+            self.weapon_a if self.winner_team == TeamId(0) else self.weapon_b
+        )
+        self.death_ts = current_time + settings.dt
+        return True
 
     def _update_players(self, now: float) -> None:
         """Update player positions, dash and weapon state."""
@@ -539,51 +570,29 @@ class GameController:
         self.recorder.add_frame(np.swapaxes(frame, 0, 1))
 
     def _play_winner_sequence(self) -> None:
-        """Render the end screen animation for the winning player."""
+        """Render the end screen for the winning team."""
         for p in self.players:
             weapon_audio = getattr(p.weapon, "audio", None)
             if weapon_audio is not None:
                 weapon_audio.stop_idle(self.death_ts, disable=True)
-        for p in self.players:
             p.ball.body.velocity = (0.0, 0.0)
-        hp_a = max(
-            0.0,
-            self.players[0].ball.health / self.players[0].ball.stats.max_health,
+
+        if self.winner_team is None:
+            self.phase = Phase.FINISHED
+            return
+
+        win_color = (
+            settings.theme.team_a.primary
+            if self.winner_team == TeamId(0)
+            else settings.theme.team_b.primary
         )
-        hp_b = max(
-            0.0,
-            self.players[1].ball.health / self.players[1].ball.stats.max_health,
-        )
-        self.renderer.set_hp(hp_a, hp_b)
-        win_p = next(p for p in self.players if p.eid == self.winner)
-        lose_p = next(p for p in self.players if p.eid != self.winner)
-        self.winner_weapon = self.weapon_a if self.winner == self.players[0].eid else self.weapon_b
-        shrink_frames = int(settings.end_screen.explosion_duration * settings.fps)
-        win_pos = (
-            float(win_p.ball.body.position.x),
-            float(win_p.ball.body.position.y),
-        )
-        lose_pos = (
-            float(lose_p.ball.body.position.x),
-            float(lose_p.ball.body.position.y),
-        )
-        self.renderer.add_impact(lose_pos, duration=2.0)
-        for frame_index in range(max(1, shrink_frames)):
-            if frame_index > 0 and frame_index % 4 == 0:
-                self.renderer.add_impact(lose_pos, duration=2.0)
-            progress = (frame_index + 1) / max(1, shrink_frames)
+        team_name = "Team A" if self.winner_team == TeamId(0) else "Team B"
+        text = settings.end_screen.victory_text.format(team=team_name)
+        frames = int(settings.end_screen.explosion_duration * settings.fps)
+        for _ in range(max(1, frames)):
             self.renderer.clear()
-            lose_radius = int(lose_p.ball.shape.radius * (1.0 - progress))
-            if lose_radius > 0:
-                self.renderer.draw_ball(lose_pos, lose_radius, settings.ball_color, lose_p.color)
-            win_radius = int(win_p.ball.shape.radius)
-            self.renderer.draw_ball(win_pos, win_radius, settings.ball_color, win_p.color)
-            if settings.show_eyes:
-                self.renderer.draw_eyes(win_pos, win_p.face, win_radius, win_p.color)
-            self.renderer.draw_impacts()
-            self.renderer.draw_hp(self.renderer.surface, self.hud, self.labels)
-            self.hud.draw_title(self.renderer.surface, settings.hud.title)
-            self.hud.draw_watermark(self.renderer.surface, settings.hud.watermark)
+            self.renderer.surface.fill(win_color)
+            self.hud.draw_title(self.renderer.surface, text)
             self.renderer.present()
             self._capture_frame()
         self.phase = Phase.FINISHED
