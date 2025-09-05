@@ -54,9 +54,10 @@ def _install_typer_stub() -> None:
     sys.modules.pop("app.cli", None)
 
 
-def test_run_multiple_seeds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_continues_after_timeout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _install_typer_stub()
-    import app.cli as cli
+    import typer  # noqa: E402,I001
+    import app.cli as cli  # noqa: E402,I001
 
     captured: list[int] = []
 
@@ -71,7 +72,7 @@ def test_run_multiple_seeds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
         debug_flag: bool,
     ) -> bool:
         captured.append(seed)
-        return True
+        return seed != 1
 
     monkeypatch.setattr(cli, "_run_single_match", fake_run)
 
@@ -83,6 +84,8 @@ def test_run_multiple_seeds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     (tmp_path / "config.yml").write_text(config, encoding="utf-8")
     monkeypatch.chdir(tmp_path)
 
-    cli.run(display=True)
+    with pytest.raises(typer.Exit) as exc:
+        cli.run(display=True)
 
     assert captured == [1, 2]
+    assert exc.value.code == 1
