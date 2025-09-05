@@ -34,8 +34,8 @@ class HudConfig(BaseModel):  # type: ignore[misc]
 class EndScreenConfig(BaseModel):  # type: ignore[misc]
     """End screen behavior and texts."""
 
-    victory_text: str = "Victory : {weapon}"
-    subtitle_text: str = "{weapon} remporte le duel !"
+    victory_text: str = "Victory : {team}"
+    subtitle_text: str = "{team} remporte le duel !"
     explosion_duration: float = 2.0
     pre_s: float = 1.0
     post_s: float = 1.0
