@@ -116,7 +116,7 @@ def _resolve_run_parameters(
     return seeds, weapon_a, weapon_b, max_seconds, ai_transition_seconds, debug
 
 
-def _run_single_match(
+def _run_single_match(  # noqa: C901
     seed: int,
     weapon_a: str,
     weapon_b: str,
@@ -125,8 +125,13 @@ def _run_single_match(
     intro_weapons: tuple[str, str] | None,
     display: bool,
     debug_flag: bool,
-) -> None:
-    """Run a single match and write the resulting video to disk."""
+) -> bool:
+    """Run a single match and write the resulting video to disk.
+
+    Returns ``True`` if the match completed within ``max_seconds`` and ``False``
+    if a :class:`~app.game.controller.MatchTimeout` occurred. The caller may use
+    the boolean to decide whether to continue processing further seeds.
+    """
 
     from app.audio import reset_default_engine
     from app.audio.env import temporary_sdl_audio_driver
@@ -174,6 +179,7 @@ def _run_single_match(
             recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
             renderer = Renderer(settings.width, settings.height, debug=debug_flag)
 
+        timed_out = False
         try:
             controller = create_controller(
                 weapon_a,
@@ -195,6 +201,7 @@ def _run_single_match(
             if callable(get_ratio):
                 winner_hp_ratio = get_ratio()
         except MatchTimeout as exc:
+            timed_out = True
             if not display and temp_path is not None and temp_path.exists():
                 final_path = temp_path.with_name(f"{temp_path.stem}-timeout{temp_path.suffix}")
                 temp_path.rename(final_path)
@@ -202,14 +209,18 @@ def _run_single_match(
                 typer.echo(f"Saved video to {final_path}")
             else:
                 typer.echo(f"Match timed out: {exc}", err=True)
-            raise typer.Exit(code=1) from None
+        finally:
+            reset_default_engine()
+
+    if timed_out:
+        return False
 
     if not display and recorder.path is not None and temp_path is not None:
         final_path = _build_final_path(temp_path, winner, winner_hp_ratio)
         temp_path.rename(final_path)
         typer.echo(f"Saved video to {final_path}")
 
-    reset_default_engine()
+    return True
 
 
 @app.command()  # type: ignore[misc]
@@ -267,8 +278,9 @@ def run(
         debug,
     )
 
+    exit_code = 0
     for seed_val in seeds:
-        _run_single_match(
+        ok = _run_single_match(
             seed_val,
             weapon_a_res,
             weapon_b_res,
@@ -278,6 +290,10 @@ def run(
             display,
             debug_flag,
         )
+        if not ok:
+            exit_code = 1
+    if exit_code:
+        raise typer.Exit(code=exit_code)
 
 
 @app.command()  # type: ignore[misc]
