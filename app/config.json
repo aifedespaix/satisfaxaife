@@ -15,5 +15,7 @@
         "slow_factor": 0.5
     },
     "show_eyes": true,
-    "physics_substeps": 4
+    "physics_substeps": 4,
+    "team_a_count": 1,
+    "team_b_count": 1
 }
