@@ -298,8 +298,16 @@ class GameController:
         self.labels = (self.weapon_a.capitalize(), self.weapon_b.capitalize())
 
     def run(self) -> str | None:
-        """Execute the match and return the winning weapon, if any."""
+        """Execute the match and return the winning weapon, if any.
+
+        Any exception raised during ``_run_match_loop`` is re-raised after the
+        teardown stage has executed. If teardown itself fails, the error is
+        logged and only propagated when no previous exception occurred.
+        """
+
         intro_elapsed = 0.0
+        result: str | None = None
+        error: Exception | None = None
         try:
             if not self.display:
                 self.engine.start_capture()
@@ -316,9 +324,19 @@ class GameController:
             intro_elapsed = self._run_intro(ball_positions)
             self.phase = Phase.RUNNING
             self._run_match_loop(intro_elapsed)
-            return self.winner_weapon
+            result = self.winner_weapon
+        except Exception as exc:  # pragma: no cover - exercised via tests
+            error = exc
         finally:
-            self._teardown(intro_elapsed)
+            try:
+                self._teardown(intro_elapsed)
+            except Exception as teardown_err:  # pragma: no cover - exercised via tests
+                logger.exception("Error during teardown")
+                if error is None:
+                    raise teardown_err
+        if error is not None:
+            raise error
+        return result
 
     def get_winner_health_ratio(self) -> float | None:
         """Return remaining health ratio of the winning player.
