@@ -6,7 +6,7 @@ from typing import Any, cast
 
 from app.ai.stateful_policy import StatefulPolicy
 from app.audio import AudioEngine, BallAudio
-from app.core.types import EntityId
+from app.core.types import EntityId, TeamId
 from app.game.controller import GameController, Player
 from app.intro import IntroManager
 from app.render.hud import Hud
@@ -103,7 +103,7 @@ def _make_player() -> Player:
     weapon = cast(Weapon, DummyWeapon())
     policy = cast(StatefulPolicy, DummyPolicy())
     audio = cast(BallAudio, DummyBallAudio())
-    return Player(EntityId(1), ball, weapon, policy, (1.0, 0.0), (0, 0, 0), audio)
+    return Player(EntityId(1), ball, weapon, policy, (1.0, 0.0), (0, 0, 0), TeamId(0), audio)
 
 
 def test_dash_triggers_sound() -> None:

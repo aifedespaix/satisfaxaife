@@ -9,7 +9,7 @@ from typing import Any, cast
 from app.audio import AudioEngine, reset_default_engine
 from app.audio.balls import BallAudio
 from app.audio.weapons import WeaponAudio
-from app.core.types import Color, Damage, EntityId, Vec2
+from app.core.types import Color, Damage, EntityId, TeamId, Vec2
 from app.game.match import Player, _MatchView
 from app.world.entities import Ball
 from app.world.physics import PhysicsWorld
@@ -56,6 +56,7 @@ def test_idle_sound_truncated_on_death() -> None:
         policy=cast(Any, DummyPolicy()),
         face=(1.0, 0.0),
         color=(255, 255, 255),
+        team=TeamId(0),
         audio=BallAudio(engine=engine),
     )
     renderer = cast(Any, StubRenderer())

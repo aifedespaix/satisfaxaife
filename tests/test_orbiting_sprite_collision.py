@@ -9,8 +9,8 @@ from tests.helpers import make_controller, make_player
 
 def test_orbiting_sprite_hits_enemy() -> None:
     pygame.init()
-    player_a = make_player(1, 0.0)
-    player_b = make_player(2, 60.0)
+    player_a = make_player(1, 0.0, team=0)
+    player_b = make_player(2, 60.0, team=1)
     controller = make_controller(player_a, player_b)
     sprite = pygame.Surface((10, 10))
     blade = OrbitingSprite(

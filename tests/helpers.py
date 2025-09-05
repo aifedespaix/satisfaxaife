@@ -9,7 +9,7 @@ import pygame
 
 from app.ai.stateful_policy import StatefulPolicy
 from app.audio import BallAudio
-from app.core.types import Damage, EntityId, ProjectileInfo, Vec2
+from app.core.types import Damage, EntityId, ProjectileInfo, TeamId, Vec2
 from app.game.controller import GameController, Player
 from app.weapons.base import Weapon, WeaponEffect, WorldView
 from app.world.entities import Ball
@@ -150,14 +150,23 @@ class DummyBall:
         return self.health <= 0
 
 
-def make_player(eid: int, x: float) -> Player:
+def make_player(eid: int, x: float, team: int = 0) -> Player:
     """Return a :class:`Player` positioned at ``x`` with inert weapon."""
 
     ball = cast(Ball, DummyBall(x))
     weapon = cast(Weapon, DummyWeapon())
     policy = cast(StatefulPolicy, DummyPolicy())
     audio = cast(BallAudio, DummyBallAudio())
-    return Player(EntityId(eid), ball, weapon, policy, (1.0, 0.0), (0, 0, 0), audio)
+    return Player(
+        EntityId(eid),
+        ball,
+        weapon,
+        policy,
+        (1.0, 0.0),
+        (0, 0, 0),
+        TeamId(team),
+        audio,
+    )
 
 
 def make_controller(player_a: Player, player_b: Player) -> GameController:

@@ -7,7 +7,7 @@ from app.ai.stateful_policy import policy_for_weapon
 from app.audio import AudioEngine, BallAudio, get_default_engine
 from app.core.config import settings
 from app.core.registry import UnknownWeaponError
-from app.core.types import Color
+from app.core.types import Color, TeamId
 from app.game.controller import (
     GameController,
     MatchTimeout,  # noqa: F401 - re-exported
@@ -41,6 +41,7 @@ def _spawn_team(
     enemy_weapon_name: str,
     face: tuple[float, float],
     color: Color,
+    team: TeamId,
     engine: AudioEngine,
     ai_transition_seconds: int,
     rng: random.Random,
@@ -66,6 +67,7 @@ def _spawn_team(
             ),
             face,
             color,
+            team,
             BallAudio(engine=engine),
         )
         players.append(player)
@@ -133,6 +135,7 @@ def create_controller(
             enemy_weapon_name=weapon_b,
             face=(1.0, 0.0),
             color=settings.theme.team_a.primary,
+            team=TeamId(0),
             engine=engine,
             ai_transition_seconds=ai_transition_seconds,
             rng=rng,
@@ -147,6 +150,7 @@ def create_controller(
             enemy_weapon_name=weapon_a,
             face=(-1.0, 0.0),
             color=settings.theme.team_b.primary,
+            team=TeamId(1),
             engine=engine,
             ai_transition_seconds=ai_transition_seconds,
             rng=rng,

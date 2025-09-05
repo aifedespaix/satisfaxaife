@@ -83,9 +83,9 @@ from tests.helpers import make_controller, make_player  # noqa: E402
 def test_bazooka_effect_respawns(enemy_x: float) -> None:
     weapon = Bazooka()
     weapon._timer = 1.0  # prevent automatic firing during the test
-    player_a = make_player(1, 0.0)
+    player_a = make_player(1, 0.0, team=0)
     player_a.weapon = weapon
-    player_b = make_player(2, enemy_x)
+    player_b = make_player(2, enemy_x, team=1)
 
     class _Policy:
         def decide(
