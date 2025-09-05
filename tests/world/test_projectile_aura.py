@@ -30,6 +30,9 @@ class DummyView:
     def get_team_color(self, owner: EntityId) -> tuple[int, int, int]:
         return (1, 2, 3)
 
+    def heal(self, eid: EntityId, amount: float, timestamp: float) -> None:  # pragma: no cover - unused
+        return None
+
 
 def test_projectile_sprite_has_aura() -> None:
     world = PhysicsWorld()

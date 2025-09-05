@@ -125,8 +125,14 @@ class OrbitingSprite(WeaponEffect):
         last = self.hit_times.get(target)
         if last is not None and timestamp - last < 0.1:
             return True
+        owner_color = view.get_team_color(self.owner)
+        target_color = view.get_team_color(target)
         mult = critical_multiplier(view, self.owner)
-        view.deal_damage(target, Damage(self.damage.amount * mult), timestamp)
+        amount = self.damage.amount * mult
+        if owner_color == target_color:
+            view.heal(target, amount, timestamp)
+        else:
+            view.deal_damage(target, Damage(amount), timestamp)
         blade_pos = self._position(view)
         target_pos = view.get_position(target)
         dx = target_pos[0] - blade_pos[0]
@@ -224,8 +230,14 @@ class OrbitingRectangle(WeaponEffect):
         last = self.hit_times.get(target)
         if last is not None and timestamp - last < 0.1:
             return True
+        owner_color = view.get_team_color(self.owner)
+        target_color = view.get_team_color(target)
         mult = critical_multiplier(view, self.owner)
-        view.deal_damage(target, Damage(self.damage.amount * mult), timestamp)
+        amount = self.damage.amount * mult
+        if owner_color == target_color:
+            view.heal(target, amount, timestamp)
+        else:
+            view.deal_damage(target, Damage(amount), timestamp)
         blade_pos = self._center(view)
         target_pos = view.get_position(target)
         dx = target_pos[0] - blade_pos[0]
@@ -310,7 +322,13 @@ class GravityWellEffect(WeaponEffect):
         last = self._last_hit.get(target, timestamp)
         delta = timestamp - last
         if delta > 0.0:
-            view.deal_damage(target, Damage(self.damage_per_second * delta), timestamp)
+            owner_color = view.get_team_color(self.owner)
+            target_color = view.get_team_color(target)
+            amount = self.damage_per_second * delta
+            if owner_color == target_color:
+                view.heal(target, amount, timestamp)
+            else:
+                view.deal_damage(target, Damage(amount), timestamp)
         self._last_hit[target] = timestamp
         return True
 
@@ -357,8 +375,14 @@ class ResonanceWaveEffect(WeaponEffect):
 
     def on_hit(self, view: WorldView, target: EntityId, timestamp: float) -> bool:
         """Apply amplified damage to ``target``."""
+        owner_color = view.get_team_color(self.owner)
+        target_color = view.get_team_color(target)
         mult = critical_multiplier(view, self.owner)
-        view.deal_damage(target, Damage(self.damage.amount * mult), timestamp)
+        amount = self.damage.amount * mult
+        if owner_color == target_color:
+            view.heal(target, amount, timestamp)
+        else:
+            view.deal_damage(target, Damage(amount), timestamp)
         return True
 
     def draw(self, renderer: Renderer, view: WorldView) -> None:

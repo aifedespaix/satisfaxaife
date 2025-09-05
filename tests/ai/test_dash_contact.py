@@ -30,9 +30,15 @@ class DummyView(WorldView):
     def get_health_ratio(self, eid: EntityId) -> float:  # pragma: no cover - unused
         return 1.0
 
+    def get_team_color(self, eid: EntityId) -> tuple[int, int, int]:  # pragma: no cover - simple
+        return (int(eid), 0, 0)
+
     def deal_damage(
         self, eid: EntityId, damage: Damage, timestamp: float
     ) -> None:  # pragma: no cover - unused
+        return None
+
+    def heal(self, eid: EntityId, amount: float, timestamp: float) -> None:  # pragma: no cover - unused
         return None
 
     def apply_impulse(

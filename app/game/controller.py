@@ -125,6 +125,13 @@ class _MatchView(WorldView):
                 self.renderer.trigger_hit_flash(p.color)
                 return
 
+    def heal(self, eid: EntityId, amount: float, timestamp: float) -> None:
+        """Restore health to ``eid`` without exceeding its maximum."""
+        for p in self.players:
+            if p.eid == eid and p.alive:
+                p.ball.heal(amount)
+                return
+
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:
         """Apply a physics impulse to ``eid``'s body.
 
@@ -414,6 +421,7 @@ class GameController:
         for other in self.players:
             if other.eid == p.eid or not other.alive:
                 continue
+            same_team = other.team == p.team
             pb = other.ball.body.position
             radii = float(p.ball.shape.radius + other.ball.shape.radius)
             dx = pb.x - pa.x
@@ -427,8 +435,11 @@ class GameController:
             )
             vx, vy = p.ball.body.velocity
             speed = sqrt(vx * vx + vy * vy)
-            scaled = Damage(p.dash.damage.amount * speed / p.dash.speed)
-            self.view.deal_damage(other.eid, scaled, now)
+            scaled_amount = p.dash.damage.amount * speed / p.dash.speed
+            if same_team:
+                self.view.heal(other.eid, scaled_amount, now)
+            else:
+                self.view.deal_damage(other.eid, Damage(scaled_amount), now)
             p.dash.has_hit = True
             return
 
@@ -451,15 +462,8 @@ class GameController:
             if isinstance(eff, Projectile):
                 continue
             owner = getattr(eff, "owner", None)
-            owner_team = (
-                next((pl.team for pl in self.players if pl.eid == owner), None)
-                if owner is not None
-                else None
-            )
             for p in self.players:
-                if p.eid == owner or not p.alive or (
-                    owner_team is not None and p.team == owner_team
-                ):
+                if p.eid == owner or not p.alive:
                     continue
                 pos = (
                     float(p.ball.body.position.x),

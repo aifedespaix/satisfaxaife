@@ -92,9 +92,15 @@ class ProjectileView:
     def get_health_ratio(self, eid: EntityId) -> float:  # pragma: no cover - unused
         return 1.0
 
+    def get_team_color(self, eid: EntityId) -> tuple[int, int, int]:  # pragma: no cover - simple
+        return (int(eid), 0, 0)
+
     def deal_damage(
         self, eid: EntityId, damage: Damage, timestamp: float
     ) -> None:  # pragma: no cover - unused
+        return None
+
+    def heal(self, eid: EntityId, amount: float, timestamp: float) -> None:  # pragma: no cover - unused
         return None
 
     def apply_impulse(
@@ -135,6 +141,12 @@ def test_katana_audio_events() -> None:
         def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:  # noqa: D401
             pass
 
+        def get_team_color(self, eid: EntityId) -> tuple[int, int, int]:  # noqa: D401
+            return (int(eid), 0, 0)
+
+        def heal(self, eid: EntityId, amount: float, timestamp: float) -> None:  # noqa: D401
+            pass
+
         def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:  # noqa: D401
             pass
 
@@ -163,6 +175,12 @@ def test_knife_audio_events() -> None:
             return (0.0, 0.0)
 
         def deal_damage(self, eid: EntityId, damage: Damage, timestamp: float) -> None:  # noqa: D401
+            pass
+
+        def get_team_color(self, eid: EntityId) -> tuple[int, int, int]:  # noqa: D401
+            return (int(eid), 0, 0)
+
+        def heal(self, eid: EntityId, amount: float, timestamp: float) -> None:  # noqa: D401
             pass
 
         def add_speed_bonus(self, eid: EntityId, bonus: float) -> None:  # noqa: D401

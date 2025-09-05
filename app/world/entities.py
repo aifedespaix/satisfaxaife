@@ -54,6 +54,10 @@ class Ball:
         self.health -= damage.amount
         return self.health <= 0
 
+    def heal(self, amount: float) -> None:
+        """Increase health by ``amount`` without exceeding ``max_health``."""
+        self.health = min(self.stats.max_health, self.health + amount)
+
     def cap_speed(self) -> None:
         """Limit the body's velocity to max speed."""
         vx, vy = self.body.velocity
