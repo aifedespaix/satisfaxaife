@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 
 import numpy as np
+import pytest
 from pytest import CaptureFixture, LogCaptureFixture
 
 import imageio
@@ -43,3 +44,44 @@ def test_recorder_logs_each_second(tmp_path: Path, caplog: LogCaptureFixture) ->
         "Recorded 2 second(s) of video",
         "Recorded 3 second(s) of video",
     ]
+
+
+class DummyFormatError(RuntimeError):
+    """Custom ``FormatError`` used for testing."""
+
+
+@pytest.mark.parametrize("exc", [OSError, DummyFormatError])
+def test_recorder_fallback_to_gif(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: LogCaptureFixture, exc: type[Exception]
+) -> None:
+    """Recorder falls back to GIF for expected errors."""
+
+    original_get_writer = imageio.get_writer
+    called = False
+
+    def failing_once(*args: object, **kwargs: object) -> imageio._Writer:
+        nonlocal called
+        if not called:
+            called = True
+            raise exc("boom")
+        return original_get_writer(*args, **kwargs)
+
+    monkeypatch.setattr(imageio, "get_writer", failing_once)
+    monkeypatch.setattr(imageio, "core", type("C", (), {"FormatError": DummyFormatError}))
+    with caplog.at_level(logging.WARNING, logger="app.video.recorder"):
+        recorder = Recorder(10, 10, 30, tmp_path / "out.mp4")
+    assert recorder.path.suffix == ".gif"
+    assert any(
+        r.exc_info and "boom" in str(r.exc_info[1]) for r in caplog.records
+    )
+
+
+def test_recorder_unexpected_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Unexpected errors from ``imageio`` propagate."""
+
+    def raise_value_error(*_args: object, **_kwargs: object) -> None:
+        raise ValueError("fail")
+
+    monkeypatch.setattr(imageio, "get_writer", raise_value_error)
+    with pytest.raises(ValueError):
+        Recorder(10, 10, 30, tmp_path / "out.mp4")
