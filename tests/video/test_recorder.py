@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import logging
 import subprocess
+import wave
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pytest
 
 from app.video.recorder import Recorder, VideoMuxingError
@@ -31,6 +33,31 @@ def test_close_muxes_audio_successfully(tmp_path: Path, monkeypatch: pytest.Monk
 
     def fake_run(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
         cmd = args[0]
+        Path(cmd[-1]).write_bytes(b"muxed")
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr("app.video.recorder.subprocess.run", fake_run)
+    recorder.close(audio, rate=48_000)
+    assert recorder.path.exists()
+    assert not recorder._video_path.exists()
+    assert not recorder.path.with_suffix(".wav").exists()
+
+
+def test_close_converts_float_audio(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    recorder = Recorder(10, 10, 30, tmp_path / "out.mp4")
+    recorder._video_path.write_bytes(b"frame")
+    recorder._frame_count = 1
+    audio = np.array([0.0, 0.5, -1.0], dtype=np.float32)
+    expected = (
+        np.clip(audio, -1.0, 1.0) * np.iinfo(np.int16).max
+    ).astype(np.int16).tobytes()
+
+    def fake_run(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
+        cmd = args[0]
+        audio_file = Path(cmd[5])
+        with wave.open(str(audio_file), "rb") as wf:
+            frames = wf.readframes(wf.getnframes())
+        assert frames == expected
         Path(cmd[-1]).write_bytes(b"muxed")
         return subprocess.CompletedProcess(cmd, 0)
 
