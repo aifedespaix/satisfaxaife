@@ -14,6 +14,21 @@ import imageio_ffmpeg
 logger = logging.getLogger(__name__)
 
 
+def _ensure_int16(audio: np.ndarray) -> np.ndarray:
+    """Return ``audio`` as 16-bit PCM samples.
+
+    Floating point arrays are clipped to ``[-1.0, 1.0]`` and scaled to the
+    signed 16-bit range. Integer arrays are cast without scaling.
+    """
+
+    if audio.dtype == np.int16:
+        return audio
+    if np.issubdtype(audio.dtype, np.floating):
+        scaled = np.clip(audio, -1.0, 1.0) * np.iinfo(np.int16).max
+        return scaled.astype(np.int16)
+    return audio.astype(np.int16, copy=False)
+
+
 class VideoMuxingError(RuntimeError):
     """Raised when combining video and audio streams fails."""
 
@@ -72,12 +87,14 @@ class Recorder(RecorderProtocol):
 
         The method returns early if no frames were recorded or if the temporary
         video file is missing. In that case a warning is logged and any provided
-        audio is ignored.
+        audio is ignored. Audio samples must use the ``np.int16`` dtype; other
+        dtypes are converted with clipping and scaling.
 
         Parameters
         ----------
         audio:
-            PCM samples to mux alongside the video.
+            PCM samples in ``np.int16`` format. Floating point arrays in the
+            ``[-1.0, 1.0]`` range are scaled and converted to ``np.int16``.
         rate:
             Sampling rate of ``audio`` in Hertz.
 
@@ -96,6 +113,8 @@ class Recorder(RecorderProtocol):
             if self._video_path != self.path:
                 self._video_path.rename(self.path)
             return
+        audio = _ensure_int16(audio)
+        assert audio.dtype == np.int16
         audio_path = self.path.with_suffix(".wav")
         with wave.open(str(audio_path), "wb") as wf:
             channels = audio.shape[1] if audio.ndim == 2 else 1
