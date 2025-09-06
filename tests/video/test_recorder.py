@@ -23,11 +23,10 @@ class DummyAudio:
         return self._data
 
 
-def test_close_muxes_audio_successfully(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_close_muxes_audio_successfully(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     recorder = Recorder(10, 10, 30, tmp_path / "out.mp4")
     recorder._video_path.write_bytes(b"frame")
+    recorder._frame_count = 1
     audio = DummyAudio(48_000)
 
     def fake_run(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
@@ -47,6 +46,7 @@ def test_close_raises_video_muxing_error(
 ) -> None:
     recorder = Recorder(10, 10, 30, tmp_path / "out.mp4")
     recorder._video_path.write_bytes(b"frame")
+    recorder._frame_count = 1
     audio = DummyAudio(48_000)
     audio_path = recorder.path.with_suffix(".wav")
 
@@ -62,3 +62,16 @@ def test_close_raises_video_muxing_error(
     assert not recorder._video_path.exists()
     assert not audio_path.exists()
     assert not recorder.path.exists()
+
+
+def test_close_without_frames_does_not_raise(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Closing without frames logs a warning and skips muxing."""
+    recorder = Recorder(10, 10, 30, tmp_path / "out.mp4")
+    audio = DummyAudio(48_000)
+    with caplog.at_level(logging.WARNING, logger="app.video.recorder"):
+        recorder.close(audio, rate=48_000)
+    assert "No video frames recorded; skipping muxing" in caplog.text
+    assert not recorder.path.exists()
+    assert not recorder._video_path.exists()
