@@ -68,7 +68,8 @@ class Recorder(RecorderProtocol):
                 codec="libx264",
                 macro_block_size=1,
             )
-        except Exception:
+        except (OSError, imageio.core.FormatError) as exc:
+            logger.warning("MP4 writer unavailable, falling back to GIF", exc_info=exc)
             self._format = "gif"
             self._video_path = self.path.with_suffix(".gif")
             self.path = self._video_path
