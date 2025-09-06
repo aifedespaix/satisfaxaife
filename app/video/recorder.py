@@ -70,6 +70,10 @@ class Recorder(RecorderProtocol):
     def close(self, audio: np.ndarray | None = None, rate: int = 48_000) -> None:
         """Finalize the video and optionally mux an audio track.
 
+        The method returns early if no frames were recorded or if the temporary
+        video file is missing. In that case a warning is logged and any provided
+        audio is ignored.
+
         Parameters
         ----------
         audio:
@@ -83,6 +87,9 @@ class Recorder(RecorderProtocol):
             If ``ffmpeg`` fails to combine audio and video streams.
         """
         self.writer.close()
+        if self._frame_count == 0 or not self._video_path.exists():
+            logger.warning("No video frames recorded; skipping muxing")
+            return
         if self._format != "mp4":
             return
         if audio is None or audio.size == 0:
