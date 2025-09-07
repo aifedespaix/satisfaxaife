@@ -53,6 +53,8 @@ class RecorderProtocol(Protocol):
 class Recorder(RecorderProtocol):
     """Write frames to a video file and optionally mux audio."""
 
+    path: Path | None
+
     def __init__(self, width: int, height: int, fps: int, path: Path) -> None:
         self.width = width
         self.height = height
@@ -107,7 +109,9 @@ class Recorder(RecorderProtocol):
         self.writer.close()
         if self._frame_count == 0 or not self._video_path.exists():
             logger.warning("No video frames recorded; skipping muxing")
+            self.path = None
             return
+        assert self.path is not None
         if self._format != "mp4":
             return
         if audio is None or audio.size == 0:
@@ -156,7 +160,7 @@ class NullRecorder(Recorder):
         path: Unused output path kept for API compatibility. Always ``None``.
     """
 
-    path: Path | None  # type: ignore[assignment]
+    path: Path | None
 
     def __init__(self) -> None:
         # ``Recorder`` expects an output path but ``NullRecorder`` never writes
