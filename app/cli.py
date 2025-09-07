@@ -36,8 +36,8 @@ def _load_run_defaults_from_yaml(path: Path = Path("config.yml")) -> dict[str, s
     except for ``seeds`` which accepts a comma-separated list on a single line.
 
     Recognised keys include ``weapon_a``, ``weapon_b``, ``seed``,
-    ``seeds``, ``max_simulation_seconds``, ``ai_transition_seconds`` and
-    ``debug``.
+    ``seeds``, ``max_simulation_seconds``, ``ai_transition_seconds``,
+    ``team_a_count``, ``team_b_count`` and ``debug``.
 
     Parameters
     ----------
@@ -69,6 +69,18 @@ def _load_run_defaults_from_yaml(path: Path = Path("config.yml")) -> dict[str, s
         else:
             data[key] = value
     return data
+
+
+def _apply_team_counts(cfg: dict[str, str | list[str]]) -> None:
+    """Apply team sizes from configuration mapping to runtime settings."""
+    from app.core.config import settings
+
+    for key in ("team_a_count", "team_b_count"):
+        if key in cfg:
+            try:
+                setattr(settings, key, int(str(cfg[key])))
+            except ValueError:
+                continue
 
 
 def _resolve_run_parameters(
@@ -107,6 +119,7 @@ def _resolve_run_parameters(
             ai_transition_seconds = None
     if debug is None and "debug" in cfg:
         debug = str(cfg["debug"]).lower() in {"1", "true", "yes", "on"}
+    _apply_team_counts(cfg)
 
     weapon_a = weapon_a or "katana"
     weapon_b = weapon_b or "shuriken"
