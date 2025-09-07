@@ -41,6 +41,12 @@ def append_slowmo_ending(
     min_start:
         Minimum timestamp, in seconds, from which extraction can start. Must be
         non-negative and typically corresponds to the intro duration.
+    Raises
+    ------
+    FileNotFoundError
+        If ``path`` does not exist.
+    ValueError
+        If ``slow_factor`` is not positive or ``min_start`` is negative.
     """
     if slow_factor <= 0:
         msg = "slow_factor must be positive"
@@ -48,6 +54,10 @@ def append_slowmo_ending(
     if min_start < 0:
         msg = "min_start must be non-negative"
         raise ValueError(msg)
+
+    if not path.exists():
+        msg = f"Video file not found: {path}"
+        raise FileNotFoundError(msg)
 
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
     start = max(min_start, death_ts - pre_s)
