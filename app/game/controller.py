@@ -633,14 +633,16 @@ class GameController:
         audio = self.engine.end_capture() if not self.display else None
         self.engine.stop_all()
         self.recorder.close(audio)
+        path = self.recorder.path
         if (
             not self.display
             and self.death_ts is not None
-            and self.recorder.path is not None
-            and self.recorder.path.suffix == ".mp4"
+            and path is not None
+            and path.suffix == ".mp4"
+            and path.exists()
         ):
             append_slowmo_ending(
-                self.recorder.path,
+                path,
                 self.death_ts,
                 settings.end_screen.pre_s,
                 settings.end_screen.post_s,

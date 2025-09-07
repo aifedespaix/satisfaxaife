@@ -55,7 +55,9 @@ def test_append_slowmo_receives_death_timestamp(
     if "instakill_test" not in weapon_registry.names():
         weapon_registry.register("instakill_test", InstantKillWeapon)
 
-    recorder = DummyRecorder(tmp_path / "out.mp4")
+    path = tmp_path / "out.mp4"
+    path.touch()
+    recorder = DummyRecorder(path)
     renderer = Renderer(settings.width, settings.height)
 
     captured_path: Path | None = None
@@ -91,6 +93,38 @@ def test_append_slowmo_receives_death_timestamp(
     reset_default_engine()
 
 
+def test_slowmo_skipped_when_file_missing(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """append_slowmo_ending is skipped if no video file is produced."""
+
+    reset_default_engine()
+    if "instakill_test" not in weapon_registry.names():
+        weapon_registry.register("instakill_test", InstantKillWeapon)
+
+    recorder = DummyRecorder(tmp_path / "out.mp4")
+    renderer = Renderer(settings.width, settings.height)
+
+    called = False
+
+    def fake_append(*_args: object, **_kwargs: object) -> None:
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr("app.game.controller.append_slowmo_ending", fake_append)
+
+    controller = create_controller(
+        "instakill_test", "instakill_test", recorder, renderer, max_seconds=1
+    )
+    controller.run()
+
+    assert recorder.path is not None and not recorder.path.exists()
+    assert not called
+
+    weapon_registry._factories.pop("instakill_test")
+    reset_default_engine()
+
+
 def test_slowmo_segment_starts_after_intro(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Slow-motion extraction should never start before the intro ends."""
 
@@ -98,7 +132,9 @@ def test_slowmo_segment_starts_after_intro(monkeypatch: pytest.MonkeyPatch, tmp_
     if "instakill_test" not in weapon_registry.names():
         weapon_registry.register("instakill_test", InstantKillWeapon)
 
-    recorder = DummyRecorder(tmp_path / "out.mp4")
+    path = tmp_path / "out.mp4"
+    path.touch()
+    recorder = DummyRecorder(path)
     renderer = Renderer(settings.width, settings.height)
 
     captured_start: float | None = None
