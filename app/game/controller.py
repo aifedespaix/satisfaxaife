@@ -621,7 +621,11 @@ class GameController:
         self.phase = Phase.FINISHED
 
     def _teardown(self, intro_elapsed: float) -> None:
-        """Release resources and finalize recording."""
+        """Release resources and finalize recording.
+
+        Slow-motion post-processing is applied only when the recorder writes an
+        MP4 file. Recorders that fall back to GIF output skip this step.
+        """
         for player in self.players:
             weapon_audio = getattr(player.weapon, "audio", None)
             if weapon_audio is not None:
@@ -629,7 +633,12 @@ class GameController:
         audio = self.engine.end_capture() if not self.display else None
         self.engine.stop_all()
         self.recorder.close(audio)
-        if not self.display and self.death_ts is not None and self.recorder.path is not None:
+        if (
+            not self.display
+            and self.death_ts is not None
+            and self.recorder.path is not None
+            and self.recorder.path.suffix == ".mp4"
+        ):
             append_slowmo_ending(
                 self.recorder.path,
                 self.death_ts,
