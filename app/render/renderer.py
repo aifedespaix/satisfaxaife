@@ -111,7 +111,9 @@ class Renderer:
             self._display = None
 
         self.surface = pygame.Surface((width, height), flags=pygame.SRCALPHA)
-        self._balls: dict[Color, _BallState] = {}
+        # Per-entity visual state (trail, ghosts, flashes). Keyed by an opaque
+        # object to support either team color (legacy) or a unique entity id.
+        self._balls: dict[object, _BallState] = {}
         self.frame_index = 0
         self.background = (10, 10, 10)
         self.arena_color = (20, 20, 20)
@@ -159,7 +161,7 @@ class Renderer:
             updated.append(impact)
         self._impacts = updated
 
-    def _get_state(self, key: Color) -> _BallState:
+    def _get_state(self, key: object) -> _BallState:
         return self._balls.setdefault(key, _BallState())
 
     def _draw_ghosts(self, state: _BallState, color: Color, radius: int) -> None:
@@ -283,6 +285,8 @@ class Renderer:
         color: Color,
         team_color: Color,
         is_dashing: bool = False,
+        *,
+        state_key: object | None = None,
     ) -> None:
         """Draw the ball and update its trail.
 
@@ -301,7 +305,10 @@ class Renderer:
             trail effect is amplified by adding extra points and ghost clones
             are generated.
         """
-        state = self._get_state(team_color)
+        # Use a dedicated per-entity key when provided (e.g., EntityId) to
+        # avoid sharing trails/ghosts across players of the same team.
+        key: object = state_key if state_key is not None else team_color
+        state = self._get_state(key)
         if is_dashing:
             state.ghosts.append(_Ghost(pos, 180.0))
         if state.prev_pos is not None:

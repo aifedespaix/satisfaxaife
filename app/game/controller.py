@@ -499,6 +499,20 @@ class GameController:
     def _step_effects(self) -> None:
         """Advance effect state and prune expired entries."""
         for eff in list(self.effects):
+            # Remove effects whose owner has died to avoid lingering blades/projectiles
+            owner = getattr(eff, "owner", None)
+            if owner is not None:
+                for p in self.players:
+                    if p.eid == owner and not p.alive:
+                        eff.destroy()
+                        self.effects.remove(eff)
+                        break
+                else:
+                    # No matching player id found; fall through to step.
+                    pass
+                # If effect was removed due to dead owner, skip stepping it.
+                if eff not in self.effects:
+                    continue
             if not eff.step(settings.dt):
                 eff.destroy()
                 self.effects.remove(eff)
@@ -571,7 +585,14 @@ class GameController:
                 float(p.ball.body.position.y),
             )
             radius = int(p.ball.shape.radius)
-            self.renderer.draw_ball(pos, radius, settings.ball_color, p.color, p.dash.is_dashing)
+            self.renderer.draw_ball(
+                pos,
+                radius,
+                settings.ball_color,
+                p.color,
+                p.dash.is_dashing,
+                state_key=p.eid,
+            )
             velocity = p.ball.body.velocity
             speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y)
             gaze = (velocity.x / speed, velocity.y / speed) if speed else p.face
@@ -636,7 +657,12 @@ class GameController:
                 )
                 radius = int(p.ball.shape.radius)
                 self.renderer.draw_ball(
-                    pos, radius, settings.ball_color, p.color, p.dash.is_dashing
+                    pos,
+                    radius,
+                    settings.ball_color,
+                    p.color,
+                    p.dash.is_dashing,
+                    state_key=p.eid,
                 )
                 velocity = p.ball.body.velocity
                 speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y)
