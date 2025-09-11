@@ -71,6 +71,7 @@ class _Impact:
     timer: float
     duration: float
     particles: list[_Particle]
+    scale: float = 1.0
 
 
 class Renderer:
@@ -150,7 +151,7 @@ class Renderer:
                     particle.pos[0] + particle.vel[0] * settings.dt,
                     particle.pos[1] + particle.vel[1] * settings.dt,
                 )
-            strength = impact.timer / impact.duration
+            strength = (impact.timer / impact.duration) * impact.scale
             self._shake = (
                 self._shake[0] + random.uniform(-1, 1) * strength,
                 self._shake[1] + random.uniform(-1, 1) * strength,
@@ -242,14 +243,18 @@ class Renderer:
         if duration <= 0:
             raise ValueError("duration must be positive")
 
+        # Longer durations imply stronger explosions (e.g., death).
+        scale = 1.0 if duration <= 0.2 else min(3.0, 1.0 + (duration - 0.2) * 1.5)
+
         particles: list[_Particle] = []
-        for _ in range(random.randint(6, 10)):
-            ang = random.uniform(0, 2 * 3.14159)
-            speed = random.uniform(80, 160)
+        count = max(6, int(random.randint(8, 14) * scale))
+        for _ in range(count):
+            ang = random.uniform(0.0, 2.0 * math.pi)
+            speed = random.uniform(80.0, 160.0) * scale
             vel = (math.cos(ang) * speed, math.sin(ang) * speed)
             particles.append(_Particle(pos=pos, vel=vel))
         self._impacts.append(
-            _Impact(pos=pos, timer=duration, duration=duration, particles=particles)
+            _Impact(pos=pos, timer=duration, duration=duration, particles=particles, scale=scale)
         )
 
     def update_hp(self, hp_a: float, hp_b: float) -> None:
@@ -431,9 +436,13 @@ class Renderer:
     def draw_impacts(self) -> None:
         for impact in self._impacts:
             alpha = int(255 * (impact.timer / impact.duration))
-            pygame.draw.circle(self.surface, (255, 255, 255, alpha), self._offset(impact.pos), 20)
+            radius = max(6, int(20 * impact.scale))
+            pygame.draw.circle(
+                self.surface, (255, 255, 255, alpha), self._offset(impact.pos), radius
+            )
+            pr = max(2, int(3 * impact.scale))
             for particle in impact.particles:
-                pygame.draw.circle(self.surface, (255, 180, 0), self._offset(particle.pos), 3)
+                pygame.draw.circle(self.surface, (255, 180, 0), self._offset(particle.pos), pr)
 
     def draw_hp(self, surface: pygame.Surface, hud: Hud, labels: tuple[str, str]) -> None:
         hud.draw_hp_bars(surface, self._hp_display[0], self._hp_display[1], labels)

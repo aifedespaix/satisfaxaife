@@ -29,7 +29,13 @@ class Shuriken(Weapon):
         self._sprite = load_weapon_sprite("shuriken", max_dim=sprite_size)
 
     def _fire(self, owner: EntityId, view: WorldView, direction: Vec2) -> None:
-        self.audio.on_throw()
+        # Provide deterministic timestamp for audio capture.
+        timestamp: float | None
+        try:
+            timestamp = float(getattr(view, "get_time")())
+        except Exception:
+            timestamp = None
+        self.audio.on_throw(timestamp)
         velocity = (direction[0] * self.speed, direction[1] * self.speed)
         position = view.get_position(owner)
         proj = view.spawn_projectile(

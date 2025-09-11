@@ -79,6 +79,9 @@ class WorldView(Protocol):
     def get_weapon(self, eid: EntityId) -> Weapon:
         """Return the weapon currently wielded by ``eid``."""
 
+    def get_time(self) -> float:
+        """Return the current simulation timestamp in seconds."""
+
 
 class WeaponEffect(Protocol):
     """Dynamic entity created by a weapon."""

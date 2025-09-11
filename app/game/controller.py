@@ -71,6 +71,7 @@ class _MatchView(WorldView):
         self.world = world
         self.renderer = renderer
         self.engine = engine
+        self._current_time: float = 0.0
 
     def get_enemy(self, owner: EntityId) -> EntityId | None:
         owner_team = self._get_team(owner)
@@ -99,6 +100,10 @@ class _MatchView(WorldView):
                 ratio = p.ball.health / p.ball.stats.max_health
                 return float(ratio)
         raise KeyError(eid)
+
+    def get_time(self) -> float:
+        """Return the current simulation timestamp in seconds."""
+        return self._current_time
 
     def get_team_color(self, eid: EntityId) -> Color:
         for p in self.players:
@@ -403,6 +408,8 @@ class GameController:
 
     def _step_simulation(self, current_time: float) -> None:
         """Advance world state by one tick."""
+        # Expose the current time to weapons via the view.
+        self.view._current_time = current_time  # internal, used by WorldView.get_time()
         self._update_players(current_time)
         self._step_effects()
         self._deflect_projectiles(current_time)

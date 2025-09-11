@@ -50,7 +50,13 @@ class Bazooka(Weapon):
         self.acceleration = 50.0
 
     def _fire(self, owner: EntityId, view: WorldView, direction: Vec2) -> None:  # noqa: D401
-        self.audio.on_throw()
+        # Align audio capture with simulation time for consistent muxing.
+        timestamp: float | None
+        try:
+            timestamp = float(getattr(view, "get_time")())
+        except Exception:
+            timestamp = None
+        self.audio.on_throw(timestamp)
 
         dir_vec = Vec2d(*direction)
         angle = math.atan2(dir_vec.y, dir_vec.x) + math.pi / 2
