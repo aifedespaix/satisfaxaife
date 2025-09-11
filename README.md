@@ -19,10 +19,10 @@ Image de prévisualisation à venir.
 - 🎨 **Rendu vertical 1080×1920** optimisé pour TikTok.
 - 🎥 **Export vidéo automatique** en `.mp4` via [imageio-ffmpeg](https://imageio.readthedocs.io/).
 - 🖥️ **Mode affichage** sans enregistrement grâce à l'option `--display`.
- - 🔄 **Reproductibilité totale** grâce aux seeds (mêmes combats → mêmes résultats).
- - 🛡️ **Esquives dépendantes de la seed** : chaque seed produit un biais d'évitement unique mais reproductible.
+- 🔄 **Reproductibilité totale** grâce aux seeds (mêmes combats → mêmes résultats).
+- 🛡️ **Esquives dépendantes de la seed** : chaque seed produit un biais d'évitement unique mais reproductible.
 - 🌀 **Dash** d'esquive infligeant des dégâts proportionnels à la vitesse,
-  coup critique si une attaque touche pendant l'action et 3 s de recharge.
+  coup critique si une attaque touche pendant l'action et 3 s de recharge.
 - 🛡️ **Armes de contact** qui renvoient automatiquement les projectiles sans
   logique de parade séparée.
 - 🧩 **Architecture plug-in** : ajout d'armes, IA ou effets visuels sans toucher au moteur.
@@ -76,6 +76,10 @@ battle-balls/
 
 ## 🚀 Installation
 
+### wsl
+
+`wsl -d Ubuntu`
+
 ### 1. Cloner le projet
 
 ```bash
@@ -116,7 +120,7 @@ v```
 Pendant le match, pressez `Maj gauche` pour déclencher un *dash* offrant une
 impulsion rapide. Les collisions et dégâts restent actifs pendant toute sa
 durée, mais une traînée de clones évanescents rend l'action spectaculaire. L'IA
-utilise le dash automatiquement lorsqu'un projectile est prévu à moins de `0,3 s`.
+utilise le dash automatiquement lorsqu'un projectile est prévu à moins de `0,3 s`.
 
 📌 **Résultat :**
 Une vidéo **1080×1920, 60 FPS, .mp4**, prête pour TikTok, enregistrée dans

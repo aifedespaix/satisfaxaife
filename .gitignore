@@ -73,6 +73,8 @@ scalene.out
 *.mkv
 *.gif
 
+generated/*.png
+
 # Frames temporaires
 frames/
 
