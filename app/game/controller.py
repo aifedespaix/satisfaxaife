@@ -593,7 +593,13 @@ class GameController:
         self.recorder.add_frame(np.swapaxes(frame, 0, 1))
 
     def _play_winner_sequence(self) -> None:
-        """Render the end screen for the winning team."""
+        """Render the end sequence with explosion and banner.
+
+        Previously this method filled the whole screen with the winner team
+        color, which produced a solid orange/blue frame and hid the actual
+        death animation. We now keep the scene visible and only draw the
+        existing explosion particles and a centered victory banner.
+        """
         for p in self.players:
             weapon_audio = getattr(p.weapon, "audio", None)
             if weapon_audio is not None:
@@ -604,18 +610,38 @@ class GameController:
             self.phase = Phase.FINISHED
             return
 
-        win_color = (
-            settings.theme.team_a.primary
-            if self.winner_team == TeamId(0)
-            else settings.theme.team_b.primary
-        )
-        team_name = "Team A" if self.winner_team == TeamId(0) else "Team B"
-        text = settings.end_screen.victory_text.format(team=team_name)
+        # End message uses the winning weapon name.
+        weapon_name = self.winner_weapon or "?"
+        message = f"Team {weapon_name} wins"
         frames = int(settings.end_screen.explosion_duration * settings.fps)
+        # Keep at least one frame for very short durations.
         for _ in range(max(1, frames)):
+            # Draw the last state of the world without advancing physics.
             self.renderer.clear()
-            self.renderer.surface.fill(win_color)
-            self.hud.draw_title(self.renderer.surface, text)
+
+            # Draw surviving players so the scene remains visible.
+            for p in self.players:
+                if not p.alive:
+                    continue
+                pos = (
+                    float(p.ball.body.position.x),
+                    float(p.ball.body.position.y),
+                )
+                radius = int(p.ball.shape.radius)
+                self.renderer.draw_ball(
+                    pos, radius, settings.ball_color, p.color, p.dash.is_dashing
+                )
+                velocity = p.ball.body.velocity
+                speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y)
+                gaze = (velocity.x / speed, velocity.y / speed) if speed else p.face
+                if settings.show_eyes:
+                    self.renderer.draw_eyes(pos, gaze, radius, p.color)
+
+            # Draw lingering explosion particles and impacts.
+            self.renderer.draw_impacts()
+
+            # Show a single centered message with the main font.
+            self.hud.draw_victory_banner(self.renderer.surface, message)
             self.renderer.present()
             self._capture_frame()
         self.phase = Phase.FINISHED

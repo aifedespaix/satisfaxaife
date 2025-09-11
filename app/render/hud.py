@@ -217,13 +217,13 @@ class Hud:
         rect.bottomleft = (10, surface.get_height() - 10)
         surface.blit(mark, rect)
 
-    def draw_victory_banner(self, surface: pygame.Surface, title: str, subtitle: str) -> None:
-        """Draw the final victory banner at the center of the screen."""
-        title_surf = self.title_font.render(title, True, (255, 255, 255))
-        sub_surf = self.bar_font.render(subtitle, True, (255, 255, 255))
-        center_x = surface.get_width() // 2
-        center_y = surface.get_height() // 2
-        title_rect = title_surf.get_rect(center=(center_x, center_y - 30))
-        sub_rect = sub_surf.get_rect(center=(center_x, center_y + 20))
-        surface.blit(title_surf, title_rect)
-        surface.blit(sub_surf, sub_rect)
+    def draw_victory_banner(self, surface: pygame.Surface, text: str) -> None:
+        """Draw a single centered victory message using the main game font.
+
+        The previous two-line banner (title + subtitle) is simplified to a
+        single line rendered with the HUD's primary font so the message
+        "{team} remporte le duel !" remains consistent with in-game labels.
+        """
+        msg = self.bar_font.render(text, True, (255, 255, 255))
+        rect = msg.get_rect(center=(surface.get_width() // 2, surface.get_height() // 2))
+        surface.blit(msg, rect)

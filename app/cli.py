@@ -16,15 +16,35 @@ def _sanitize(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9_-]", "_", name)
 
 
-def _build_final_path(temp_path: Path, winner: str | None, hp_ratio: float | None) -> Path:
-    """Return final video path with winner name and HP suffix."""
+def _build_final_path(
+    temp_path: Path, winner: str | None, hp_ratio: float | None, *, seed: int | None
+) -> Path:
+    """Return final video path with winner name, HP and seed suffix.
+
+    Parameters
+    ----------
+    temp_path: Path
+        Temporary path used during recording (same directory, base stem).
+    winner: str | None
+        Winner name (sanitized) or ``None`` for a draw.
+    hp_ratio: float | None
+        Remaining HP ratio for the winner in ``[0, 1]``; used for a ``-NN`` suffix.
+    seed: int | None
+        Random seed used for the simulation; appended as ``_seed-{seed}``.
+
+    Returns
+    -------
+    Path
+        Final output path with composed suffixes before the extension.
+    """
     winner_name = _sanitize(winner) if winner is not None else "draw"
     hp_suffix = ""
     if hp_ratio is not None:
         percent = int(round(max(0.0, min(1.0, hp_ratio)) * 100))
         hp_suffix = f"-{percent:02d}"
+    seed_suffix = f"_seed-{seed}" if seed is not None else ""
     return temp_path.with_name(
-        f"{temp_path.stem}-{winner_name}_win{hp_suffix}{temp_path.suffix}"
+        f"{temp_path.stem}-{winner_name}_win{hp_suffix}{seed_suffix}{temp_path.suffix}"
     )
 
 
@@ -193,7 +213,8 @@ def _run_single_match(  # noqa: C901
             timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
             safe_a = _sanitize(weapon_a)
             safe_b = _sanitize(weapon_b)
-            temp_path = out_dir / f"{timestamp}-seed{seed}-{safe_a}-VS-{safe_b}.mp4"
+            # Build a neutral temp name; seed will be appended as a final suffix.
+            temp_path = out_dir / f"{timestamp}-{safe_a}-VS-{safe_b}.mp4"
             recorder = Recorder(settings.width, settings.height, settings.fps, temp_path)
             renderer = Renderer(settings.width, settings.height, debug=debug_flag)
 
@@ -223,7 +244,7 @@ def _run_single_match(  # noqa: C901
             timed_out = True
             if not display and temp_path is not None and temp_path.exists():
                 final_path = temp_path.with_name(
-                    f"{temp_path.stem}-timeout{temp_path.suffix}"
+                    f"{temp_path.stem}-timeout_seed-{seed}{temp_path.suffix}"
                 )
                 temp_path.rename(final_path)
                 typer.echo(f"Match timed out: {exc}", err=True)
@@ -242,7 +263,7 @@ def _run_single_match(  # noqa: C901
         return False
 
     if not display and recorder.path is not None and temp_path is not None:
-        final_path = _build_final_path(temp_path, winner, winner_hp_ratio)
+        final_path = _build_final_path(temp_path, winner, winner_hp_ratio, seed=seed)
         temp_path.rename(final_path)
         typer.echo(f"Saved video to {final_path}")
 
@@ -387,7 +408,7 @@ def batch(
             else:
                 winner_name = _sanitize(winner) if winner is not None else "draw"
                 final_path = temp_path.with_name(
-                    f"{temp_path.stem}-{winner_name}_win{temp_path.suffix}"
+                    f"{temp_path.stem}-{winner_name}_win_seed-{seed}{temp_path.suffix}"
                 )
                 temp_path.rename(final_path)
                 typer.echo(f"Saved video to {final_path}")
