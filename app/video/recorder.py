@@ -72,9 +72,7 @@ class Recorder(RecorderProtocol):
 
         if self._using_stub_imageio:
             # Fallback: record frames as PNGs in a temporary folder and encode with ffmpeg later.
-            self._frames_dir = Path(
-                tempfile.mkdtemp(prefix="frames_", dir=str(self.path.parent))
-            )
+            self._frames_dir = Path(tempfile.mkdtemp(prefix="frames_", dir=str(self.path.parent)))
 
             class _PngSeqWriter:
                 def __init__(self, out_dir: Path) -> None:
@@ -150,11 +148,11 @@ class Recorder(RecorderProtocol):
                 logger.warning("No video frames recorded; skipping muxing")
                 # Cleanup temp dir
                 if hasattr(self, "_frames_dir"):
-                    shutil.rmtree(getattr(self, "_frames_dir"), ignore_errors=True)
+                    shutil.rmtree(self._frames_dir, ignore_errors=True)
                 self.path = None
                 return
             ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
-            pattern = str(getattr(self, "_frames_dir") / "frame_%06d.png")
+            pattern = str(self._frames_dir / "frame_%06d.png")
             cmd = [
                 ffmpeg,
                 "-y",
@@ -172,11 +170,11 @@ class Recorder(RecorderProtocol):
                 subprocess.run(cmd, check=True, capture_output=True, text=True)
             except subprocess.CalledProcessError as exc:  # pragma: no cover - depends on env
                 logger.error("ffmpeg encoding failed: %s", exc.stderr)
-                shutil.rmtree(getattr(self, "_frames_dir"), ignore_errors=True)
+                shutil.rmtree(self._frames_dir, ignore_errors=True)
                 self.path = None
                 return
             finally:
-                shutil.rmtree(getattr(self, "_frames_dir"), ignore_errors=True)
+                shutil.rmtree(self._frames_dir, ignore_errors=True)
 
         if self._frame_count == 0 or not self._video_path.exists():
             logger.warning("No video frames recorded; skipping muxing")

@@ -69,17 +69,20 @@ def test_run_multiple_seeds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
         intro_weapons: tuple[str, str] | None,
         display: bool,
         debug_flag: bool,
+        boost_tiktok: bool,
     ) -> bool:
         captured.append(seed)
         return True
 
     monkeypatch.setattr(cli, "_run_single_match", fake_run)
 
-    config = "\n".join([
-        "weapon_a: katana",
-        "weapon_b: shuriken",
-        "seeds: [1, 2]",
-    ])
+    config = "\n".join(
+        [
+            "weapon_a: katana",
+            "weapon_b: shuriken",
+            "seeds: [1, 2]",
+        ]
+    )
     (tmp_path / "config.yml").write_text(config, encoding="utf-8")
     monkeypatch.chdir(tmp_path)
 

@@ -16,7 +16,9 @@ def _dummy_driver(_driver: str | None) -> Iterator[None]:
 
 
 class _DummyRenderer:
-    def __init__(self, width: int, height: int, display: bool = False, *, debug: bool = False) -> None:
+    def __init__(
+        self, width: int, height: int, display: bool = False, *, debug: bool = False
+    ) -> None:
         self.width = width
         self.height = height
         self.display = display
@@ -30,7 +32,9 @@ class _DummyRecorder:
     def add_frame(self, _frame: object) -> None:  # pragma: no cover - interface compat
         pass
 
-    def close(self, _audio: object | None = None, rate: int = 48_000) -> None:  # pragma: no cover - compat
+    def close(
+        self, _audio: object | None = None, rate: int = 48_000
+    ) -> None:  # pragma: no cover - compat
         if self.path:
             self.path.write_bytes(b"data")
 
@@ -96,9 +100,14 @@ def _install_typer_stub() -> None:
     sys.modules["typer"] = typer_stub
 
 
-def test_run_single_match_appends_hp_suffix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_single_match_appends_hp_suffix(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Video filename includes winner HP percentage when available."""
     _install_typer_stub()
+    import sys
+    import types
+
     sys.modules.setdefault("imageio", types.ModuleType("imageio"))
     sys.modules.setdefault("imageio_ffmpeg", types.ModuleType("imageio_ffmpeg"))
     import app.audio as audio_mod
@@ -107,6 +116,30 @@ def test_run_single_match_appends_hp_suffix(tmp_path: Path, monkeypatch: pytest.
     import app.game.match as match_mod
     import app.render.renderer as renderer_mod
     import app.video.recorder as recorder_mod
+
+    # Stub moviepy module used during export.
+    class _DummyClip:
+        def __init__(self, path: str) -> None:
+            self.path = Path(path)
+
+        def __enter__(self) -> _DummyClip:
+            return self
+
+        def __exit__(self, *exc: object) -> None:
+            return None
+
+    def _fake_video_file_clip(path: str) -> _DummyClip:
+        return _DummyClip(path)
+
+    sys.modules.setdefault("moviepy", types.ModuleType("moviepy"))
+    moviepy_editor = types.SimpleNamespace(VideoFileClip=_fake_video_file_clip)
+    sys.modules["moviepy.editor"] = moviepy_editor
+
+    def _fake_export(clip: _DummyClip, out_path: str, **_kwargs: object) -> str:
+        Path(out_path).write_bytes(clip.path.read_bytes())
+        return out_path
+
+    monkeypatch.setattr("app.video.export.export_tiktok", _fake_export)
     import app.weapons as weapons_mod
 
     monkeypatch.setattr(weapons_mod.weapon_registry, "names", lambda: None)
@@ -126,6 +159,7 @@ def test_run_single_match_appends_hp_suffix(tmp_path: Path, monkeypatch: pytest.
         intro_weapons=None,
         display=False,
         debug_flag=False,
+        boost_tiktok=True,
     )
 
     files = list((tmp_path / "generated").glob("*.mp4"))
