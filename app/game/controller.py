@@ -128,7 +128,8 @@ class _MatchView(WorldView):
                         if weapon_audio is not None:
                             weapon_audio.stop_idle(timestamp, disable=True)
                 self.renderer.trigger_blink(p.color, int(damage.amount))
-                self.renderer.trigger_hit_flash(p.color)
+                # Use per-entity flash to align with draw_ball(state_key=p.eid)
+                self.renderer.trigger_hit_flash_for(p.eid)
                 return
 
     def heal(self, eid: EntityId, amount: float, timestamp: float) -> None:
@@ -136,6 +137,8 @@ class _MatchView(WorldView):
         for p in self.players:
             if p.eid == eid and p.alive:
                 p.ball.heal(amount)
+                # Visual feedback on heal
+                self.renderer.trigger_heal_flash_for(p.eid)
                 return
 
     def apply_impulse(self, eid: EntityId, vx: float, vy: float) -> None:

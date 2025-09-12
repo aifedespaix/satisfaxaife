@@ -51,6 +51,8 @@ class _BallState:
     blink_progress: int = 0
     hit_flash_timer: float = 0.0
     hit_flash_duration: float = 0.0
+    heal_flash_timer: float = 0.0
+    heal_flash_duration: float = 0.0
 
 
 @dataclass(slots=True)
@@ -344,15 +346,23 @@ class Renderer:
             pygame.draw.circle(
                 self.surface, (255, 255, 255, 80), self._offset(highlight_pos), int(radius * 0.3)
             )
+        # Damage flash (red)
         if state.hit_flash_timer > 0:
             strength = (
-                state.hit_flash_timer / state.hit_flash_duration
-                if state.hit_flash_duration > 0
-                else 0.0
+                state.hit_flash_timer / state.hit_flash_duration if state.hit_flash_duration > 0 else 0.0
             )
-            overlay = (255, 0, 0, int(255 * strength))
-            pygame.draw.circle(self.surface, overlay, self._offset(pos), radius)
+            overlay_red = (255, 0, 0, int(255 * strength))
+            pygame.draw.circle(self.surface, overlay_red, self._offset(pos), radius)
             state.hit_flash_timer = max(0.0, state.hit_flash_timer - settings.dt)
+
+        # Heal flash (green)
+        if state.heal_flash_timer > 0:
+            strength = (
+                state.heal_flash_timer / state.heal_flash_duration if state.heal_flash_duration > 0 else 0.0
+            )
+            overlay_green = (0, 255, 0, int(220 * strength))
+            pygame.draw.circle(self.surface, overlay_green, self._offset(pos), radius)
+            state.heal_flash_timer = max(0.0, state.heal_flash_timer - settings.dt)
 
     def draw_projectile(
         self,
@@ -425,20 +435,49 @@ class Renderer:
         state.blink_progress = max(state.blink_progress, strength)
 
     def trigger_hit_flash(self, team_color: Color, duration: float = 0.15) -> None:
-        """Flash the ball in red for ``duration`` seconds.
+        """Flash the team-identified ball in red for ``duration`` seconds.
 
-        Parameters
-        ----------
-        team_color:
-            Team color identifying the target ball.
-        duration:
-            Duration of the flash in seconds. Defaults to ``0.15`` seconds.
+        This legacy helper uses ``team_color`` as the state key and is kept for
+        compatibility with unit tests. Prefer :meth:`trigger_hit_flash_for` when
+        you have a stable per-entity key (e.g., ``EntityId``).
         """
         if duration <= 0:
             raise ValueError("duration must be positive")
         state = self._get_state(team_color)
         state.hit_flash_timer = duration
         state.hit_flash_duration = duration
+
+    def trigger_hit_flash_for(self, key: object, duration: float = 0.15) -> None:
+        """Flash the entity identified by ``key`` in red.
+
+        Parameters
+        ----------
+        key:
+            State key used to track per-entity visuals (e.g., ``EntityId``).
+        duration:
+            Duration of the flash in seconds.
+        """
+        if duration <= 0:
+            raise ValueError("duration must be positive")
+        state = self._get_state(key)
+        state.hit_flash_timer = duration
+        state.hit_flash_duration = duration
+
+    def trigger_heal_flash_for(self, key: object, duration: float = 0.15) -> None:
+        """Flash the entity identified by ``key`` in green for ``duration`` seconds.
+
+        Parameters
+        ----------
+        key:
+            State key used to track per-entity visuals (e.g., ``EntityId``).
+        duration:
+            Duration of the flash in seconds.
+        """
+        if duration <= 0:
+            raise ValueError("duration must be positive")
+        state = self._get_state(key)
+        state.heal_flash_timer = duration
+        state.heal_flash_duration = duration
 
     def draw_impacts(self) -> None:
         for impact in self._impacts:
