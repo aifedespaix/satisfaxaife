@@ -112,15 +112,9 @@ uv run python -m app.cli --help
 
 ## 🎮 Lancer un match simple
 
-Exemple : **Katana VS Shuriken**, seed = 42 :
+`uv run python -m app.cli run`
 
-````bash
-v```
-
-Pendant le match, pressez `Maj gauche` pour déclencher un *dash* offrant une
-impulsion rapide. Les collisions et dégâts restent actifs pendant toute sa
-durée, mais une traînée de clones évanescents rend l'action spectaculaire. L'IA
-utilise le dash automatiquement lorsqu'un projectile est prévu à moins de `0,3 s`.
+L'IA utilise le dash automatiquement lorsqu'un projectile est prévu à moins de `0,3 s`.
 
 📌 **Résultat :**
 Une vidéo **1080×1920, 60 FPS, .mp4**, prête pour TikTok, enregistrée dans
@@ -137,7 +131,7 @@ après l'animation de fin **sans** rejouer le ralenti :
 
 ```bash
 uv run python -m app.cli run --display
-````
+```
 
 ---
 
