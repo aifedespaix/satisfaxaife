@@ -158,6 +158,7 @@ def _run_single_match(  # noqa: C901
     intro_weapons: tuple[str, str] | None,
     display: bool,
     debug_flag: bool,
+    boost_tiktok: bool,
 ) -> bool:
     """Run a single match and write the resulting video to disk.
 
@@ -264,7 +265,13 @@ def _run_single_match(  # noqa: C901
 
     if not display and recorder.path is not None and temp_path is not None:
         final_path = _build_final_path(temp_path, winner, winner_hp_ratio, seed=seed)
-        temp_path.rename(final_path)
+
+        from app.video.export import export_tiktok  # noqa: I001
+        from moviepy.editor import VideoFileClip
+
+        with VideoFileClip(str(temp_path)) as clip:
+            export_tiktok(clip, str(final_path), fps=settings.fps, boost_tiktok=boost_tiktok)
+        temp_path.unlink(missing_ok=True)
         typer.echo(f"Saved video to {final_path}")
 
     return True
@@ -307,6 +314,11 @@ def run(
             help="Enable debug rendering (hitboxes and helpers)",
         ),
     ] = None,
+    boost_tiktok: bool = typer.Option(
+        True,
+        "--boost-tiktok/--no-boost-tiktok",
+        help="Apply color boost suited for TikTok",
+    ),
 ) -> None:
     """Run one or more matches and export videos to ``./generated``."""
     (
@@ -336,6 +348,7 @@ def run(
             intro_weapons,
             display,
             debug_flag,
+            boost_tiktok,
         )
         if not ok:
             exit_code = 1
@@ -355,6 +368,11 @@ def batch(
             help="Directory where generated videos are written",
         ),
     ] = Path("generated"),
+    boost_tiktok: bool = typer.Option(
+        True,
+        "--boost-tiktok/--no-boost-tiktok",
+        help="Apply color boost suited for TikTok",
+    ),
 ) -> None:
     """Generate multiple match videos with varied seeds and weapons."""
     from app.audio import reset_default_engine
@@ -410,7 +428,15 @@ def batch(
                 final_path = temp_path.with_name(
                     f"{temp_path.stem}-{winner_name}_win_seed-{seed}{temp_path.suffix}"
                 )
-                temp_path.rename(final_path)
+
+                from app.video.export import export_tiktok  # noqa: I001
+                from moviepy.editor import VideoFileClip
+
+                with VideoFileClip(str(temp_path)) as clip:
+                    export_tiktok(
+                        clip, str(final_path), fps=settings.fps, boost_tiktok=boost_tiktok
+                    )
+                temp_path.unlink(missing_ok=True)
                 typer.echo(f"Saved video to {final_path}")
             finally:
                 reset_default_engine()

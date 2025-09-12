@@ -53,7 +53,7 @@ class Bazooka(Weapon):
         # Align audio capture with simulation time for consistent muxing.
         timestamp: float | None
         try:
-            timestamp = float(getattr(view, "get_time")())
+            timestamp = float(view.get_time())
         except Exception:
             timestamp = None
         self.audio.on_throw(timestamp)
@@ -85,10 +85,7 @@ class Bazooka(Weapon):
 
     def _ensure_effect(self, owner: EntityId, view: WorldView) -> None:
         """Ensure the aiming sprite exists within the view's effect list."""
-        is_active = (
-            self._effect is not None
-            and self._effect in getattr(view, "effects", [])
-        )
+        is_active = self._effect is not None and self._effect in getattr(view, "effects", [])
         if not is_active:
             effect = AimedSprite(
                 owner=owner,

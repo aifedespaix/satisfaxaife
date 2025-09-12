@@ -32,7 +32,7 @@ class Shuriken(Weapon):
         # Provide deterministic timestamp for audio capture.
         timestamp: float | None
         try:
-            timestamp = float(getattr(view, "get_time")())
+            timestamp = float(view.get_time())
         except Exception:
             timestamp = None
         self.audio.on_throw(timestamp)

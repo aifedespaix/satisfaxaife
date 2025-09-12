@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -25,6 +27,32 @@ from app.render.renderer import Renderer
 from app.video.recorder import NullRecorder
 
 imageio_ffmpeg = pytest.importorskip("imageio_ffmpeg")
+
+
+@pytest.fixture(autouse=True)
+def _patch_export(monkeypatch: MonkeyPatch) -> None:
+    class _DummyClip:
+        def __init__(self, path: str) -> None:
+            self.path = Path(path)
+
+        def __enter__(self) -> _DummyClip:
+            return self
+
+        def __exit__(self, *exc: object) -> None:
+            return None
+
+    def _fake_video_file_clip(path: str) -> _DummyClip:
+        return _DummyClip(path)
+
+    sys.modules.setdefault("moviepy", types.ModuleType("moviepy"))
+    moviepy_editor = types.SimpleNamespace(VideoFileClip=_fake_video_file_clip)
+    sys.modules["moviepy.editor"] = moviepy_editor
+
+    def _fake_export(clip: _DummyClip, out_path: str, **_kwargs: object) -> str:
+        Path(out_path).write_bytes(clip.path.read_bytes())
+        return out_path
+
+    monkeypatch.setattr("app.video.export.export_tiktok", _fake_export)
 
 
 def test_run_creates_video(tmp_path: Path) -> None:
