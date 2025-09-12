@@ -40,3 +40,18 @@ class BallAudio:
     def on_hit(self, timestamp: float | None = None) -> None:
         """Play a random hit sound when the ball takes damage."""
         self._engine.play_variation(random.choice(self._hit_paths), timestamp=timestamp)
+
+    def on_bump(self, *, volume: float, timestamp: float | None = None, cooldown_ms: int | None = None) -> None:
+        """Play a soft, attenuated hit sound for non-damaging bumps.
+
+        Parameters
+        ----------
+        volume:
+            Linear volume [0.0, 1.0] applied to the variation.
+        timestamp:
+            Optional simulated time used during recording capture.
+        cooldown_ms:
+            Optional cooldown in milliseconds to limit repetition.
+        """
+        path = random.choice(self._hit_paths)
+        self._engine.play_variation(path, volume=volume, timestamp=timestamp, cooldown_ms=cooldown_ms)

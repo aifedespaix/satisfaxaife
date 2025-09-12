@@ -267,11 +267,21 @@ def _run_single_match(  # noqa: C901
         final_path = _build_final_path(temp_path, winner, winner_hp_ratio, seed=seed)
 
         from app.video.export import export_tiktok  # noqa: I001
-        from moviepy.editor import VideoFileClip
-
-        with VideoFileClip(str(temp_path)) as clip:
-            export_tiktok(clip, str(final_path), fps=settings.fps, boost_tiktok=boost_tiktok)
-        temp_path.unlink(missing_ok=True)
+        try:
+            from moviepy.editor import VideoFileClip  # type: ignore[import-not-found]
+        except Exception:
+            # MoviePy unavailable or broken; skip TikTok post-process.
+            temp_path.rename(final_path)
+            typer.echo(
+                "MoviePy unavailable; saved raw recording without TikTok post-process",
+                err=True,
+            )
+        else:
+            with VideoFileClip(str(temp_path)) as clip:
+                export_tiktok(
+                    clip, str(final_path), fps=settings.fps, boost_tiktok=boost_tiktok
+                )
+            temp_path.unlink(missing_ok=True)
         typer.echo(f"Saved video to {final_path}")
 
     return True
@@ -430,13 +440,20 @@ def batch(
                 )
 
                 from app.video.export import export_tiktok  # noqa: I001
-                from moviepy.editor import VideoFileClip
-
-                with VideoFileClip(str(temp_path)) as clip:
-                    export_tiktok(
-                        clip, str(final_path), fps=settings.fps, boost_tiktok=boost_tiktok
+                try:
+                    from moviepy.editor import VideoFileClip  # type: ignore[import-not-found]
+                except Exception:
+                    temp_path.rename(final_path)
+                    typer.echo(
+                        "MoviePy unavailable; saved raw recording without TikTok post-process",
+                        err=True,
                     )
-                temp_path.unlink(missing_ok=True)
+                else:
+                    with VideoFileClip(str(temp_path)) as clip:
+                        export_tiktok(
+                            clip, str(final_path), fps=settings.fps, boost_tiktok=boost_tiktok
+                        )
+                    temp_path.unlink(missing_ok=True)
                 typer.echo(f"Saved video to {final_path}")
             finally:
                 reset_default_engine()

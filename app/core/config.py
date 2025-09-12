@@ -67,6 +67,9 @@ class Settings(BaseModel):  # type: ignore[misc]
     physics_substeps: int = Field(default=4, ge=1)  # Physics integration substeps
     team_a_count: int = Field(default=1, ge=1)  # Number of balls for team A
     team_b_count: int = Field(default=1, ge=1)  # Number of balls for team B
+    # Audio tuning for friendly collisions (same-team soft bump cue)
+    ally_collision_volume: float = Field(default=0.3, ge=0.0, le=1.0)
+    ally_bump_cooldown_ms: int = Field(default=120, ge=0)
 
     @property
     def width(self) -> int:

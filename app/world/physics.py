@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pymunk
 from app.core.config import settings
+from pathlib import Path
 from app.core.targeting import _lead_target
 from app.core.types import EntityId
 from pymunk import Vec2 as Vec2d
@@ -104,6 +105,13 @@ class PhysicsWorld:
         self._view: WorldView | None = None
         self._timestamp: float = 0.0
         self._proj_collision_cooldowns: dict[tuple[pymunk.Shape, pymunk.Shape], float] = {}
+        # Precompute allied bump sound paths (reuse ball hit assets).
+        base = Path("assets") / "balls"
+        self._ally_bump_paths: list[str] = [
+            str(base / "hit-a.ogg"),
+            str(base / "hit-b.ogg"),
+            str(base / "hit-c.ogg"),
+        ]
         self._add_bounds()
 
         # NOTE: certains environnements Pymunk n'exposent pas les handlers.
@@ -176,6 +184,25 @@ class PhysicsWorld:
                 if other is None or not _shapes_hit(shape, candidate):
                     continue
                 _resolve_ball_collision(ball, other)
+                # Play a soft bump for friendly overlaps to convey "no damage".
+                view = self._view
+                if view is not None:
+                    try:
+                        if view.get_team_color(ball.eid) == view.get_team_color(other.eid):
+                            # Access the engine if exposed by the concrete view (MatchView).
+                            engine = getattr(view, "engine", None)
+                            if engine is not None and self._ally_bump_paths:
+                                import random  # local to avoid global import during tests
+
+                                engine.play_variation(
+                                    random.choice(self._ally_bump_paths),
+                                    volume=settings.ally_collision_volume,
+                                    timestamp=self._timestamp,
+                                    cooldown_ms=settings.ally_bump_cooldown_ms,
+                                )
+                    except Exception:
+                        # Audio is best-effort; ignore issues to keep physics robust.
+                        pass
             processed.add(shape)
 
     def _retarget_after_swap(
